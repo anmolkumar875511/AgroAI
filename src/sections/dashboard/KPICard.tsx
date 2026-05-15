@@ -1,4 +1,5 @@
 import { AlertTriangle, MapPin, Package, TrendingUp } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { MiniSparkline } from '@/components/shared/MiniSparkline';
 import { TrendIndicator } from '@/components/shared/TrendIndicator';
 import type { KPIData } from '@/types';
@@ -17,10 +18,21 @@ interface KPICardProps {
 export function KPICard({ data }: KPICardProps) {
   const Icon = iconMap[data.icon];
   const isCritical = data.id === 'risk-villages';
+  const navigate = useNavigate();
+
+  const handleClick = () => {
+    switch (data.id) {
+      case 'risk-villages': navigate('/risk-analyzer'); break;
+      case 'priority-visits': navigate('/visit-planner'); break;
+      case 'stock-alerts': navigate('/analytics'); break;
+      case 'revenue-opportunity': navigate('/analytics'); break;
+    }
+  };
 
   return (
     <div
-      className={`bg-white dark:bg-white/5 rounded-card p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 border border-transparent dark:border-white/5 ${
+      onClick={handleClick}
+      className={`bg-white dark:bg-white/5 rounded-card p-5 shadow-card hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200 border border-transparent dark:border-white/5 cursor-pointer ${
         isCritical ? 'animate-border-glow-red' : ''
       }`}
     >

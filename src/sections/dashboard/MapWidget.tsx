@@ -17,18 +17,22 @@ const containerStyle = {
   height: '100%'
 };
 
-const getMarkerIcon = (type: MapTab) => {
+const getMarkerIcon = (type: MapTab, isActive: boolean) => {
   let color = '#FF3B30'; // danger-red
   if (type === 'visits') color = '#007AFF'; // info-blue
   else if (type === 'retailers') color = '#34C759'; // lime-green
 
+  // Standard map pin shape with tip at 0,0
+  const pinPath = 'M 0,0 C -2,-20 -10,-22 -10,-30 A 10,10 0 1,1 10,-30 C 10,-22 2,-20 0,0 z';
+
   return {
-    path: typeof window !== 'undefined' && window.google ? google.maps.SymbolPath.CIRCLE : 0,
+    path: pinPath,
     fillColor: color,
-    fillOpacity: 1,
-    strokeWeight: 2,
+    fillOpacity: isActive ? 1 : 0.4,
+    strokeWeight: isActive ? 2 : 1,
     strokeColor: '#ffffff',
-    scale: 8,
+    scale: isActive ? 1.1 : 0.8,
+    anchor: typeof window !== 'undefined' && window.google ? new google.maps.Point(0, 0) : undefined,
   };
 };
 
@@ -80,42 +84,37 @@ export function MapWidget() {
 
       {/* Map Area */}
       <div className="relative flex-1 min-h-[300px] bg-light-gray dark:bg-white/5 m-4 rounded-xl overflow-hidden z-0">
-          <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={{ lat: activeRegion.lat, lng: activeRegion.lng }}
-            zoom={activeRegion.zoom}
-            options={{
-              disableDefaultUI: true,
-              zoomControl: true,
-              mapId: 'DEMO_MAP_ID', // Optional: for advanced styling if configured
-            }}
-          >
-            {mapDots.map((dot) => (
-              <MarkerF
-                key={dot.id}
-                position={{ lat: dot.lat, lng: dot.lng }}
-                icon={getMarkerIcon(dot.type)}
-                onClick={() => setActiveMarker(dot.id)}
-                animation={
-                  typeof window !== 'undefined' && window.google && dot.type === activeTab
-                    ? google.maps.Animation.BOUNCE
-                    : undefined
-                }
-              >
-                {activeMarker === dot.id && (
-                  <InfoWindowF
-                    position={{ lat: dot.lat, lng: dot.lng }}
-                    onCloseClick={() => setActiveMarker(null)}
-                    options={{ pixelOffset: new window.google.maps.Size(0, -10) }}
-                  >
-                    <div className="text-xs font-medium text-gray-900 p-1">
-                      {dot.label}
-                    </div>
-                  </InfoWindowF>
-                )}
-              </MarkerF>
-            ))}
-          </GoogleMap>
+        <GoogleMap
+          mapContainerStyle={containerStyle}
+          center={{ lat: activeRegion.lat, lng: activeRegion.lng }}
+          zoom={activeRegion.zoom}
+          options={{
+            disableDefaultUI: true,
+            zoomControl: true,
+            mapId: 'DEMO_MAP_ID', // Optional: for advanced styling if configured
+          }}
+        >
+          {mapDots.map((dot) => (
+            <MarkerF
+              key={dot.id}
+              position={{ lat: dot.lat, lng: dot.lng }}
+              icon={getMarkerIcon(dot.type, dot.type === activeTab)}
+              onClick={() => setActiveMarker(dot.id)}
+            >
+              {activeMarker === dot.id && (
+                <InfoWindowF
+                  position={{ lat: dot.lat, lng: dot.lng }}
+                  onCloseClick={() => setActiveMarker(null)}
+                  options={{ pixelOffset: new window.google.maps.Size(0, -10) }}
+                >
+                  <div className="text-xs font-medium text-gray-900 p-1">
+                    {dot.label}
+                  </div>
+                </InfoWindowF>
+              )}
+            </MarkerF>
+          ))}
+        </GoogleMap>
 
         {/* Legend */}
         <div className="absolute bottom-3 left-3 flex items-center gap-4 px-4 py-2 rounded-full bg-white/90 dark:bg-[#1A1D18]/90 backdrop-blur-sm shadow-sm z-10">

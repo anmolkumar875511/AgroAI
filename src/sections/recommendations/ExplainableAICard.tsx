@@ -1,8 +1,9 @@
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Sprout, ShieldAlert, CloudSun, FlaskConical, Info, CloudRain, Package, TrendingUp, Leaf } from 'lucide-react';
+import { ChevronDown, Sprout, ShieldAlert, CloudSun, FlaskConical, Info, CloudRain, Package, TrendingUp, Leaf, CheckCircle2 } from 'lucide-react';
 import { ProgressRing } from '@/components/shared/ProgressRing';
 import { PriorityBadge } from '@/components/shared/PriorityBadge';
+import { cn } from '@/lib/utils';
 import type { AIRecommendation } from '@/types';
 
 interface ExplainableAICardProps {
@@ -22,8 +23,47 @@ const reasoningIcons: Record<string, React.ComponentType<{ className?: string }>
 export function ExplainableAICard({ recommendation: rec }: ExplainableAICardProps) {
   const [expanded, setExpanded] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
+  const [actionState, setActionState] = useState<'idle' | 'loading' | 'applied' | 'dismissed'>('idle');
 
   const score = rec.priority === 'high' ? 92 : rec.priority === 'medium' ? 75 : 58;
+
+  const handleApply = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionState('loading');
+    setTimeout(() => {
+      setActionState('applied');
+      // In a real app, this would trigger an API call to schedule a visit or send an alert
+    }, 1200);
+  };
+
+  const handleDismiss = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setActionState('dismissed');
+  };
+
+  if (actionState === 'dismissed') {
+    return null; // Hide card when dismissed
+  }
+
+  if (actionState === 'applied') {
+    return (
+      <motion.div 
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        className="bg-lime-green/10 border border-lime-green/30 rounded-card p-5 flex items-center gap-4"
+      >
+        <div className="w-12 h-12 rounded-full bg-lime-green flex items-center justify-center flex-shrink-0 shadow-glow-green">
+          <CheckCircle2 className="w-6 h-6 text-white" />
+        </div>
+        <div>
+          <h4 className="font-semibold text-deep-green dark:text-lime-green text-lg">Recommendation Applied</h4>
+          <p className="text-sm text-deep-green/80 dark:text-lime-green/80 mt-1">
+            Action scheduled for {rec.village}. {rec.farmer ? `Farmer ${rec.farmer} notified.` : ''}
+          </p>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 overflow-hidden">
@@ -154,6 +194,31 @@ export function ExplainableAICard({ recommendation: rec }: ExplainableAICardProp
                   )}
                 </AnimatePresence>
               </div>
+
+              {/* Action Buttons */}
+              <div className="pt-4 mt-2 border-t border-light-gray dark:border-white/10 flex flex-col sm:flex-row gap-3">
+                <button 
+                  onClick={handleApply}
+                  disabled={actionState === 'loading'}
+                  className={cn(
+                    "flex-1 py-3 rounded-button text-sm font-semibold text-white transition-all flex justify-center items-center shadow-glow-green hover:scale-[1.02]",
+                    actionState === 'loading' ? 'bg-deep-green opacity-80 cursor-not-allowed' : 'gradient-primary hover:brightness-110'
+                  )}
+                >
+                  {actionState === 'loading' ? (
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                  ) : (
+                    "Apply Recommendation"
+                  )}
+                </button>
+                <button 
+                  onClick={handleDismiss}
+                  className="px-6 py-3 rounded-button bg-light-gray dark:bg-white/5 text-text-primary dark:text-white text-sm font-medium hover:bg-light-gray/80 transition-all hover:scale-[1.02]"
+                >
+                  Dismiss
+                </button>
+              </div>
+
             </div>
           </motion.div>
         )}

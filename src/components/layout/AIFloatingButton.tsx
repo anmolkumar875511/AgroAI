@@ -7,7 +7,7 @@ interface AIFloatingButtonProps {
 
 export function AIFloatingButton({ onClick }: AIFloatingButtonProps) {
   return (
-    <div className="fixed z-40 lg:bottom-6 lg:left-[276px] bottom-6 right-6 flex flex-col items-center gap-3">
+    <div className="fixed z-40 bottom-6 right-6 flex flex-col items-center gap-3">
       <button
         onClick={onClick}
         className={cn(
