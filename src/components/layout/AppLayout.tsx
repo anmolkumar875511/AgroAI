@@ -15,18 +15,27 @@ interface AppLayoutProps {
 
 export function AppLayout({ children }: AppLayoutProps) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [desktopSidebarOpen, setDesktopSidebarOpen] = useState(true);
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const { isMobile, isDesktop } = useBreakpoint();
   const { theme } = useTheme();
 
+  const handleMenuClick = () => {
+    if (isDesktop) {
+      setDesktopSidebarOpen(!desktopSidebarOpen);
+    } else {
+      setSidebarOpen(true);
+    }
+  };
+
   return (
     <div className={cn("min-h-screen bg-off-white dark:bg-deep-forest transition-colors duration-300", theme)}>
       <TopNavbar
-        onMenuClick={() => setSidebarOpen(true)}
+        onMenuClick={handleMenuClick}
       />
 
-      {isDesktop && (
-        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[260px] z-40" />
+      {isDesktop && desktopSidebarOpen && (
+        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[260px] z-40 transition-transform duration-300" />
       )}
 
       {isMobile && (
@@ -39,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main
         className="pt-16 min-h-screen transition-all duration-300"
         style={{
-          marginLeft: isMobile ? 0 : isDesktop ? 260 : 64,
+          marginLeft: isMobile ? 0 : isDesktop ? (desktopSidebarOpen ? 260 : 0) : 64,
         }}
       >
         <div className="p-4 lg:p-6">{children}</div>

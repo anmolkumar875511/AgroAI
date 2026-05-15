@@ -36,14 +36,12 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
         {/* Left */}
         <div className="flex items-center gap-3">
-          {isMobile && (
-            <button
-              onClick={onMenuClick}
-              className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-light-gray dark:hover:bg-white/5 transition-colors"
-            >
-              <Menu className="w-5 h-5 text-text-primary dark:text-white" />
-            </button>
-          )}
+          <button
+            onClick={onMenuClick}
+            className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-light-gray dark:hover:bg-white/5 transition-colors"
+          >
+            <Menu className="w-5 h-5 text-text-primary dark:text-white" />
+          </button>
           <button
             onClick={() => navigate('/dashboard')}
             className="flex items-center gap-2 cursor-pointer"
