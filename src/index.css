@@ -1,0 +1,174 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 80 20% 97%;
+    --foreground: 100 8% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 100 8% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 100 8% 10%;
+    --primary: 122 54% 24%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 88 46% 56%;
+    --secondary-foreground: 100 8% 10%;
+    --muted: 80 14% 93%;
+    --muted-foreground: 100 5% 55%;
+    --accent: 45 100% 52%;
+    --accent-foreground: 100 8% 10%;
+    --destructive: 4 82% 56%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 80 14% 90%;
+    --input: 80 14% 90%;
+    --ring: 122 54% 24%;
+    --radius: 0.625rem;
+    --sidebar-background: 120 30% 9%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 88 46% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 120 30% 15%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 120 20% 15%;
+    --sidebar-ring: 88 46% 56%;
+
+    /* AgroAI Custom Properties */
+    --deep-green: #1B5E20;
+    --lime-green: #8BC34A;
+    --accent-yellow: #FFC107;
+    --off-white: #F7F9F5;
+    --light-gray: #EDF1E8;
+    --dark-surface: #0D1F0F;
+    --deep-forest: #142818;
+    --text-primary: #1A1D18;
+    --text-secondary: #5A6355;
+    --text-muted: #8B9686;
+    --danger-red: #E53935;
+    --info-blue: #1E88E5;
+  }
+
+  .dark {
+    --background: 120 30% 5%;
+    --foreground: 0 0% 95%;
+    --card: 120 20% 8%;
+    --card-foreground: 0 0% 95%;
+    --popover: 120 20% 8%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 88 46% 56%;
+    --primary-foreground: 100 8% 10%;
+    --secondary: 122 54% 24%;
+    --secondary-foreground: 0 0% 95%;
+    --muted: 120 15% 15%;
+    --muted-foreground: 100 5% 60%;
+    --accent: 45 100% 52%;
+    --accent-foreground: 100 8% 10%;
+    --destructive: 4 82% 50%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 120 15% 15%;
+    --input: 120 15% 15%;
+    --ring: 88 46% 56%;
+    --sidebar-background: 120 30% 5%;
+    --sidebar-foreground: 0 0% 95%;
+    --sidebar-primary: 88 46% 56%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 120 20% 12%;
+    --sidebar-accent-foreground: 0 0% 95%;
+    --sidebar-border: 120 15% 12%;
+    --sidebar-ring: 88 46% 56%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  html {
+    scroll-behavior: smooth;
+  }
+  body {
+    @apply bg-off-white text-text-primary font-sans antialiased;
+    transition: background-color 0.3s ease, color 0.3s ease;
+  }
+  .dark body {
+    @apply bg-deep-forest text-white;
+  }
+}
+
+@layer components {
+  .liquid-glass {
+    position: relative;
+    overflow: hidden;
+    border-radius: 16px;
+  }
+  .liquid-glass::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(27, 94, 32, 0.08), rgba(139, 195, 74, 0.04));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border-radius: inherit;
+    z-index: 0;
+  }
+  .liquid-glass::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, rgba(255, 255, 255, 0.2) 0%, rgba(255, 255, 255, 0.05) 50%, rgba(255, 255, 255, 0) 100%);
+    border-radius: inherit;
+    z-index: 1;
+    pointer-events: none;
+    mix-blend-mode: overlay;
+  }
+  .liquid-glass-content {
+    position: relative;
+    z-index: 10;
+  }
+
+  .gradient-primary {
+    background: linear-gradient(135deg, #1B5E20, #8BC34A);
+  }
+
+  .gradient-warm {
+    background: linear-gradient(135deg, #FFC107, #FFD54F);
+  }
+
+  .gradient-dark {
+    background: linear-gradient(180deg, #0D1F0F, #142818);
+  }
+
+  .glow-border-green {
+    animation: border-glow-green 3s ease-in-out infinite;
+    border: 1px solid rgba(139, 195, 74, 0.4);
+  }
+
+  .glow-border-red {
+    animation: border-glow-red 3s ease-in-out infinite;
+    border: 1px solid rgba(229, 57, 53, 0.4);
+  }
+
+  .skeleton-shimmer {
+    background: linear-gradient(90deg, #EDF1E8 25%, rgba(255, 255, 255, 0.8) 50%, #EDF1E8 75%);
+    background-size: 200% 100%;
+    animation: shimmer 1.5s infinite;
+    border-radius: 6px;
+  }
+
+  .text-gradient {
+    background: linear-gradient(135deg, #1B5E20, #8BC34A);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+}
