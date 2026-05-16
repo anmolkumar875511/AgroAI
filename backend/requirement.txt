@@ -1,0 +1,19 @@
+# Core API Framework
+fastapi==0.115.0
+uvicorn==0.30.6
+python-dotenv==1.0.1
+pydantic==2.9.2
+pydantic-settings==2.5.2
+
+# Database (MongoDB Atlas Async Driver)
+motor==3.6.0
+pymongo==4.9.1
+
+# Machine Learning & Data Processing
+scikit-learn==1.5.1
+pandas==2.2.2
+numpy==1.26.4
+joblib==1.4.2
+
+# Utility
+requests==2.32.3

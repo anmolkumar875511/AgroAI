@@ -1,0 +1,37 @@
+# --- Python / FastAPI ---
+__pycache__/
+*.py[cod]
+*$py.class
+.env
+.venv
+venv/
+ENV/
+env/
+build/
+dist/
+*.egg-info/
+
+# --- Machine Learning ---
+# Ignore large pickle files to avoid slowing down Git.
+# If you want to keep them in Git, remove the line below.
+# Better practice: Store models in S3/Cloud Storage and use a download script.
+*.pkl
+*.joblib
+*.npy
+*.csv
+
+# --- OS / IDE ---
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# --- Logs ---
+*.log
+logs/
+
+# --- Database / Local Storage ---
+*.db
+*.sqlite3
