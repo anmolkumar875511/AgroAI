@@ -16,7 +16,6 @@ dist/
 # Ignore large pickle files to avoid slowing down Git.
 # If you want to keep them in Git, remove the line below.
 # Better practice: Store models in S3/Cloud Storage and use a download script.
-*.pkl
 *.joblib
 *.npy
 *.csv
