@@ -1,81 +1,80 @@
+// src/sections/dashboard/WeeklyPerformanceChart.tsx  — CHANGED
+// What changed:
+// - Added data prop (WeeklyPoint[] | undefined) — live data from DashboardPage
+// - Added loading prop — shows skeleton when true
+// - Falls back to static mock if data is null (safe for landing page preview)
+// - Removed import { weeklyPerformanceData } from '@/data/mockData'
+
 import {
-  ComposedChart,
-  Bar,
-  Line,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-  Legend,
+  ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
+  Tooltip, ResponsiveContainer, Legend,
 } from 'recharts';
-import { weeklyPerformanceData } from '@/data/mockData';
 import { useChartTheme } from '@/hooks/useChartTheme';
 
-export function WeeklyPerformanceChart() {
+interface WeeklyPoint {
+  name: string;
+  value: number;
+  value2: number;
+  value3: number;
+}
+
+interface WeeklyPerformanceChartProps {
+  data?: WeeklyPoint[];  // NEW — from DashboardPage API
+  loading?: boolean;     // NEW
+}
+
+// Static fallback used only when backend data isn't available yet
+const FALLBACK: WeeklyPoint[] = [
+  { name: 'Mon', value: 3.2, value2: 4.0, value3: 2.9 },
+  { name: 'Tue', value: 4.1, value2: 4.0, value3: 3.7 },
+  { name: 'Wed', value: 3.8, value2: 4.0, value3: 3.4 },
+  { name: 'Thu', value: 4.5, value2: 4.0, value3: 4.1 },
+  { name: 'Fri', value: 3.9, value2: 5.0, value3: 3.5 },
+  { name: 'Sat', value: 4.8, value2: 5.0, value3: 4.3 },
+  { name: 'Sun', value: 4.2, value2: 5.0, value3: 3.8 },
+];
+
+export function WeeklyPerformanceChart({ data, loading }: WeeklyPerformanceChartProps) {
   const ct = useChartTheme();
+  const chartData = data || FALLBACK;
+
+  if (loading) {
+    return (
+      <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
+        <div className="flex items-center justify-between mb-6">
+          <div className="h-5 w-40 bg-light-gray dark:bg-white/10 rounded animate-pulse" />
+          <div className="h-8 w-24 bg-light-gray dark:bg-white/10 rounded animate-pulse" />
+        </div>
+        <div className="h-[280px] bg-light-gray dark:bg-white/10 rounded animate-pulse" />
+      </div>
+    );
+  }
 
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
       <div className="flex items-center justify-between mb-6">
         <h3 className="font-semibold text-text-primary dark:text-white">Weekly Performance</h3>
-        <span className="px-3 py-1.5 rounded-button bg-light-gray dark:bg-white/5 text-xs font-medium text-text-primary dark:text-white cursor-pointer">
+        <span className="px-3 py-1.5 rounded-button bg-light-gray dark:bg-white/5 text-xs font-medium text-text-primary dark:text-white">
           This Week
         </span>
       </div>
 
       <ResponsiveContainer width="100%" height={280}>
-        <ComposedChart data={weeklyPerformanceData}>
+        <ComposedChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.gridStroke} />
-          <XAxis
-            dataKey="name"
-            tick={{ fontSize: 12, fill: ct.tickFill }}
-            axisLine={{ stroke: ct.axisStroke }}
-          />
-          <YAxis
-            tick={{ fontSize: 12, fill: ct.tickFill }}
-            axisLine={{ stroke: ct.axisStroke }}
-            tickFormatter={(v) => `Rs.${v}L`}
-          />
-          <Tooltip
-            contentStyle={{
-              backgroundColor: ct.tooltipBg,
-              color: ct.tooltipColor,
-              border: ct.tooltipBorder,
-              borderRadius: '12px',
-              boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
-              fontSize: '13px',
-            }}
-          />
-          <Legend
-            wrapperStyle={{ fontSize: '12px', paddingTop: '16px', color: ct.legendColor }}
-          />
-          <Bar
-            dataKey="value"
-            name="Visits Completed"
-            fill={ct.isDark ? 'rgba(139, 195, 74, 0.4)' : 'rgba(27, 94, 32, 0.3)'}
-            radius={[4, 4, 0, 0]}
-            animationDuration={800}
-          />
-          <Line
-            type="monotone"
-            dataKey="value2"
-            name="Target"
-            stroke={ct.isDark ? '#8BC34A' : '#1B5E20'}
-            strokeWidth={2}
-            strokeDasharray="5 5"
-            dot={false}
-            animationDuration={800}
-          />
-          <Line
-            type="monotone"
-            dataKey="value3"
-            name="Actual Revenue"
-            stroke="#8BC34A"
-            strokeWidth={3}
-            dot={{ r: 4, fill: '#8BC34A' }}
-            animationDuration={800}
-          />
+          <XAxis dataKey="name" tick={{ fontSize: 12, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
+          <YAxis tick={{ fontSize: 12, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `Rs.${v}L`} />
+          <Tooltip contentStyle={{ backgroundColor: ct.tooltipBg, color: ct.tooltipColor, border: ct.tooltipBorder, borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '13px' }} />
+          <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '16px', color: ct.legendColor }} />
+          <Bar dataKey="value" name="Visits Completed"
+            fill={ct.isDark ? 'rgba(139,195,74,0.4)' : 'rgba(27,94,32,0.3)'}
+            radius={[4, 4, 0, 0]} animationDuration={800} />
+          <Line type="monotone" dataKey="value2" name="Target"
+            stroke={ct.isDark ? '#8BC34A' : '#1B5E20'} strokeWidth={2}
+            strokeDasharray="5 5" dot={false} animationDuration={800} />
+          <Line type="monotone" dataKey="value3" name="Actual Revenue"
+            stroke="#8BC34A" strokeWidth={3}
+            dot={{ r: 4, fill: '#8BC34A' }} animationDuration={800} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>
