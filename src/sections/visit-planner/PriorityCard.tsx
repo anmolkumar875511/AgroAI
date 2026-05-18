@@ -1,34 +1,55 @@
+// src/sections/visit-planner/PriorityCard.tsx  — CHANGED
+// What changed:
+// - Added retailerId prop (from backend visit data)
+// - Added territoryId prop
+// - handlePrimaryAction now calls visitPlannerAPI.recordAction() via backend
+// - handleSecondaryAction opens the modal (unchanged)
+// - All UI is identical to original
+
 import { useState } from 'react';
 import { MapPin, Clock, Sparkles, X } from 'lucide-react';
 import { ProgressRing } from '@/components/shared/ProgressRing';
 import { cn } from '@/lib/utils';
+import { visitPlannerAPI } from '@/api/client';
 import type { PriorityVisit } from '@/types';
 
 interface PriorityCardProps {
   visit: PriorityVisit;
+  retailerId: string;    // NEW — from backend
+  territoryId: string;   // NEW — from useAuth user
 }
 
 const tagColors: Record<string, string> = {
-  green: 'bg-lime-green/15 text-deep-green',
-  blue: 'bg-info-blue/10 text-info-blue',
-  red: 'bg-danger-red/10 text-danger-red',
+  green:  'bg-lime-green/15 text-deep-green',
+  blue:   'bg-info-blue/10 text-info-blue',
+  red:    'bg-danger-red/10 text-danger-red',
   yellow: 'bg-accent-yellow/10 text-accent-yellow',
 };
 
-export function PriorityCard({ visit }: PriorityCardProps) {
+export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardProps) {
   const [actionState, setActionState] = useState<'idle' | 'loading' | 'completed'>('idle');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const handlePrimaryAction = () => {
+  // CHANGED: calls backend API instead of just setTimeout
+  const handlePrimaryAction = async () => {
     setActionState('loading');
-    setTimeout(() => {
+    try {
+      const action = visit.actions[0].includes('Start') ? 'start'
+        : visit.actions[0].includes('Follow') ? 'complete'
+        : visit.actions[0].includes('Plan') ? 'start'
+        : 'complete';
+
+      await visitPlannerAPI.recordAction(
+        { retailer_id: retailerId, action },
+        territoryId,
+      );
       setActionState('completed');
-    }, 1000);
+    } catch {
+      setActionState('idle');
+    }
   };
 
-  const handleSecondaryAction = () => {
-    setIsModalOpen(true);
-  };
+  const handleSecondaryAction = () => setIsModalOpen(true);
 
   const getSuccessText = (action: string) => {
     if (action.includes('Start')) return 'Visit Started ✓';
@@ -65,28 +86,21 @@ export function PriorityCard({ visit }: PriorityCardProps) {
             <h4 className="text-lg font-semibold text-text-primary dark:text-white">{visit.name}</h4>
             <div className="mt-2 flex flex-wrap gap-4 text-sm text-text-muted">
               <span className="flex items-center gap-1">
-                <MapPin className="w-3.5 h-3.5" />
-                {visit.location}
+                <MapPin className="w-3.5 h-3.5" />{visit.location}
               </span>
               <span className="flex items-center gap-1">
-                <Clock className="w-3.5 h-3.5" />
-                Last visit: {visit.lastVisit}
+                <Clock className="w-3.5 h-3.5" />Last visit: {visit.lastVisit}
               </span>
             </div>
 
-            {/* Tags */}
             <div className="mt-3 flex flex-wrap gap-2">
               {visit.tags.map((tag, i) => (
-                <span
-                  key={i}
-                  className={cn('px-2.5 py-1 rounded-full text-xs font-medium', tagColors[tag.color])}
-                >
+                <span key={i} className={cn('px-2.5 py-1 rounded-full text-xs font-medium', tagColors[tag.color])}>
                   {tag.label}
                 </span>
               ))}
             </div>
 
-            {/* AI Reason */}
             <div className="mt-4 p-3 rounded-lg bg-off-white dark:bg-white/5 border-l-[3px] border-lime-green">
               <div className="flex items-start gap-2">
                 <Sparkles className="w-4 h-4 text-lime-green flex-shrink-0 mt-0.5" />
@@ -99,36 +113,28 @@ export function PriorityCard({ visit }: PriorityCardProps) {
 
           {/* Actions */}
           <div className="flex lg:flex-col gap-2 flex-shrink-0 w-full lg:w-auto">
-            <button 
-              onClick={handlePrimaryAction}
-              disabled={actionState !== 'idle'}
+            <button onClick={handlePrimaryAction} disabled={actionState !== 'idle'}
               className={cn(
-                "flex-1 lg:flex-none px-5 py-2.5 rounded-button text-sm font-semibold transition-all flex justify-center items-center",
-                actionState === 'completed' 
-                  ? 'bg-lime-green text-white' 
+                'flex-1 lg:flex-none px-5 py-2.5 rounded-button text-sm font-semibold transition-all flex justify-center items-center',
+                actionState === 'completed' ? 'bg-lime-green text-white'
                   : 'gradient-primary text-white hover:brightness-110',
                 actionState === 'loading' && 'opacity-80 cursor-not-allowed'
-              )}
-            >
-              {actionState === 'loading' ? (
-                <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
-              ) : actionState === 'completed' ? (
-                getSuccessText(visit.actions[0])
-              ) : (
-                visit.actions[0]
-              )}
+              )}>
+              {actionState === 'loading'
+                ? <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                : actionState === 'completed'
+                ? getSuccessText(visit.actions[0])
+                : visit.actions[0]}
             </button>
-            <button 
-              onClick={handleSecondaryAction}
-              className="flex-1 lg:flex-none px-5 py-2.5 rounded-button bg-light-gray dark:bg-white/5 text-text-primary dark:text-white text-sm font-medium hover:bg-light-gray/80 transition-all"
-            >
+            <button onClick={handleSecondaryAction}
+              className="flex-1 lg:flex-none px-5 py-2.5 rounded-button bg-light-gray dark:bg-white/5 text-text-primary dark:text-white text-sm font-medium hover:bg-light-gray/80 transition-all">
               {visit.actions[1]}
             </button>
           </div>
         </div>
       </div>
 
-      {/* Details Modal */}
+      {/* Modal */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm animate-in fade-in duration-200">
           <div className="bg-white dark:bg-deep-forest w-full max-w-lg rounded-2xl shadow-xl overflow-hidden border border-light-gray dark:border-white/10 animate-in zoom-in-95 duration-200">
@@ -136,14 +142,11 @@ export function PriorityCard({ visit }: PriorityCardProps) {
               <h3 className="font-semibold text-lg text-text-primary dark:text-white">
                 {visit.actions[1].includes('Alert') ? 'Send Alert' : 'Detailed Profile'}
               </h3>
-              <button 
-                onClick={() => setIsModalOpen(false)} 
-                className="p-1.5 rounded-full hover:bg-light-gray dark:hover:bg-white/10 text-text-muted transition-colors"
-              >
+              <button onClick={() => setIsModalOpen(false)}
+                className="p-1.5 rounded-full hover:bg-light-gray dark:hover:bg-white/10 text-text-muted transition-colors">
                 <X className="w-5 h-5" />
               </button>
             </div>
-            
             <div className="p-6 space-y-5">
               <div className="flex items-center gap-4 pb-4 border-b border-light-gray dark:border-white/5">
                 <div className="w-12 h-12 rounded-full bg-lime-green/20 flex items-center justify-center text-deep-green dark:text-lime-green font-bold text-lg">
@@ -156,13 +159,11 @@ export function PriorityCard({ visit }: PriorityCardProps) {
                   </div>
                 </div>
               </div>
-
               <div className="space-y-4">
                 <div className="bg-light-gray/30 dark:bg-white/5 p-4 rounded-xl">
                   <div className="text-xs font-semibold text-text-muted uppercase tracking-wider mb-1">AI Insight</div>
                   <div className="text-sm font-medium text-text-primary dark:text-white">{visit.aiReason}</div>
                 </div>
-
                 <div className="grid grid-cols-2 gap-4">
                   <div className="bg-light-gray/30 dark:bg-white/5 p-3 rounded-xl">
                     <div className="text-xs text-text-muted mb-1">Priority Score</div>
@@ -174,21 +175,13 @@ export function PriorityCard({ visit }: PriorityCardProps) {
                   </div>
                 </div>
               </div>
-
               <div className="pt-4 flex gap-3">
-                <button 
-                  onClick={() => setIsModalOpen(false)} 
-                  className="flex-1 py-2.5 rounded-lg bg-light-gray dark:bg-white/5 text-text-primary dark:text-white font-medium hover:bg-light-gray/80 transition-colors"
-                >
+                <button onClick={() => setIsModalOpen(false)}
+                  className="flex-1 py-2.5 rounded-lg bg-light-gray dark:bg-white/5 text-text-primary dark:text-white font-medium hover:bg-light-gray/80 transition-colors">
                   Cancel
                 </button>
-                <button 
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    handlePrimaryAction();
-                  }} 
-                  className="flex-1 py-2.5 rounded-lg gradient-primary text-white font-medium hover:brightness-110 transition-all shadow-glow-green"
-                >
+                <button onClick={() => { setIsModalOpen(false); handlePrimaryAction(); }}
+                  className="flex-1 py-2.5 rounded-lg gradient-primary text-white font-medium hover:brightness-110 transition-all shadow-glow-green">
                   {visit.actions[0]}
                 </button>
               </div>

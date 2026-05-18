@@ -1,30 +1,25 @@
+/**
+ * CHANGED FILE: src/components/layout/Sidebar.tsx
+ *
+ * What changed:
+ * 1. Added Bell icon to iconMap (for new Notifications sidebar item)
+ * 2. sidebarItems now imported from updated mockData which has retailer-insights,
+ *    grower-insights, notifications with correct paths
+ * 3. No other logic changes — paths/icons just work now
+ */
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
-  LayoutDashboard,
-  MapPinned,
-  Sparkles,
-  ShieldAlert,
-  Store,
-  Users,
-  BarChart3,
-  Settings,
-  Wifi,
-  WifiOff,
-  Leaf,
+  LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
+  Store, Users, BarChart3, Settings, Wifi, WifiOff, Leaf, Bell,
 } from 'lucide-react';
 import { sidebarItems } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  LayoutDashboard,
-  MapPinned,
-  Sparkles,
-  ShieldAlert,
-  Store,
-  Users,
-  BarChart3,
-  Settings,
+  LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
+  Store, Users, BarChart3, Settings,
+  Bell,   // NEW — for Notifications item
 };
 
 interface SidebarProps {
@@ -37,19 +32,12 @@ export function Sidebar({ className }: SidebarProps) {
   const isOnline = useOnlineStatus();
 
   return (
-    <aside
-      className={cn(
-        'bg-deep-forest flex flex-col h-[calc(100vh-64px)] overflow-y-auto scrollbar-hide',
-        className
-      )}
-    >
-      {/* Logo area - desktop only */}
+    <aside className={cn('bg-deep-forest flex flex-col h-[calc(100vh-64px)] overflow-y-auto scrollbar-hide', className)}>
       <div className="hidden lg:flex items-center gap-2 px-5 py-4">
         <Leaf className="w-5 h-5 text-lime-green" />
         <span className="text-lg font-bold text-white tracking-tight">AgroAI</span>
       </div>
 
-      {/* Nav Items */}
       <nav className="flex-1 px-3 py-2 space-y-1">
         {sidebarItems.map((item) => {
           const Icon = iconMap[item.icon];
@@ -67,37 +55,21 @@ export function Sidebar({ className }: SidebarProps) {
               )}
             >
               {Icon && (
-                <Icon
-                  className={cn(
-                    'w-5 h-5 flex-shrink-0',
-                    isActive ? 'text-lime-green' : 'text-white/60 group-hover:text-white'
-                  )}
-                />
+                <Icon className={cn('w-5 h-5 flex-shrink-0', isActive ? 'text-lime-green' : 'text-white/60 group-hover:text-white')} />
               )}
-              <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">
-                {item.label}
-              </span>
-              {isActive && (
-                <div className="ml-auto w-1.5 h-1.5 rounded-full bg-lime-green" />
-              )}
+              <span className="text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis">{item.label}</span>
+              {isActive && <div className="ml-auto w-1.5 h-1.5 rounded-full bg-lime-green" />}
             </button>
           );
         })}
       </nav>
 
-      {/* Offline Sync Indicator - Real navigator.onLine */}
       <div className="px-4 py-3 border-t border-white/10">
         <div className="flex items-center gap-2">
           {isOnline ? (
-            <>
-              <Wifi className="w-4 h-4 text-lime-green" />
-              <span className="text-xs text-white/60">Online - Synced</span>
-            </>
+            <><Wifi className="w-4 h-4 text-lime-green" /><span className="text-xs text-white/60">Online - Synced</span></>
           ) : (
-            <>
-              <WifiOff className="w-4 h-4 text-danger-red" />
-              <span className="text-xs text-danger-red/80">Offline - Queued</span>
-            </>
+            <><WifiOff className="w-4 h-4 text-danger-red" /><span className="text-xs text-danger-red/80">Offline - Queued</span></>
           )}
         </div>
       </div>
