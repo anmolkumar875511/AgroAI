@@ -1,15 +1,8 @@
-/**
- * CHANGED FILE: src/components/layout/MobileSidebarDrawer.tsx
- *
- * What changed:
- * 1. Added Bell to iconMap (Notifications sidebar item)
- * 2. sidebarItems paths now correct (retailer-insights, grower-insights, notifications)
- */
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
-  Store, Users, BarChart3, Settings, Leaf, Wifi, WifiOff, Bell,
+  Store, Users, BarChart3, Settings, Wifi, WifiOff, Bell,
 } from 'lucide-react';
 import { sidebarItems } from '@/data/mockData';
 import { cn } from '@/lib/utils';
@@ -18,7 +11,7 @@ import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
   Store, Users, BarChart3, Settings,
-  Bell,  // NEW
+  Bell,
 };
 
 interface MobileSidebarDrawerProps {
@@ -44,14 +37,9 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
           <motion.div
             initial={{ x: -280 }} animate={{ x: 0 }} exit={{ x: -280 }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed left-0 top-0 bottom-0 w-[280px] bg-deep-forest z-50 flex flex-col"
+            className="fixed left-0 top-0 bottom-0 w-[280px] bg-[#0D2818] z-50 flex flex-col border-r border-[#1B5E20]/40"
           >
-            <div className="flex items-center gap-2 px-5 py-4 border-b border-white/10">
-              <Leaf className="w-5 h-5 text-lime-green" />
-              <span className="text-lg font-bold text-white tracking-tight">AgroAI</span>
-            </div>
-
-            <nav className="flex-1 px-3 py-4 space-y-1">
+            <nav className="flex-1 px-3 py-4 space-y-1 mt-4">
               {sidebarItems.map((item) => {
                 const Icon = iconMap[item.icon];
                 const isActive = location.pathname === item.path;
@@ -62,11 +50,11 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
                     className={cn(
                       'w-full flex items-center gap-3 h-12 px-4 rounded-lg transition-all duration-200',
                       isActive
-                        ? 'bg-lime-green/15 text-white border-l-[3px] border-lime-green'
+                        ? 'bg-[#2E7D32]/25 text-white border-l-[3px] border-[#8BC34A]'
                         : 'text-white/60 hover:bg-white/5 hover:text-white border-l-[3px] border-transparent'
                     )}
                   >
-                    {Icon && <Icon className={cn('w-5 h-5', isActive ? 'text-lime-green' : 'text-white/60')} />}
+                    {Icon && <Icon className={cn('w-5 h-5', isActive ? 'text-[#8BC34A]' : 'text-white/60')} />}
                     <span className="text-sm font-medium">{item.label}</span>
                   </button>
                 );
@@ -76,9 +64,9 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
             <div className="px-5 py-4 border-t border-white/10">
               <div className="flex items-center gap-2">
                 {isOnline ? (
-                  <><Wifi className="w-4 h-4 text-lime-green" /><span className="text-xs text-white/60">Online - Synced</span></>
+                  <><Wifi className="w-4 h-4 text-[#8BC34A]" /><span className="text-xs text-white/60">Online - synced</span></>
                 ) : (
-                  <><WifiOff className="w-4 h-4 text-danger-red" /><span className="text-xs text-danger-red/80">Offline - Queued</span></>
+                  <><WifiOff className="w-4 h-4 text-[#D32F2F]" /><span className="text-xs text-[#FFCDD2]/90">Offline - queued</span></>
                 )}
               </div>
             </div>
@@ -88,3 +76,4 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
     </AnimatePresence>
   );
 }
+

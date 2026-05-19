@@ -8,7 +8,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Bell, Moon, Sun, Globe, RefreshCw, Shield, ChevronRight,
+  Bell, Moon, Sun, Globe, RefreshCw, Shield, ChevronRight,
   LogOut, Smartphone, Save, CheckCircle2, Loader2,
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
@@ -39,8 +39,8 @@ export default function SettingsPage() {
       await settingsAPI.update({ theme, language, notifications, sync_enabled: syncEnabled });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save settings');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
@@ -62,18 +62,18 @@ export default function SettingsPage() {
             {user?.name?.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2) || 'AG'}
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-text-primary dark:text-white">{user?.name || '—'}</h3>
-            <p className="text-sm text-text-muted">{user?.email} · {user?.role?.replace('_', ' ')}</p>
+            <h3 className="text-lg font-semibold text-text-primary dark:text-white">{user?.name || '-'}</h3>
+            <p className="text-sm text-text-muted">{user?.email} - {user?.role?.replace('_', ' ')}</p>
           </div>
         </div>
         <div className="p-6 grid grid-cols-1 md:grid-cols-2 gap-6">
           <div>
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Territory</label>
-            <p className="text-sm text-text-primary dark:text-white font-medium mt-1">{user?.territory || '—'}</p>
+            <p className="text-sm text-text-primary dark:text-white font-medium mt-1">{user?.territory || '-'}</p>
           </div>
           <div>
             <label className="text-xs font-semibold text-text-muted uppercase tracking-wider">Employee ID</label>
-            <p className="text-sm text-text-primary dark:text-white font-medium mt-1">#{user?.employee_id || '—'}</p>
+            <p className="text-sm text-text-primary dark:text-white font-medium mt-1">#{user?.employee_id || '-'}</p>
           </div>
         </div>
       </section>
@@ -118,9 +118,9 @@ export default function SettingsPage() {
               <select value={language} onChange={e => setLanguage(e.target.value)}
                 className="bg-light-gray dark:bg-white/5 border-none text-sm font-medium rounded-lg px-3 py-1.5 text-text-primary dark:text-white outline-none focus:ring-1 focus:ring-lime-green cursor-pointer">
                 <option>English</option>
-                <option>Hindi (हिंदी)</option>
-                <option>Bengali (বাংলা)</option>
-                <option>Punjabi (ਪੰਜਾਬੀ)</option>
+                <option>Hindi</option>
+                <option>Bengali</option>
+                <option>Punjabi</option>
               </select>
             </div>
           </section>
@@ -191,7 +191,7 @@ export default function SettingsPage() {
         <button onClick={handleSave} disabled={saving}
           className="flex items-center gap-2 px-6 py-2.5 rounded-lg bg-deep-green text-white text-sm font-semibold hover:bg-deep-green/90 transition-all shadow-lg shadow-deep-green/20 disabled:opacity-70">
           {saving ? <Loader2 size={18} className="animate-spin" /> : saved ? <CheckCircle2 size={18} /> : <Save size={18} />}
-          {saving ? 'Saving…' : saved ? 'Saved!' : 'Save Changes'}
+          {saving ? 'Saving...' : saved ? 'Saved!' : 'Save Changes'}
         </button>
         <button onClick={handleLogout}
           className="flex items-center gap-2 text-danger-red hover:text-red-600 font-medium text-sm transition-colors">

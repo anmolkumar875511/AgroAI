@@ -29,8 +29,8 @@ export function useApi<T>(
     try {
       const result = await fetcherRef.current();
       setData(result);
-    } catch (err: any) {
-      setError(err.message || 'An error occurred');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setLoading(false);
     }

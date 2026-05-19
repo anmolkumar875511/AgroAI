@@ -59,8 +59,8 @@ export default function VisitFeedbackPage() {
     try {
       await visitFeedbackAPI.submitFeedback(form, territory_id);
       setSubmitted(true);
-    } catch (err: any) {
-      setError(err.message || 'Failed to submit. Please try again.');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to submit. Please try again.');
     } finally {
       setSubmitting(false);
     }
@@ -180,7 +180,7 @@ export default function VisitFeedbackPage() {
                 />
               </div>
               <div>
-                <label className="text-xs text-text-muted mb-1 block">Order Value (₹)</label>
+                <label className="text-xs text-text-muted mb-1 block">Order Value (Rs)</label>
                 <input type="number" min="0" value={form.order_value}
                   onChange={e => setForm(f => ({ ...f, order_value: Number(e.target.value) }))}
                   className="w-full px-3 py-2 rounded-lg bg-light-gray dark:bg-white/5 border border-transparent dark:border-white/10 text-sm text-text-primary dark:text-white outline-none focus:border-lime-green/50 transition-colors"
@@ -259,7 +259,7 @@ export default function VisitFeedbackPage() {
         <button type="submit" disabled={submitting}
           className="w-full py-4 rounded-button gradient-primary text-white font-semibold text-base shadow-glow-green hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-70">
           {submitting ? <Loader2 className="w-5 h-5 animate-spin" /> : <CheckCircle2 className="w-5 h-5" />}
-          {submitting ? 'Saving Visit…' : 'Submit Visit Update'}
+          {submitting ? 'Saving Visit...' : 'Submit Visit Update'}
         </button>
       </form>
     </div>

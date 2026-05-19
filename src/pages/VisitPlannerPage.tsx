@@ -6,6 +6,13 @@ import { visitPlannerAPI } from '@/api/client';
 import { VisitPlannerHeader } from '@/sections/visit-planner/VisitPlannerHeader';
 import { PriorityCard } from '@/sections/visit-planner/PriorityCard';
 import { RouteVisualization } from '@/sections/visit-planner/RouteVisualization';
+import type { VisitTag } from '@/types';
+
+const visitTagColors = ['green', 'blue', 'red', 'yellow'] as const;
+
+function toVisitTagColor(color: string): VisitTag['color'] {
+  return visitTagColors.includes(color as VisitTag['color']) ? (color as VisitTag['color']) : 'blue';
+}
 
 export default function VisitPlannerPage() {
   const [filter, setFilter] = useState('all');
@@ -32,12 +39,15 @@ export default function VisitPlannerPage() {
                 visit={{
                   id: visit.id,
                   name: visit.name,
-                  type: visit.type as any,
+                  type: visit.type,
                   score: visit.score,
                   location: visit.location,
                   lastVisit: visit.last_visit,
                   status: visit.status,
-                  tags: visit.tags as any,
+                  tags: visit.tags.map((tag) => ({
+                    label: tag.label,
+                    color: toVisitTagColor(tag.color),
+                  })),
                   aiReason: visit.ai_reason,
                   actions: visit.actions,
                 }}

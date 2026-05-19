@@ -10,7 +10,7 @@ const FALLBACK: DataPoint[] = [
   { name: 'Week 3', value: 5.1, value2: 5 }, { name: 'Week 4', value: 4.7, value2: 5 },
 ];
 
-function ChartSkeleton({ title }: { title: string }) {
+function ChartSkeleton() {
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5 animate-pulse">
       <div className="h-5 w-40 bg-light-gray dark:bg-white/10 rounded mb-4" />
@@ -22,7 +22,7 @@ function ChartSkeleton({ title }: { title: string }) {
 export function FieldEfficiencyChart({ data, loading }: Props) {
   const ct = useChartTheme();
   const chartData = data || FALLBACK;
-  if (loading) return <ChartSkeleton title="Field Efficiency" />;
+  if (loading) return <ChartSkeleton />;
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
       <h4 className="font-semibold text-text-primary dark:text-white mb-4">Field Efficiency</h4>

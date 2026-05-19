@@ -27,6 +27,12 @@ export interface AIRecommendation {
   nextAction?: string;
   followUpTimeline?: string[];
   explainableReasons?: ExplainableReason[];
+  /** Model visit / action score from API (0–100) */
+  visitPriorityScore?: number;
+  /** Pre-computed copy for hero explainability */
+  whyRecommended?: string;
+  riskTagList?: string[];
+  retailerId?: string;
 }
 
 export interface ExplainableReason {
