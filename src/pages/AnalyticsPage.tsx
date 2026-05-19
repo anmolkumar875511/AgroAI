@@ -4,7 +4,12 @@ import { Download, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { analyticsAPI } from '@/api/client';
-import { FieldEfficiencyChart, RevenuePerVisitChart, RecommendationAcceptanceChart, RegionalPerformanceChart, CropRiskTrendsChart, StockUtilizationChart } from '@/sections/analytics/Charts';
+import { FieldEfficiencyChart} from '@/sections/analytics/FieldEfficiencyChart';
+import { CropRiskTrendsChart } from '@/sections/analytics/CropRiskTrendsChart';
+import { StockUtilizationChart } from '@/sections/analytics/StockUtilizationChart';
+import { RecommendationAcceptanceChart } from '@/sections/analytics/RecommendationAcceptanceChart';
+import { RegionalPerformanceChart } from '@/sections/analytics/RegionalPerformanceChart';
+import { RevenuePerVisitChart } from '@/sections/analytics/RevenuePerVisitChart';
 
 
 const dateRanges = [
