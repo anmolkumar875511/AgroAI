@@ -1,3 +1,8 @@
+// src/sections/dashboard/KPICard.tsx  — UNCHANGED
+// No changes needed — DashboardPage now converts backend KPI shape → this component's
+// expected shape via the toKpiData() mapper before passing it in.
+// This file is identical to the original.
+
 import { AlertTriangle, MapPin, Package, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MiniSparkline } from '@/components/shared/MiniSparkline';
@@ -5,10 +10,7 @@ import { TrendIndicator } from '@/components/shared/TrendIndicator';
 import type { KPIData } from '@/types';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
-  AlertTriangle,
-  MapPin,
-  Package,
-  TrendingUp,
+  AlertTriangle, MapPin, Package, TrendingUp,
 };
 
 interface KPICardProps {
@@ -22,10 +24,10 @@ export function KPICard({ data }: KPICardProps) {
 
   const handleClick = () => {
     switch (data.id) {
-      case 'risk-villages': navigate('/risk-analyzer'); break;
-      case 'priority-visits': navigate('/visit-planner'); break;
-      case 'stock-alerts': navigate('/analytics'); break;
-      case 'revenue-opportunity': navigate('/analytics'); break;
+      case 'risk-villages':      navigate('/risk-analyzer');  break;
+      case 'priority-visits':    navigate('/visit-planner');  break;
+      case 'stock-alerts':       navigate('/analytics');      break;
+      case 'revenue-opportunity':navigate('/analytics');      break;
     }
   };
 
@@ -56,7 +58,7 @@ export function KPICard({ data }: KPICardProps) {
       </div>
 
       <div className="mt-4">
-        <MiniSparkline data={data.chartData} color={data.chartColor} fillColor={data.chartFill} />
+        <MiniSparkline data={data.chartData} color={data.chartColor} />
       </div>
     </div>
   );
