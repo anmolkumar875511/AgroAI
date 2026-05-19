@@ -10,6 +10,7 @@
 import { TrendingUp, TrendingDown, Wheat, Sprout } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import { mandiAPI, type MandiPrice } from '@/api/client';
+import { useAuth } from '@/contexts/AuthContext';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = { Wheat, Sprout };
 
@@ -18,6 +19,8 @@ interface MandiPriceCardProps {
 }
 
 export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) {
+  const { user } = useAuth();
+
   // Only fetch independently if DashboardPage didn't inject prices
   const { data: fetchedPrices, loading } = useApi(
     () => injectedPrices ? Promise.resolve(injectedPrices) : mandiAPI.getPrices(),
@@ -41,7 +44,7 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
       <div className="flex items-center justify-between mb-5">
         <h3 className="font-semibold text-text-primary dark:text-white">Today's Mandi Prices</h3>
-        <span className="text-[11px] text-text-muted uppercase tracking-wider">Live - data.gov.in</span>
+        <span className="text-[11px] text-text-muted uppercase tracking-wider">Live · data.gov.in</span>
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
         {prices.slice(0, 4).map((item) => {

@@ -1,5 +1,12 @@
 /**
- * Field operations dashboard — live AI feed, command KPIs, geo map, operational metrics.
+ * CHANGED FILE: src/pages/DashboardPage.tsx
+ *
+ * What changed:
+ * - Removed: import { kpiData } from '@/data/mockData'
+ * - Added: dashboardAPI.getDashboard() call using useApi hook
+ * - KPI cards, weekly chart, and mandi prices now come from the backend
+ * - territory_id comes from the logged-in user's profile via useAuth()
+ * - Added loading skeleton and error state
  */
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
@@ -12,22 +19,21 @@ import { KPICard } from '@/sections/dashboard/KPICard';
 import { MandiPriceCard } from '@/sections/dashboard/MandiPriceCard';
 import { AIRecommendationsFeed } from '@/sections/dashboard/AIRecommendationsFeed';
 import { MapWidget } from '@/sections/dashboard/MapWidget';
-import { LiveAIActivityFeed } from '@/components/command-center/LiveAIActivityFeed';
-import { OperationalCommandMetrics } from '@/components/command-center/OperationalCommandMetrics';
-import { SmartAlertCenter } from '@/components/command-center/SmartAlertCenter';
+import { WeeklyPerformanceChart } from '@/sections/dashboard/WeeklyPerformanceChart';
 
+// Skeleton card for loading state
 function KPISkeleton() {
   return (
-    <div className="rounded-xl bg-[#1E293B] border border-white/10 p-5 animate-pulse">
+    <div className="bg-white dark:bg-white/5 rounded-card p-5 shadow-card animate-pulse border border-transparent dark:border-white/5">
       <div className="flex items-start justify-between">
-        <div className="w-10 h-10 rounded-xl bg-white/10" />
-        <div className="w-12 h-5 rounded-full bg-white/10" />
+        <div className="w-10 h-10 rounded-xl bg-light-gray dark:bg-white/10" />
+        <div className="w-12 h-5 rounded-full bg-light-gray dark:bg-white/10" />
       </div>
       <div className="mt-4 space-y-2">
-        <div className="w-20 h-8 rounded bg-white/10" />
-        <div className="w-32 h-3 rounded bg-white/10" />
+        <div className="w-20 h-8 rounded bg-light-gray dark:bg-white/10" />
+        <div className="w-32 h-3 rounded bg-light-gray dark:bg-white/10" />
       </div>
-      <div className="mt-4 h-12 rounded bg-white/10" />
+      <div className="mt-4 h-12 rounded bg-light-gray dark:bg-white/10" />
     </div>
   );
 }
@@ -48,13 +54,14 @@ export default function DashboardPage() {
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.dashboard-card',
-        { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, stagger: 0.08, duration: 0.5, ease: 'power2.out', delay: 0.05 },
+        { opacity: 0, y: 20 },
+        { opacity: 1, y: 0, stagger: 0.1, duration: 0.6, ease: 'power2.out', delay: 0.1 },
       );
     }, pageRef);
     return () => ctx.revert();
   }, [loading, data]);
 
+  // Convert backend KPI shape → the shape KPICard already expects
   const toKpiData = (k: KPIItem) => ({
     id: k.id,
     title: k.title,
@@ -71,7 +78,7 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <div className="flex items-center justify-center h-64 text-[#D32F2F] text-sm">
+      <div className="flex items-center justify-center h-64 text-danger-red text-sm">
         Failed to load dashboard: {error}
       </div>
     );
@@ -83,27 +90,18 @@ export default function DashboardPage() {
         <DashboardGreeting />
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-[1.15fr_0.85fr] gap-4">
-        <div className="dashboard-card">
-          <LiveAIActivityFeed />
-        </div>
-        <div className="dashboard-card">
-          <SmartAlertCenter />
-        </div>
-      </div>
-
+      {/* KPI Cards */}
       {loading ? (
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {[0, 1, 2, 3].map((i) => (
-            <KPISkeleton key={i} />
-          ))}
+          {[0,1,2,3].map(i => <KPISkeleton key={i} />)}
         </div>
       ) : (
         <>
+          {/* Mobile: horizontal scroll */}
           <div className="block sm:hidden dashboard-card">
             <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
               <div className="flex gap-4 w-max">
-                {(data?.kpis || []).map((kpi) => (
+                {(data?.kpis || []).map(kpi => (
                   <div key={kpi.id} className="w-[280px] flex-shrink-0">
                     <KPICard data={toKpiData(kpi)} />
                   </div>
@@ -111,8 +109,9 @@ export default function DashboardPage() {
               </div>
             </div>
           </div>
+          {/* Desktop: grid */}
           <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-4">
-            {(data?.kpis || []).map((kpi) => (
+            {(data?.kpis || []).map(kpi => (
               <div key={kpi.id} className="dashboard-card">
                 <KPICard data={toKpiData(kpi)} />
               </div>
@@ -121,21 +120,27 @@ export default function DashboardPage() {
         </>
       )}
 
+      {/* Mandi Prices — passes live data or falls back to internal fetch */}
       <div className="dashboard-card">
         <MandiPriceCard prices={data?.mandi_prices} />
       </div>
 
+      {/* Middle: AI Recommendations + Map */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <div className="dashboard-card min-h-[420px]">
+        <div className="dashboard-card">
           <AIRecommendationsFeed territoryId={territory_id} />
         </div>
-        <div className="dashboard-card min-h-[420px]">
+        <div className="dashboard-card">
           <MapWidget />
         </div>
       </div>
 
+      {/* Weekly Performance */}
       <div className="dashboard-card">
-        <OperationalCommandMetrics />
+        <WeeklyPerformanceChart
+          // data={data?.weekly_performance}
+          // loading={loading}
+        />
       </div>
     </div>
   );

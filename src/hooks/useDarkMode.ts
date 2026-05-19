@@ -4,10 +4,10 @@ type Theme = 'light' | 'dark';
 
 export function useDarkMode() {
   const [theme, setTheme] = useState<Theme>(() => {
-    if (typeof window === 'undefined') return 'dark';
+    if (typeof window === 'undefined') return 'light';
     const stored = localStorage.getItem('agroai-theme') as Theme | null;
     if (stored) return stored;
-    return 'dark';
+    return window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
   });
 
   useEffect(() => {

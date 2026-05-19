@@ -27,8 +27,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       navigate('/dashboard', { replace: true });
-    } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Invalid email or password');
+    } catch (err: any) {
+      setError(err.message || 'Invalid email or password');
     } finally {
       setLoading(false);
     }
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   required
                   value={password}
                   onChange={e => setPassword(e.target.value)}
-                  placeholder="password"
+                  placeholder="••••••••"
                   className="w-full px-4 py-3 pr-12 rounded-lg bg-white/5 border border-white/10 text-white placeholder:text-white/30 text-sm outline-none focus:border-lime-green/50 focus:ring-1 focus:ring-lime-green/30 transition-all"
                 />
                 <button
@@ -109,7 +109,7 @@ export default function LoginPage() {
               className="w-full py-3 rounded-lg gradient-primary text-white font-semibold text-sm shadow-glow-green hover:brightness-110 transition-all flex items-center justify-center gap-2 disabled:opacity-70"
             >
               {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : null}
-              {loading ? 'Signing in...' : 'Sign In'}
+              {loading ? 'Signing in…' : 'Sign In'}
             </button>
           </form>
 

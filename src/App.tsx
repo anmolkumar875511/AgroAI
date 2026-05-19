@@ -14,7 +14,6 @@ import { AppLayout } from '@/components/layout/AppLayout';
 import { RegionProvider } from '@/contexts/RegionContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
-import { DemoModeProvider } from '@/contexts/DemoModeContext';
 
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';            // NEW
@@ -40,8 +39,8 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   if (isLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#0F172A]">
-        <div className="w-8 h-8 border-2 border-[#1976D2] border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen flex items-center justify-center bg-deep-forest">
+        <div className="w-8 h-8 border-2 border-lime-green border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
@@ -89,12 +88,10 @@ function AppContent() {
 export default function App() {
   return (
     <ThemeProvider>
-      <AuthProvider>
-        <DemoModeProvider>
-          <RegionProvider>
-            <AppContent />
-          </RegionProvider>
-        </DemoModeProvider>
+      <AuthProvider>              {/* NEW - wraps everything */}
+        <RegionProvider>
+          <AppContent />
+        </RegionProvider>
       </AuthProvider>
     </ThemeProvider>
   );

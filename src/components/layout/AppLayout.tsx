@@ -1,3 +1,7 @@
+// src/components/layout/AppLayout.tsx  — UNCHANGED LOGIC
+// What changed: nothing — this file is identical to the original.
+// Listed here for completeness so you have the full file.
+
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TopNavbar } from './TopNavbar';
@@ -6,7 +10,6 @@ import { MobileSidebarDrawer } from './MobileSidebarDrawer';
 import { AIFloatingButton } from './AIFloatingButton';
 import { AIChatDrawer } from './AIChatDrawer';
 import { useBreakpoint } from '@/hooks/useMediaQuery';
-
 import { useTheme } from '@/contexts/ThemeContext';
 
 interface AppLayoutProps {
@@ -29,10 +32,8 @@ export function AppLayout({ children }: AppLayoutProps) {
   };
 
   return (
-    <div className={cn('min-h-screen bg-[#0F172A] text-slate-100 transition-colors duration-300', theme)}>
-      <TopNavbar
-        onMenuClick={handleMenuClick}
-      />
+    <div className={cn('min-h-screen bg-off-white dark:bg-deep-forest transition-colors duration-300', theme)}>
+      <TopNavbar onMenuClick={handleMenuClick} />
 
       {isDesktop && desktopSidebarOpen && (
         <Sidebar className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[260px] z-40 transition-transform duration-300" />
