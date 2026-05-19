@@ -1,5 +1,4 @@
 import { Bell, CheckCheck, AlertTriangle, Info, CheckCircle, AlertCircle } from 'lucide-react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { notificationsAPI, type NotificationItem } from '@/api/client';
 import { cn } from '@/lib/utils';
@@ -41,8 +40,6 @@ function NotifRow({ notif, onRead }: { notif: NotificationItem; onRead: () => vo
 }
 
 export default function NotificationsPage() {
-  const { user } = useAuth();
-
   const { data, loading, refetch } = useApi(
     () => notificationsAPI.getAll(false, 50),
     [],

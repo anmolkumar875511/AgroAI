@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Search, Filter, RefreshCw, MapPin, Clock, Package, TrendingUp, Star } from 'lucide-react';
+import { Search, RefreshCw, MapPin, Clock, Package, TrendingUp, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { retailersAPI, type RetailerCard } from '@/api/client';

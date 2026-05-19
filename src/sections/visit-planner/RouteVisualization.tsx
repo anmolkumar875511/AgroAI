@@ -1,3 +1,10 @@
+// src/sections/visit-planner/RouteVisualization.tsx  — CHANGED
+// What changed:
+// - Added territoryId prop
+// - Fetches route stops from visitPlannerAPI.getRoute() instead of hardcoded stops
+// - Google Maps markers and polyline use live stop coordinates
+// - Recalculate button calls refetch()
+// - Implemented premium SVG teardrop pins, centered number labels, and light/dark forest-green themes
 import { useState, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { GoogleMap, MarkerF, PolylineF, InfoWindowF } from '@react-google-maps/api';
@@ -5,6 +12,7 @@ import { useGoogleMaps } from '@/hooks/useGoogleMaps';
 import { useRegion } from '@/contexts/RegionContext';
 import { useApi } from '@/hooks/useApi';
 import { visitPlannerAPI } from '@/api/client';
+import { useTheme } from '@/contexts/ThemeContext';
 
 const polylineOptions = {
   strokeColor: '#34C759',
@@ -12,24 +20,70 @@ const polylineOptions = {
   strokeWeight: 4,
 };
 
+// Premium SVG teardrop marker path with color styling and labelOrigin centered in the cutout
 const getMarkerIcon = (status: 'completed' | 'in-progress' | 'pending') => {
-  const color = status === 'completed' ? '#34C759' : status === 'in-progress' ? '#007AFF' : '#FFCC00';
+  let color = '#22c55e'; // Green for completed
+  if (status === 'in-progress') color = '#3b82f6'; // Blue for active/in-progress
+  else if (status === 'pending') color = '#ef4444'; // Red for pending/risk
+
   return {
-    path: typeof window !== 'undefined' && window.google ? google.maps.SymbolPath.CIRCLE : 0,
-    fillColor: color, fillOpacity: 1, strokeWeight: 2, strokeColor: '#ffffff', scale: 10,
+    path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z',
+    fillColor: color,
+    fillOpacity: 1,
+    strokeWeight: 1.8,
+    strokeColor: '#ffffff',
+    scale: 1.4,
+    anchor: typeof window !== 'undefined' && window.google ? new window.google.maps.Point(12, 22) : undefined,
+    labelOrigin: typeof window !== 'undefined' && window.google ? new window.google.maps.Point(12, 9) : undefined,
   };
 };
+
+// Premium dark forest-green styled map for dark theme
+const darkMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#0B150C" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0B150C" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#748875" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#1B301D" }] },
+  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#A3BBA4" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#0F1F10" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#132715" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#546A56" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1E3520" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#5F7861" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#254328" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#769578" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#162D18" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#070E08" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#2E4731" }] }
+];
+
+// Elegant silver-green styled map for light theme
+const lightMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#f5f7f5" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#4f6350" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#e2e7e2" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#ebf0eb" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#e1ede2" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#5a7a5c" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#6b7d6c" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#f8fbf8" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9dfcb" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3f5441" }] }
+];
 
 const containerStyle = { width: '100%', height: '100%' };
 
 interface RouteVisualizationProps {
-  territoryId: string;  // NEW — was using hardcoded stops
+  territoryId: string;
 }
 
 export function RouteVisualization({ territoryId }: RouteVisualizationProps) {
   const [activeStop, setActiveStop] = useState<number | null>(null);
   const { isLoaded } = useGoogleMaps();
   const { activeRegion } = useRegion();
+  const { theme } = useTheme();
 
   // CHANGED: live route from backend
   const { data: routeData, loading, refetch } = useApi(
@@ -39,6 +93,7 @@ export function RouteVisualization({ territoryId }: RouteVisualizationProps) {
 
   const stops = routeData?.stops || [];
   const path = useMemo(() => stops.map(s => ({ lat: s.lat, lng: s.lng })), [stops]);
+  const mapStyles = theme === 'dark' ? darkMapStyle : lightMapStyle;
 
   if (!isLoaded || loading) {
     return (
@@ -62,14 +117,18 @@ export function RouteVisualization({ territoryId }: RouteVisualizationProps) {
           mapContainerStyle={containerStyle}
           center={{ lat: activeRegion.lat, lng: activeRegion.lng }}
           zoom={activeRegion.zoom + 1}
-          options={{ disableDefaultUI: true, zoomControl: true }}
+          options={{
+            disableDefaultUI: true,
+            zoomControl: true,
+            styles: mapStyles,
+          }}
         >
           {stops.length > 1 && <PolylineF path={path} options={polylineOptions} />}
           {stops.map((stop) => (
             <MarkerF key={stop.id}
               position={{ lat: stop.lat, lng: stop.lng }}
               icon={getMarkerIcon(stop.status as any)}
-              label={{ text: String(stop.id), color: '#ffffff', fontSize: '12px', fontWeight: 'bold' }}
+              label={{ text: String(stop.id), color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}
               onClick={() => setActiveStop(stop.id)}
             >
               {activeStop === stop.id && (

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  User, Bell, Moon, Sun, Globe, RefreshCw, Shield, ChevronRight,
+  Bell, Moon, Sun, Globe, RefreshCw, Shield, ChevronRight,
   LogOut, Smartphone, Save, CheckCircle2, Loader2,
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';

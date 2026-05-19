@@ -1,11 +1,16 @@
-import { useMemo, useState } from 'react';
-import { GoogleMap, HeatmapLayerF } from '@react-google-maps/api';
+import { useState } from 'react';
+import { GoogleMap, RectangleF, InfoWindowF } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/hooks/useGoogleMaps';
+import { useTheme } from '@/contexts/ThemeContext';
+import { cn } from '@/lib/utils';
 
 interface HeatmapCell {
-  id: number; x: number; y: number;
+  id: number;
+  x: number;
+  y: number;
   risk: 'low' | 'medium' | 'high' | 'critical';
-  village: string; risk_percent: number;
+  village: string;
+  risk_percent: number;
 }
 
 interface HeatmapGridProps {
@@ -24,19 +29,79 @@ const RISK_COLORS: Record<string, string> = {
   low:      'bg-lime-green/20',
 };
 
+const RECTANGLE_OPTIONS = {
+  critical: {
+    strokeColor: '#ef4444',
+    fillColor: '#ef4444',
+    fillOpacity: 0.45,
+    strokeWeight: 1.5,
+    strokeOpacity: 0.8,
+  },
+  high: {
+    strokeColor: '#f97316',
+    fillColor: '#f97316',
+    fillOpacity: 0.35,
+    strokeWeight: 1.5,
+    strokeOpacity: 0.8,
+  },
+  medium: {
+    strokeColor: '#eab308',
+    fillColor: '#eab308',
+    fillOpacity: 0.25,
+    strokeWeight: 1.5,
+    strokeOpacity: 0.7,
+  },
+  low: {
+    strokeColor: '#22c55e',
+    fillColor: '#22c55e',
+    fillOpacity: 0.15,
+    strokeWeight: 1.2,
+    strokeOpacity: 0.6,
+  },
+};
+
+// Premium dark forest-green styled map for dark theme
+const darkMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#0B150C" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#0B150C" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#748875" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#1B301D" }] },
+  { featureType: "administrative.country", elementType: "labels.text.fill", stylers: [{ color: "#A3BBA4" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#0F1F10" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#132715" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#546A56" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#1E3520" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#5F7861" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#254328" }] },
+  { featureType: "road.highway", elementType: "labels.text.fill", stylers: [{ color: "#769578" }] },
+  { featureType: "transit", elementType: "geometry", stylers: [{ color: "#162D18" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#070E08" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#2E4731" }] }
+];
+
+// Elegant silver-green styled map for light theme
+const lightMapStyle = [
+  { elementType: "geometry", stylers: [{ color: "#f5f7f5" }] },
+  { elementType: "labels.text.stroke", stylers: [{ color: "#ffffff" }] },
+  { elementType: "labels.text.fill", stylers: [{ color: "#4f6350" }] },
+  { featureType: "administrative", elementType: "geometry", stylers: [{ color: "#e2e7e2" }] },
+  { featureType: "landscape", elementType: "geometry", stylers: [{ color: "#ebf0eb" }] },
+  { featureType: "poi", elementType: "geometry", stylers: [{ color: "#e1ede2" }] },
+  { featureType: "poi", elementType: "labels.text.fill", stylers: [{ color: "#5a7a5c" }] },
+  { featureType: "road", elementType: "geometry", stylers: [{ color: "#ffffff" }] },
+  { featureType: "road", elementType: "labels.text.fill", stylers: [{ color: "#6b7d6c" }] },
+  { featureType: "road.highway", elementType: "geometry", stylers: [{ color: "#f8fbf8" }] },
+  { featureType: "water", elementType: "geometry", stylers: [{ color: "#c9dfcb" }] },
+  { featureType: "water", elementType: "labels.text.fill", stylers: [{ color: "#3f5441" }] }
+];
+
 export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: HeatmapGridProps) {
   const { isLoaded } = useGoogleMaps();
+  const { theme } = useTheme();
   const [crop, setCrop] = useState('Rice');
+  const [selectedCell, setSelectedCell] = useState<HeatmapCell | null>(null);
 
-  // Build Google Maps heatmap points from cells
-  const heatmapData = useMemo(() => {
-    if (!isLoaded || typeof window === 'undefined' || !window.google) return [];
-    return cells.map(cell => {
-      const latOffset = (cell.y - 3) * 0.15;
-      const lngOffset = (cell.x - 4) * 0.15;
-      return new window.google.maps.LatLng(regionLat + latOffset, regionLng + lngOffset);
-    });
-  }, [isLoaded, cells, regionLat, regionLng]);
+  const mapStyles = theme === 'dark' ? darkMapStyle : lightMapStyle;
 
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 overflow-hidden flex flex-col h-[500px]">
@@ -74,20 +139,65 @@ export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: Heatmap
             mapContainerStyle={containerStyle}
             center={{ lat: regionLat, lng: regionLng }}
             zoom={regionZoom + 1}
-            options={{ disableDefaultUI: true, zoomControl: true }}
+            options={{ 
+              disableDefaultUI: true, 
+              zoomControl: true,
+              styles: mapStyles
+            }}
           >
-            {heatmapData.length > 0 && (
-              <HeatmapLayerF
-                data={heatmapData}
-                options={{
-                  radius: 30, opacity: 0.8,
-                  gradient: [
-                    'rgba(0,255,255,0)', 'rgba(0,255,255,1)', 'rgba(89,255,0,1)',
-                    'rgba(191,255,0,1)', 'rgba(255,255,0,1)', 'rgba(255,191,0,1)',
-                    'rgba(255,128,0,1)', 'rgba(255,64,0,1)',  'rgba(255,0,0,1)',
-                  ],
+            {cells.map(cell => {
+              // Calculate center latitude and longitude offsets based on cell coords
+              const lat = regionLat + (cell.y - 3) * 0.15;
+              const lng = regionLng + (cell.x - 4) * 0.15;
+              const options = RECTANGLE_OPTIONS[cell.risk];
+              return (
+                <RectangleF
+                  key={cell.id}
+                  bounds={{
+                    north: lat + 0.075,
+                    south: lat - 0.075,
+                    east: lng + 0.075,
+                    west: lng - 0.075
+                  }}
+                  options={options}
+                  onClick={() => setSelectedCell(cell)}
+                />
+              );
+            })}
+
+            {selectedCell && (
+              <InfoWindowF
+                position={{
+                  lat: regionLat + (selectedCell.y - 3) * 0.15,
+                  lng: regionLng + (selectedCell.x - 4) * 0.15
                 }}
-              />
+                onCloseClick={() => setSelectedCell(null)}
+              >
+                <div className="p-3 text-gray-900 text-xs min-w-[170px] bg-white rounded-md shadow-lg">
+                  <div className="flex items-center justify-between mb-1.5 border-b pb-1">
+                    <span className="font-bold text-sm text-deep-green">{selectedCell.village}</span>
+                    <span className={cn(
+                      "px-1.5 py-0.5 rounded text-[10px] font-bold uppercase",
+                      selectedCell.risk === 'critical' ? "bg-red-100 text-red-700" :
+                      selectedCell.risk === 'high' ? "bg-orange-100 text-orange-700" :
+                      selectedCell.risk === 'medium' ? "bg-yellow-100 text-yellow-800" :
+                      "bg-green-100 text-green-700"
+                    )}>
+                      {selectedCell.risk}
+                    </span>
+                  </div>
+                  <div className="space-y-1">
+                    <p><span className="text-gray-500">Risk Percent:</span> <span className="font-semibold">{selectedCell.risk_percent}%</span></p>
+                    <p><span className="text-gray-500">Crop Focus:</span> <span className="font-semibold">{crop}</span></p>
+                    <p><span className="text-gray-500">Alert level:</span> <span className="font-semibold">{
+                      selectedCell.risk === 'critical' ? 'Urgent action required' :
+                      selectedCell.risk === 'high' ? 'High risk advisory' :
+                      selectedCell.risk === 'medium' ? 'Monitor crop health' :
+                      'Normal crop metrics'
+                    }</span></p>
+                  </div>
+                </div>
+              </InfoWindowF>
             )}
           </GoogleMap>
         )}

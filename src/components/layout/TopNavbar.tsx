@@ -1,7 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, Search, Bell, MapPin, ChevronDown, Sun, Moon, Leaf, LogOut, User } from 'lucide-react';
-import { useBreakpoint } from '@/hooks/useMediaQuery';
+import { Menu, Bell, MapPin, ChevronDown, Sun, Moon, Leaf, LogOut, User } from 'lucide-react';
 import { useRegion } from '@/contexts/RegionContext';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';               // NEW
@@ -18,9 +17,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
   const [notifOpen, setNotifOpen] = useState(false);
   const [regionOpen, setRegionOpen] = useState(false);
   const [userMenuOpen, setUserMenuOpen] = useState(false);     // NEW
-  const [searchFocused, setSearchFocused] = useState(false);
   const navigate = useNavigate();
-  const { isMobile } = useBreakpoint();
   const { activeRegion, setActiveRegionId, regions } = useRegion();
   const regionRef = useRef<HTMLDivElement>(null);
 
@@ -70,22 +67,6 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
             <Leaf className="w-5 h-5 text-lime-green" />
             <span className="text-lg font-bold text-deep-green dark:text-white tracking-tight">AgroAI</span>
           </button>
-        </div>
-
-        {/* Center - Search */}
-        <div className="hidden md:flex items-center flex-1 max-w-md mx-8">
-          <div className={`flex items-center w-full h-10 rounded-full px-4 transition-all duration-200 ${
-            searchFocused ? 'bg-white dark:bg-white/10 ring-2 ring-deep-green/20 shadow-card' : 'bg-light-gray dark:bg-white/5'
-          }`}>
-            <Search className="w-4 h-4 text-text-muted flex-shrink-0" />
-            <input
-              type="text"
-              placeholder="Search retailers, villages, products, alerts..."
-              className="flex-1 bg-transparent border-none outline-none text-sm ml-2 text-text-primary dark:text-white placeholder:text-text-muted"
-              onFocus={() => setSearchFocused(true)}
-              onBlur={() => setSearchFocused(false)}
-            />
-          </div>
         </div>
 
         {/* Right */}

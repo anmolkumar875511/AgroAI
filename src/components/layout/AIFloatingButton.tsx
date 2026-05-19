@@ -7,11 +7,11 @@ interface AIFloatingButtonProps {
 
 export function AIFloatingButton({ onClick }: AIFloatingButtonProps) {
   return (
-    <div className="fixed z-40 bottom-6 right-6 flex flex-col items-center gap-3">
+    <div className="fixed z-50 bottom-8 right-7 left-auto flex flex-col items-center gap-3">
       <button
         onClick={onClick}
         className={cn(
-          'w-14 h-14 rounded-full gradient-primary flex items-center justify-center',
+          'w-14 h-14 rounded-full gradient-primary flex items-center justify-center relative',
           'shadow-glow-green hover:scale-110 transition-all duration-300',
           'animate-border-glow-green'
         )}

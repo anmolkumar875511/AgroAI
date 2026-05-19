@@ -1,3 +1,10 @@
+/**
+ * AgroAI API Client
+ * Central HTTP client for all backend communication.
+ * Base URL is read from VITE_API_URL in your .env file.
+ */
+
+import { toast } from 'sonner';
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 // ─── Token Management ────────────────────────────────────────────────────────
@@ -13,6 +20,153 @@ export function setToken(token: string): void {
 export function clearToken(): void {
   localStorage.removeItem('agroai_token');
   localStorage.removeItem('agroai_user');
+}
+
+// ─── Offline Queue Sync System ──────────────────────────────────────────────
+
+export interface QueuedRequest {
+  id: string;
+  url: string;
+  method: string;
+  headers: Record<string, string>;
+  body: string | null;
+  timestamp: number;
+  endpoint: string;
+}
+
+export function getOfflineQueue(): QueuedRequest[] {
+  try {
+    const data = localStorage.getItem('agroai_offline_sync_queue');
+    return data ? JSON.parse(data) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+export function saveOfflineQueue(queue: QueuedRequest[]) {
+  try {
+    localStorage.setItem('agroai_offline_sync_queue', JSON.stringify(queue));
+  } catch (e) {}
+}
+
+export function queueOfflineRequest(url: string, endpoint: string, options: FetchOptions) {
+  const queue = getOfflineQueue();
+  
+  // Avoid duplicating identical mutations sent within 5 seconds
+  const isDuplicate = queue.some(
+    req => req.endpoint === endpoint && 
+           req.body === (options.body as string) && 
+           Date.now() - req.timestamp < 5000
+  );
+  if (isDuplicate) return;
+
+  const newRequest: QueuedRequest = {
+    id: Math.random().toString(36).substring(2, 11),
+    url,
+    method: options.method || 'POST',
+    headers: (options.headers as Record<string, string>) || {},
+    body: typeof options.body === 'string' ? options.body : null,
+    timestamp: Date.now(),
+    endpoint,
+  };
+  
+  queue.push(newRequest);
+  saveOfflineQueue(queue);
+
+  if (typeof window !== 'undefined') {
+    toast.info('Connection offline. Your action has been queued and will sync automatically when connection is restored!');
+  }
+}
+
+function getMockedResponseForEndpoint(endpoint: string, body: any): any {
+  const parsedBody = typeof body === 'string' ? JSON.parse(body) : (body || {});
+  
+  if (endpoint.includes('/recommendations/apply')) {
+    return { success: true, id: parsedBody.recommendation_id || 'offline_rec_id' };
+  }
+  if (endpoint.includes('/visit-planner/action')) {
+    return { success: true, message: 'Offline: Action queued successfully', visit_id: parsedBody.visit_id || 'offline_visit_id' };
+  }
+  if (endpoint.includes('/visit-feedback/')) {
+    return { success: true, visit_log_id: 'offline_log_id', message: 'Offline: Feedback queued successfully' };
+  }
+  if (endpoint.includes('/read')) {
+    return { success: true };
+  }
+  if (endpoint.includes('/settings/')) {
+    return { success: true, message: 'Offline: Settings updated locally', updated: parsedBody };
+  }
+  return { success: true, message: 'Offline: Action queued successfully' };
+}
+
+let isSyncing = false;
+
+export async function syncOfflineQueue(): Promise<void> {
+  if (isSyncing) return;
+  const queue = getOfflineQueue();
+  if (queue.length === 0) return;
+
+  isSyncing = true;
+  console.log(`[Offline Sync] Starting sync of ${queue.length} queued requests...`);
+
+  if (typeof window !== 'undefined') {
+    toast.loading(`Syncing ${queue.length} offline actions...`, { id: 'offline-sync-toast' });
+  }
+
+  const remainingQueue: QueuedRequest[] = [];
+  let successCount = 0;
+
+  for (const req of queue) {
+    try {
+      const token = getToken();
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...req.headers,
+        ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+      };
+
+      const res = await fetch(req.url, {
+        method: req.method,
+        headers,
+        body: req.body,
+      });
+
+      if (!res.ok) {
+        console.error(`[Offline Sync] Request to ${req.endpoint} failed with status ${res.status}`);
+        if (res.status >= 500 || res.status === 408) {
+          remainingQueue.push(req);
+        }
+      } else {
+        console.log(`[Offline Sync] Request to ${req.endpoint} completed successfully!`);
+        successCount++;
+      }
+    } catch (err) {
+      console.error(`[Offline Sync] Network error syncing request to ${req.endpoint}:`, err);
+      remainingQueue.push(req);
+    }
+  }
+
+  saveOfflineQueue(remainingQueue);
+  isSyncing = false;
+
+  if (typeof window !== 'undefined') {
+    if (successCount > 0 && remainingQueue.length === 0) {
+      toast.success(`Offline actions synchronized successfully! (${successCount} actions)`, { id: 'offline-sync-toast' });
+    } else if (successCount > 0 && remainingQueue.length > 0) {
+      toast.warning(`Synchronized ${successCount} actions. ${remainingQueue.length} still queued.`, { id: 'offline-sync-toast' });
+    } else {
+      toast.dismiss('offline-sync-toast');
+    }
+  }
+}
+
+// Auto-sync when online state restored
+if (typeof window !== 'undefined') {
+  window.addEventListener('online', () => {
+    setTimeout(() => {
+      syncOfflineQueue();
+    }, 2000);
+  });
 }
 
 // ─── Core Fetch Wrapper ──────────────────────────────────────────────────────
@@ -34,6 +188,14 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
     if (query.toString()) url += `?${query}`;
   }
 
+  const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(fetchOptions.method || 'GET');
+  const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  if (!isOnline && isMutating) {
+    queueOfflineRequest(url, endpoint, fetchOptions);
+    return getMockedResponseForEndpoint(endpoint, fetchOptions.body) as T;
+  }
+
   const token = getToken();
   const headers: Record<string, string> = {
     'Content-Type': 'application/json',
@@ -41,22 +203,31 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
   };
   if (token) headers['Authorization'] = `Bearer ${token}`;
 
-  const res = await fetch(url, { ...fetchOptions, headers });
+  try {
+    const res = await fetch(url, { ...fetchOptions, headers });
 
-  if (res.status === 401) {
-    clearToken();
-    window.location.href = '/';
-    throw new Error('Session expired. Please log in again.');
+    if (res.status === 401) {
+      clearToken();
+      window.location.href = '/';
+      throw new Error('Session expired. Please log in again.');
+    }
+
+    if (!res.ok) {
+      const error = await res.json().catch(() => ({ detail: 'Unknown error' }));
+      throw new Error(error.detail || `API error ${res.status}`);
+    }
+
+    // Handle 204 No Content
+    if (res.status === 204) return undefined as T;
+    return res.json();
+  } catch (error: any) {
+    if (isMutating && (error instanceof TypeError || error?.message?.toLowerCase().includes('fetch') || !navigator.onLine)) {
+      console.warn(`[Network Error Interceptor] Failed request to ${endpoint}. Queueing offline...`);
+      queueOfflineRequest(url, endpoint, fetchOptions);
+      return getMockedResponseForEndpoint(endpoint, fetchOptions.body) as T;
+    }
+    throw error;
   }
-
-  if (!res.ok) {
-    const error = await res.json().catch(() => ({ detail: 'Unknown error' }));
-    throw new Error(error.detail || `API error ${res.status}`);
-  }
-
-  // Handle 204 No Content
-  if (res.status === 204) return undefined as T;
-  return res.json();
 }
 
 // ─── Auth ────────────────────────────────────────────────────────────────────

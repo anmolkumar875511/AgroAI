@@ -375,7 +375,7 @@ async def seed():
     await db["chat_messages"].create_index("session_id")
     await db["chat_messages"].create_index("user_id")
 
-    print("\n✅ Seed complete!")
+    print("\n[SUCCESS] Seed complete!")
     print("\nDemo Login Credentials:")
     print("  Field Agent : amit@agroai.com     / password123")
     print("  Field Agent : priya@agroai.com    / password123")

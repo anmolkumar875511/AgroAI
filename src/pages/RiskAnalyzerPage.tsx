@@ -19,21 +19,50 @@ const tabs: { id: TabId; label: string }[] = [
   { id: 'pest',    label: 'Pest Map' },
 ];
 
+function RiskAnalyzerSkeleton() {
+  return (
+    <div className="space-y-6 animate-pulse">
+      <div className="bg-white dark:bg-white/5 rounded-card p-5 border border-transparent dark:border-white/5 h-[400px] flex flex-col justify-between">
+        <div className="flex justify-between items-center">
+          <div className="h-6 w-32 bg-light-gray dark:bg-white/10 rounded" />
+          <div className="flex gap-2">
+            <div className="h-8 w-24 bg-light-gray dark:bg-white/10 rounded" />
+            <div className="h-8 w-24 bg-light-gray dark:bg-white/10 rounded" />
+          </div>
+        </div>
+        <div className="flex-1 bg-light-gray dark:bg-white/10 rounded-xl my-4" />
+      </div>
+      <div className="bg-white dark:bg-white/5 rounded-card p-5 border border-transparent dark:border-white/5 h-[200px] flex flex-col justify-between">
+        <div className="h-6 w-48 bg-light-gray dark:bg-white/10 rounded" />
+        <div className="h-6 w-48 bg-light-gray dark:bg-white/10 rounded" />
+        <div className="space-y-2 mt-4">
+          <div className="h-4 w-full bg-light-gray dark:bg-white/10 rounded" />
+          <div className="h-4 w-[85%] bg-light-gray dark:bg-white/10 rounded" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function RiskAnalyzerPage() {
   const [activeTab, setActiveTab] = useState<TabId>('heatmap');
   const { user } = useAuth();
+  const territory_id = user?.territory_id || 'TER_0001';
   const { activeRegion } = useRegion();
 
-  const territory_id = user?.territory_id || 'TER_0001';
-
-  const { data, loading } = useApi(
+  const { data, loading, error } = useApi(
     () => riskAPI.getAll(territory_id, activeRegion.lat, activeRegion.lng),
-    [territory_id, activeRegion.lat, activeRegion.lng],
+    [territory_id, activeRegion.lat, activeRegion.lng]
   );
 
-  const TabSkeleton = () => (
-    <div className="h-[500px] rounded-card bg-white dark:bg-white/5 animate-pulse border border-transparent dark:border-white/5" />
-  );
+  if (error) {
+    return (
+      <div className="flex flex-col items-center justify-center py-20 text-danger-red bg-white dark:bg-white/5 rounded-card border border-transparent dark:border-white/5 shadow-card">
+        <p className="text-base font-semibold">Failed to load Crop Risk Analysis</p>
+        <p className="text-xs text-text-muted mt-1">{error}</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -59,33 +88,35 @@ export default function RiskAnalyzerPage() {
         </div>
       </div>
 
-      {loading ? (
-        <TabSkeleton />
+      {loading || !data ? (
+        <RiskAnalyzerSkeleton />
       ) : (
         <>
           {activeTab === 'heatmap' && (
-            <div className="relative space-y-4">
+            <div className="space-y-4">
               <HeatmapGrid
-                cells={data?.heatmap || []}
+                cells={data.heatmap || []}
                 regionLat={activeRegion.lat}
                 regionLng={activeRegion.lng}
                 regionZoom={activeRegion.zoom}
               />
               <AIInsightsPanel
-                insights={data?.ai_insights || []}
-                overallRisk={data?.overall_risk_level || 'Medium'}
+                insights={data.ai_insights || []}
+                overallRisk={data.overall_risk_level || 'Low'}
                 territoryId={territory_id}
               />
             </div>
           )}
 
           {activeTab === 'ndvi' && (
-            <NDVIPanel data={data?.ndvi_data || []} />
+            <NDVIPanel
+              data={data.ndvi_data || []}
+            />
           )}
 
           {activeTab === 'weather' && (
             <WeatherMap
-              anomalies={data?.weather_anomalies || []}
+              anomalies={data.weather_anomalies || []}
               regionLat={activeRegion.lat}
               regionLng={activeRegion.lng}
               regionZoom={activeRegion.zoom}
@@ -94,7 +125,7 @@ export default function RiskAnalyzerPage() {
 
           {activeTab === 'pest' && (
             <PestMap
-              outbreaks={data?.pest_outbreaks || []}
+              outbreaks={data.pest_outbreaks || []}
               regionLat={activeRegion.lat}
               regionLng={activeRegion.lng}
               regionZoom={activeRegion.zoom}

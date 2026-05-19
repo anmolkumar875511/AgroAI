@@ -1,7 +1,6 @@
 import { TrendingUp, TrendingDown, Wheat, Sprout } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import { mandiAPI, type MandiPrice } from '@/api/client';
-import { useAuth } from '@/contexts/AuthContext';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = { Wheat, Sprout };
 
@@ -10,8 +9,6 @@ interface MandiPriceCardProps {
 }
 
 export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) {
-  const { user } = useAuth();
-
   // Only fetch independently if DashboardPage didn't inject prices
   const { data: fetchedPrices, loading } = useApi(
     () => injectedPrices ? Promise.resolve(injectedPrices) : mandiAPI.getPrices(),

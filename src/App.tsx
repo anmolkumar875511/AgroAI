@@ -5,6 +5,8 @@ import { RegionProvider } from '@/contexts/RegionContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
 import { AuthProvider, useAuth } from '@/contexts/AuthContext';
 
+import { Toaster } from '@/components/ui/sonner';
+
 import LandingPage from '@/pages/LandingPage';
 import LoginPage from '@/pages/LoginPage';
 import DashboardPage from '@/pages/DashboardPage';
@@ -42,6 +44,7 @@ function AppContent() {
   return (
     <BrowserRouter>
       <ScrollToTop />
+      <Toaster position="top-right" richColors />
       <Routes>
         {/* Public */}
         <Route path="/" element={<LandingPage />} />

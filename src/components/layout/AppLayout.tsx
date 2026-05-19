@@ -3,8 +3,8 @@ import { cn } from '@/lib/utils';
 import { TopNavbar } from './TopNavbar';
 import { Sidebar } from './Sidebar';
 import { MobileSidebarDrawer } from './MobileSidebarDrawer';
-import { AIFloatingButton } from './AIFloatingButton';
 import { AIChatDrawer } from './AIChatDrawer';
+import { AIFloatingButton } from './AIFloatingButton';
 import { useBreakpoint } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -31,8 +31,13 @@ export function AppLayout({ children }: AppLayoutProps) {
     <div className={cn('min-h-screen bg-off-white dark:bg-deep-forest transition-colors duration-300', theme)}>
       <TopNavbar onMenuClick={handleMenuClick} />
 
-      {isDesktop && desktopSidebarOpen && (
-        <Sidebar className="fixed left-0 top-16 h-[calc(100vh-64px)] w-[260px] z-40 transition-transform duration-300" />
+      {isDesktop && (
+        <Sidebar
+          className={cn(
+            "fixed left-0 top-16 h-[calc(100vh-64px)] w-[260px] z-40 transition-all duration-300 ease-in-out transform",
+            desktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"
+          )}
+        />
       )}
 
       {isMobile && (
@@ -43,7 +48,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       <main
-        className="pt-16 min-h-screen transition-all duration-300"
+        className="pt-16 min-h-screen transition-all duration-300 ease-in-out"
         style={{
           marginLeft: isMobile ? 0 : isDesktop ? (desktopSidebarOpen ? 260 : 0) : 64,
         }}
@@ -51,8 +56,8 @@ export function AppLayout({ children }: AppLayoutProps) {
         <div className="p-4 lg:p-6">{children}</div>
       </main>
 
-      <AIFloatingButton onClick={() => setAiChatOpen(true)} />
       <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
+      <AIFloatingButton onClick={() => setAiChatOpen(true)} />
     </div>
   );
 }

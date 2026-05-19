@@ -1,7 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
-  Store, Users, BarChart3, Settings, Wifi, WifiOff, Leaf, Bell,
+  Store, Users, BarChart3, Settings, Wifi, WifiOff, Bell,
 } from 'lucide-react';
 import { sidebarItems } from '@/data/mockData';
 import { cn } from '@/lib/utils';
@@ -24,12 +24,7 @@ export function Sidebar({ className }: SidebarProps) {
 
   return (
     <aside className={cn('bg-deep-forest flex flex-col h-[calc(100vh-64px)] overflow-y-auto scrollbar-hide', className)}>
-      <div className="hidden lg:flex items-center gap-2 px-5 py-4">
-        <Leaf className="w-5 h-5 text-lime-green" />
-        <span className="text-lg font-bold text-white tracking-tight">AgroAI</span>
-      </div>
-
-      <nav className="flex-1 px-3 py-2 space-y-1">
+      <nav className="flex-1 px-3 py-4 space-y-1">
         {sidebarItems.map((item) => {
           const Icon = iconMap[item.icon];
           const isActive = location.pathname === item.path;
