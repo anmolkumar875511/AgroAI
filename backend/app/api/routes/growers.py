@@ -17,6 +17,29 @@ ADVISORIES = [
     "Spray Actara for sucking pest control",
 ]
 
+def safe_int(val, default=0) -> int:
+    if val is None or val == "":
+        return default
+    try:
+        f_val = float(val)
+        if f_val != f_val: # NaN check
+            return default
+        return int(f_val)
+    except (ValueError, TypeError):
+        return default
+
+
+def safe_float(val, default=0.0) -> float:
+    if val is None or val == "":
+        return default
+    try:
+        f_val = float(val)
+        if f_val != f_val: # NaN check
+            return default
+        return f_val
+    except (ValueError, TypeError):
+        return default
+
 
 @router.get("/", summary="Get grower cluster insights for the territory")
 async def grower_insights(
@@ -33,84 +56,96 @@ async def grower_insights(
     Returns grower cluster summaries aggregated from retailer tehsil data.
     Each cluster represents one tehsil with crop-level farmer intelligence.
     """
-    retailers = get_collection("retailers")
+    territory_id = str(territory_id or "")
+    try:
+        retailers = get_collection("retailers")
 
-    # Aggregate by tehsil to build grower clusters
-    pipeline = [
-        {"$match": {"territory_id": territory_id}},
-        {"$group": {
-            "_id": {"state": "$state", "district": "$district", "tehsil": "$tehsil"},
-            "grower_count": {"$sum": "$grower_count"},
-            "avg_farm_size": {"$avg": "$avg_farm_size"},
-            "product_scans": {"$sum": "$product_scans"},
-            "campaign_attendance": {"$sum": "$campaign_attendance"},
-            "total_messages": {"$sum": "$total_messages"},
-            "total_clicked": {"$sum": "$total_clicked"},
-            "avg_priority_score": {"$avg": "$visit_priority_score"},
-            "top_product": {"$first": "$recommended_product"},
-            "last_visit_days": {"$avg": "$last_visit_days"},
-        }},
-        {"$sort": {"avg_priority_score": -1}},
-        {"$skip": skip},
-        {"$limit": limit},
-    ]
+        # Aggregate by tehsil to build grower clusters
+        pipeline = [
+            {"$match": {"territory_id": territory_id}},
+            {"$group": {
+                "_id": {"state": "$state", "district": "$district", "tehsil": "$tehsil"},
+                "grower_count": {"$sum": "$grower_count"},
+                "avg_farm_size": {"$avg": "$avg_farm_size"},
+                "product_scans": {"$sum": "$product_scans"},
+                "campaign_attendance": {"$sum": "$campaign_attendance"},
+                "total_messages": {"$sum": "$total_messages"},
+                "total_clicked": {"$sum": "$total_clicked"},
+                "avg_priority_score": {"$avg": "$visit_priority_score"},
+                "top_product": {"$first": "$recommended_product"},
+                "last_visit_days": {"$avg": "$last_visit_days"},
+            }},
+            {"$sort": {"avg_priority_score": -1}},
+            {"$skip": skip},
+            {"$limit": limit},
+        ]
 
-    clusters = []
-    async for doc in retailers.aggregate(pipeline):
-        loc = doc["_id"]
-        grower_count = int(doc.get("grower_count", 0)) or random.randint(50, 500)
-        scans = int(doc.get("product_scans", 0))
-        attendance = int(doc.get("campaign_attendance", 0))
-        messages = int(doc.get("total_messages", 0))
-        clicked = int(doc.get("total_clicked", 0))
-        score = doc.get("avg_priority_score", 0)
-        last_days = int(doc.get("last_visit_days", 0))
+        clusters = []
+        async for doc in retailers.aggregate(pipeline):
+            loc = doc.get("_id") or {}
+            grower_count = safe_int(doc.get("grower_count")) or random.randint(50, 500)
+            scans = safe_int(doc.get("product_scans"))
+            attendance = safe_int(doc.get("campaign_attendance"))
+            messages = safe_int(doc.get("total_messages"))
+            clicked = safe_int(doc.get("total_clicked"))
+            score = safe_float(doc.get("avg_priority_score"))
+            last_days = safe_int(doc.get("last_visit_days"))
 
-        eng_rate = round(clicked / (messages + 1), 3)
-        pest_risk = _score_to_risk(score)
-        urgency_score = round(score)
+            eng_rate = round(clicked / (messages + 1), 3)
+            pest_risk = _score_to_risk(score)
+            urgency_score = round(score)
 
-        if urgency != "all" and pest_risk.lower() != urgency.lower():
-            continue
+            if urgency != "all" and pest_risk.lower() != urgency.lower():
+                continue
 
-        # Deterministic but varied crop assignment per tehsil
-        tehsil_hash = abs(hash(loc.get("tehsil", ""))) % len(CROP_TYPES)
-        crop_type = CROP_TYPES[tehsil_hash]
-        if crop != "all" and crop.lower() != crop_type.lower():
-            continue
+            # Deterministic but varied crop assignment per tehsil
+            tehsil_name = loc.get("tehsil", "") or ""
+            tehsil_hash = abs(hash(tehsil_name)) % len(CROP_TYPES)
+            crop_type = CROP_TYPES[tehsil_hash]
+            if crop != "all" and crop.lower() != crop_type.lower():
+                continue
 
-        stage_hash = abs(hash(loc.get("tehsil", "") + "stage")) % len(CROP_STAGES)
-        advisory_hash = abs(hash(loc.get("tehsil", "") + "adv")) % len(ADVISORIES)
+            stage_hash = abs(hash(tehsil_name + "stage")) % len(CROP_STAGES)
+            advisory_hash = abs(hash(tehsil_name + "adv")) % len(ADVISORIES)
 
-        clusters.append({
-            "id": f"cluster-{loc.get('tehsil', '')}",
-            "tehsil": loc.get("tehsil", ""),
-            "district": loc.get("district", ""),
-            "state": loc.get("state", ""),
-            "location": f"{loc.get('tehsil','')}, {loc.get('district','')}",
-            "crop_type": crop_type,
-            "crop_stage": CROP_STAGES[stage_hash],
-            "grower_count": grower_count,
-            "avg_farm_size_acres": round(doc.get("avg_farm_size", 2.5) or 2.5, 2),
-            "product_scans": scans,
-            "campaign_attendance": attendance,
-            "engagement_rate": eng_rate,
-            "pest_risk": pest_risk,
-            "urgency_score": urgency_score,
-            "recommended_advisory": ADVISORIES[advisory_hash],
-            "recommended_product": doc.get("top_product", "Amistar 250 SC"),
-            "last_visit_days": last_days,
-            "total_messages_sent": messages,
-        })
+            clusters.append({
+                "id": f"cluster-{tehsil_name.lower()}",
+                "tehsil": tehsil_name,
+                "district": loc.get("district", "") or "",
+                "state": loc.get("state", "") or "",
+                "location": f"{tehsil_name}, {loc.get('district', '') or ''}".strip(", "),
+                "crop_type": crop_type,
+                "crop_stage": CROP_STAGES[stage_hash],
+                "grower_count": grower_count,
+                "avg_farm_size_acres": round(safe_float(doc.get("avg_farm_size", 2.5)) or 2.5, 2),
+                "product_scans": scans,
+                "campaign_attendance": attendance,
+                "engagement_rate": eng_rate,
+                "pest_risk": pest_risk,
+                "urgency_score": urgency_score,
+                "recommended_advisory": ADVISORIES[advisory_hash],
+                "recommended_product": doc.get("top_product") or "Amistar 250 SC",
+                "last_visit_days": last_days,
+                "total_messages_sent": messages,
+            })
 
-    if not clusters:
-        # Fallback to deterministic mock clusters if DB has no retailers or territory matches nothing
+        if not clusters:
+            # Fallback to deterministic mock clusters if DB has no retailers or territory matches nothing
+            clusters = _get_mock_clusters(territory_id, crop, urgency)
+            total_count = len(clusters)
+            clusters = clusters[skip : skip + limit]
+            return {"clusters": clusters, "total": total_count}
+
+        return {"clusters": clusters, "total": len(clusters)}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"Database error in grower_insights endpoint: {e}")
         clusters = _get_mock_clusters(territory_id, crop, urgency)
         total_count = len(clusters)
         clusters = clusters[skip : skip + limit]
         return {"clusters": clusters, "total": total_count}
-
-    return {"clusters": clusters, "total": len(clusters)}
 
 
 @router.get("/summary", summary="Territory-level grower summary stats")
@@ -118,24 +153,76 @@ async def grower_summary(
     territory_id: str = Query(default="T001"),
     current_user: dict = Depends(get_current_user),
 ):
-    retailers = get_collection("retailers")
-    pipeline = [
-        {"$match": {"territory_id": territory_id}},
-        {"$group": {
-            "_id": None,
-            "total_growers": {"$sum": "$grower_count"},
-            "total_scans": {"$sum": "$product_scans"},
-            "total_attendance": {"$sum": "$campaign_attendance"},
-            "total_messages": {"$sum": "$total_messages"},
-            "total_clicked": {"$sum": "$total_clicked"},
-            "avg_farm_size": {"$avg": "$avg_farm_size"},
-            "high_risk_count": {"$sum": {"$cond": [{"$eq": ["$priority_level", "High"]}, 1, 0]}},
-        }},
-    ]
-    
-    # Check if there are any retailers in the DB for this territory
-    has_retailers = await retailers.count_documents({"territory_id": territory_id})
-    if not has_retailers:
+    territory_id = str(territory_id or "")
+    try:
+        retailers = get_collection("retailers")
+        pipeline = [
+            {"$match": {"territory_id": territory_id}},
+            {"$group": {
+                "_id": None,
+                "total_growers": {"$sum": "$grower_count"},
+                "total_scans": {"$sum": "$product_scans"},
+                "total_attendance": {"$sum": "$campaign_attendance"},
+                "total_messages": {"$sum": "$total_messages"},
+                "total_clicked": {"$sum": "$total_clicked"},
+                "avg_farm_size": {"$avg": "$avg_farm_size"},
+                "high_risk_count": {"$sum": {"$cond": [{"$eq": ["$priority_level", "High"]}, 1, 0]}},
+            }},
+        ]
+        
+        # Check if there are any retailers in the DB for this territory
+        has_retailers = await retailers.count_documents({"territory_id": territory_id})
+        if not has_retailers:
+            # Fall back to aggregated stats from the mock clusters
+            mock_clusters = _get_mock_clusters(territory_id)
+            if not mock_clusters:
+                return {"total_growers": 0, "total_product_scans": 0, "campaign_attendance": 0,
+                        "digital_engagement_rate": 0, "avg_farm_size_acres": 0, "high_urgency_clusters": 0}
+                
+            total_growers = sum(c["grower_count"] for c in mock_clusters)
+            total_scans = sum(c["product_scans"] for c in mock_clusters)
+            total_attendance = sum(c["campaign_attendance"] for c in mock_clusters)
+            avg_farm = round(sum(c["avg_farm_size_acres"] for c in mock_clusters) / len(mock_clusters), 2)
+            
+            total_messages = sum(c["total_messages_sent"] for c in mock_clusters)
+            total_clicked = sum(int(c["total_messages_sent"] * c["engagement_rate"]) for c in mock_clusters)
+            eng_rate = round(total_clicked / (total_messages + 1), 3)
+            high_urgency = sum(1 for c in mock_clusters if c["pest_risk"] in ["High", "Critical"])
+            
+            return {
+                "total_growers": total_growers,
+                "total_product_scans": total_scans,
+                "campaign_attendance": total_attendance,
+                "digital_engagement_rate": eng_rate,
+                "avg_farm_size_acres": avg_farm,
+                "high_urgency_clusters": high_urgency,
+            }
+
+        async for doc in retailers.aggregate(pipeline):
+            total_growers = safe_int(doc.get("total_growers"))
+            total_scans = safe_int(doc.get("total_scans"))
+            total_attendance = safe_int(doc.get("total_attendance"))
+            total_messages = safe_int(doc.get("total_messages"))
+            total_clicked = safe_int(doc.get("total_clicked"))
+            avg_farm = safe_float(doc.get("avg_farm_size"))
+            high_risk = safe_int(doc.get("high_risk_count"))
+            
+            return {
+                "total_growers": total_growers,
+                "total_product_scans": total_scans,
+                "campaign_attendance": total_attendance,
+                "digital_engagement_rate": round(
+                    total_clicked / (total_messages + 1), 3
+                ),
+                "avg_farm_size_acres": round(avg_farm or 2.5, 2),
+                "high_urgency_clusters": high_risk,
+            }
+            
+        return {"total_growers": 0, "total_product_scans": 0, "campaign_attendance": 0,
+                "digital_engagement_rate": 0, "avg_farm_size_acres": 0, "high_urgency_clusters": 0}
+
+    except Exception as e:
+        print(f"Database error in grower_summary endpoint: {e}")
         # Fall back to aggregated stats from the mock clusters
         mock_clusters = _get_mock_clusters(territory_id)
         if not mock_clusters:
@@ -160,21 +247,6 @@ async def grower_summary(
             "avg_farm_size_acres": avg_farm,
             "high_urgency_clusters": high_urgency,
         }
-
-    async for doc in retailers.aggregate(pipeline):
-        return {
-            "total_growers": int(doc.get("total_growers", 0)),
-            "total_product_scans": int(doc.get("total_scans", 0)),
-            "campaign_attendance": int(doc.get("total_attendance", 0)),
-            "digital_engagement_rate": round(
-                doc.get("total_clicked", 0) / (doc.get("total_messages", 1) + 1), 3
-            ),
-            "avg_farm_size_acres": round(doc.get("avg_farm_size", 2.5) or 2.5, 2),
-            "high_urgency_clusters": int(doc.get("high_risk_count", 0)),
-        }
-        
-    return {"total_growers": 0, "total_product_scans": 0, "campaign_attendance": 0,
-            "digital_engagement_rate": 0, "avg_farm_size_acres": 0, "high_urgency_clusters": 0}
 
 
 def _score_to_risk(score: float) -> str:
