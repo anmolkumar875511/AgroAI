@@ -1,9 +1,3 @@
-/**
- * NEW FILE: src/hooks/useApi.ts
- *
- * Generic hook for calling backend APIs with loading + error state.
- * Used by all pages to replace mock data imports.
- */
 import { useState, useEffect, useCallback, useRef } from 'react';
 
 interface UseApiState<T> {
@@ -34,7 +28,7 @@ export function useApi<T>(
     } finally {
       setLoading(false);
     }
-  }, deps); // eslint-disable-line react-hooks/exhaustive-deps
+  }, deps);
 
   useEffect(() => { fetch(); }, [fetch]);
 
