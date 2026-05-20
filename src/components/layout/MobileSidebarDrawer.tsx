@@ -1,10 +1,3 @@
-/**
- * CHANGED FILE: src/components/layout/MobileSidebarDrawer.tsx
- *
- * What changed:
- * 1. Added Bell to iconMap (Notifications sidebar item)
- * 2. sidebarItems paths now correct (retailer-insights, grower-insights, notifications)
- */
 import { useLocation, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {

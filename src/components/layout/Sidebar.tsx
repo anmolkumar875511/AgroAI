@@ -1,12 +1,3 @@
-/**
- * CHANGED FILE: src/components/layout/Sidebar.tsx
- *
- * What changed:
- * 1. Added Bell icon to iconMap (for new Notifications sidebar item)
- * 2. sidebarItems now imported from updated mockData which has retailer-insights,
- *    grower-insights, notifications with correct paths
- * 3. No other logic changes — paths/icons just work now
- */
 import { useLocation, useNavigate } from 'react-router-dom';
 import {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert,

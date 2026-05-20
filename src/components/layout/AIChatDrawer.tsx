@@ -1,14 +1,3 @@
-/**
- * CHANGED FILE: src/components/layout/AIChatDrawer.tsx
- *
- * What changed:
- * 1. Removed: local generateAIResponse() mock function
- * 2. Added: chatAPI.sendMessage() call to /api/v1/ai-chat/
- * 3. session_id generated once per drawer open using crypto.randomUUID()
- * 4. region passed from useRegion() activeRegion.name (same as before)
- * 5. Chat history loaded from backend on open via chatAPI.getHistory()
- * 6. All other UI (bubbles, mic, camera, quick prompts) unchanged
- */
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X, Send, Bot, User, Sparkles, Mic, Camera } from 'lucide-react';

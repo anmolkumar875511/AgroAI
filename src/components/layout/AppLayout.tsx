@@ -1,7 +1,3 @@
-// src/components/layout/AppLayout.tsx  — UNCHANGED LOGIC
-// What changed: nothing — this file is identical to the original.
-// Listed here for completeness so you have the full file.
-
 import { useState } from 'react';
 import { cn } from '@/lib/utils';
 import { TopNavbar } from './TopNavbar';

@@ -1,15 +1,3 @@
-/**
- * CHANGED FILE: src/components/layout/TopNavbar.tsx
- *
- * What changed:
- * 1. Removed: import { notifications } from '@/data/mockData'
- * 2. Added: live fetch from notificationsAPI (unread count + dropdown items)
- * 3. Added: Mark all read button calling notificationsAPI.markAllRead()
- * 4. Added: individual mark-read on click via notificationsAPI.markRead()
- * 5. Added: Logout button in user avatar dropdown using useAuth().logout()
- * 6. User name in avatar now comes from useAuth().user.name (was hardcoded "AS")
- * 7. Region selector still uses RegionContext (no change needed there)
- */
 import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Menu, Search, Bell, MapPin, ChevronDown, Sun, Moon, Leaf, LogOut, User } from 'lucide-react';
