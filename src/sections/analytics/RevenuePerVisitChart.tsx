@@ -1,4 +1,3 @@
-// src/sections/analytics/RevenuePerVisitChart.tsx
 import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 

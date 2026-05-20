@@ -1,4 +1,3 @@
-// src/sections/analytics/CropRiskTrendsChart.tsx
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 

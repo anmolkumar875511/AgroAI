@@ -1,4 +1,3 @@
-// src/sections/analytics/RecommendationAcceptanceChart.tsx
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 

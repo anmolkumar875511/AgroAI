@@ -1,4 +1,3 @@
-// src/sections/analytics/StockUtilizationChart.tsx
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 

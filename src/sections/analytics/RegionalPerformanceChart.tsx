@@ -1,4 +1,3 @@
-// src/sections/analytics/RegionalPerformanceChart.tsx
 import { RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar, Legend, ResponsiveContainer, Tooltip } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 
