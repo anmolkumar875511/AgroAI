@@ -1,8 +1,3 @@
-// src/sections/dashboard/DashboardGreeting.tsx  — CHANGED
-// What changed:
-// - User name now from useAuth().user.name instead of hardcoded "Amit"
-// - WeatherWidget still uses static fallback (unchanged)
-
 import { useAuth } from '@/contexts/AuthContext';
 import { WeatherWidget } from '@/components/shared/WeatherWidget';
 

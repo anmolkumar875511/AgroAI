@@ -1,12 +1,3 @@
-/**
- * CHANGED FILE: src/sections/dashboard/AIRecommendationsFeed.tsx
- *
- * What changed:
- * - Removed: import { aiRecommendations } from '@/data/mockData'
- * - Added: territoryId prop, live fetch from recommendationsAPI
- * - Backend returns snake_case fields (pest_risk, next_action) — mapped inline
- * - Added loading skeletons
- */
 import { ChevronRight, Leaf, Wheat, Flower2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { PriorityBadge } from '@/components/shared/PriorityBadge';

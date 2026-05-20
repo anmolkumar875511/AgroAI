@@ -1,12 +1,3 @@
-/**
- * CHANGED FILE: src/sections/dashboard/MandiPriceCard.tsx
- *
- * What changed:
- * - Added optional `prices` prop — when provided (from DashboardPage API call),
- *   uses live data. Falls back to internal mandiAPI fetch if prop is absent.
- * - Removed hardcoded mandiPrices array
- * - Added loading skeleton
- */
 import { TrendingUp, TrendingDown, Wheat, Sprout } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
 import { mandiAPI, type MandiPrice } from '@/api/client';
@@ -74,17 +65,3 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
     </div>
   );
 }
-
-// ─────────────────────────────────────────────────────────────────────────────
-
-/**
- * CHANGED FILE: src/sections/dashboard/AIRecommendationsFeed.tsx
- *
- * What changed:
- * - Removed: import { aiRecommendations } from '@/data/mockData'
- * - Added: `territoryId` prop, fetches live from recommendationsAPI
- * - Recommendation shape from backend uses snake_case — mapped to component
- * - Added loading skeleton
- */
-// (This component is re-exported here as a named export for clarity in the diff.
-//  In your project, just update the existing file at the path shown.)

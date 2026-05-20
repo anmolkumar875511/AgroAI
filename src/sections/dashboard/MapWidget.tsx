@@ -1,7 +1,3 @@
-// src/sections/dashboard/MapWidget.tsx  — UNCHANGED
-// No API changes needed — this widget already uses RegionContext for the map center
-// and renders markers from local state. Future scope: fetch markers from backend.
-
 import { useState, useMemo } from 'react';
 import { cn } from '@/lib/utils';
 import { GoogleMap, MarkerF, InfoWindowF } from '@react-google-maps/api';

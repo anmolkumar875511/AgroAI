@@ -1,8 +1,3 @@
-// src/sections/dashboard/KPICard.tsx  — UNCHANGED
-// No changes needed — DashboardPage now converts backend KPI shape → this component's
-// expected shape via the toKpiData() mapper before passing it in.
-// This file is identical to the original.
-
 import { AlertTriangle, MapPin, Package, TrendingUp } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { MiniSparkline } from '@/components/shared/MiniSparkline';

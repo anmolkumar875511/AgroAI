@@ -1,10 +1,3 @@
-// src/sections/dashboard/WeeklyPerformanceChart.tsx  — CHANGED
-// What changed:
-// - Added data prop (WeeklyPoint[] | undefined) — live data from DashboardPage
-// - Added loading prop — shows skeleton when true
-// - Falls back to static mock if data is null (safe for landing page preview)
-// - Removed import { weeklyPerformanceData } from '@/data/mockData'
-
 import {
   ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid,
   Tooltip, ResponsiveContainer, Legend,
