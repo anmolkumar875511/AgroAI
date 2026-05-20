@@ -48,7 +48,6 @@ async def register_user(data: RegisterRequest) -> dict:
 async def login_user(data: LoginRequest) -> dict:
     users = get_collection("users")
     user = await users.find_one({"email": data.email})
-    print(data.email, data.password, user)
 
     if not user or not verify_password(data.password, user["hashed_password"]):
         raise HTTPException(
