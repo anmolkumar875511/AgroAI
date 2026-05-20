@@ -27,6 +27,7 @@ export interface AIRecommendation {
   nextAction?: string;
   followUpTimeline?: string[];
   explainableReasons?: ExplainableReason[];
+  retailer_id?: string;
 }
 
 export interface ExplainableReason {

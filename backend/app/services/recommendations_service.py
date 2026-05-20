@@ -23,15 +23,38 @@ PRODUCT_RECOMMENDATIONS = {
 }
 
 
-async def get_recommendations(territory_id: str, limit: int = 10) -> List[Dict[str, Any]]:
+async def get_recommendations(
+    territory_id: str,
+    limit: int = 10,
+    user_id: Optional[str] = None,
+) -> List[Dict[str, Any]]:
     """
     Pull top-priority retailers from MongoDB and enrich with ML predictions
-    and explainable AI reasoning.
+    and explainable AI reasoning, filtering out already applied or dismissed ones.
     """
+    excluded_ids = set()
+    if user_id:
+        applied_col = get_collection("applied_recommendations")
+        cursor_applied = applied_col.find({"user_id": user_id})
+        async for app_doc in cursor_applied:
+            if "recommendation_id" in app_doc:
+                excluded_ids.add(app_doc["recommendation_id"])
+
     retailers = get_collection("retailers")
 
+    query = {"territory_id": territory_id}
+    if excluded_ids:
+        object_ids = []
+        for rid in excluded_ids:
+            try:
+                object_ids.append(ObjectId(rid))
+            except Exception:
+                pass
+        if object_ids:
+            query["_id"] = {"$nin": object_ids}
+
     cursor = retailers.find(
-        {"territory_id": territory_id},
+        query,
         sort=[("visit_priority_score", -1)],
         limit=limit,
     )
@@ -42,7 +65,7 @@ async def get_recommendations(territory_id: str, limit: int = 10) -> List[Dict[s
 
     # If no retailers in DB yet, return seeded mock data
     if not recs:
-        recs = _mock_recommendations()
+        recs = [r for r in _mock_recommendations() if r["id"] not in excluded_ids]
 
     return recs
 

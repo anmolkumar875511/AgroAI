@@ -7,7 +7,7 @@ export default function RecommendationsPage() {
   const { user } = useAuth();
   const territory_id = user?.territory_id || 'TER_0001';
 
-  const { data: recs, loading, refetch } = useApi(
+  const { data: recs, loading } = useApi(
     () => recommendationsAPI.getRecommendations(territory_id, 20),
     [territory_id],
   );
@@ -51,16 +51,21 @@ export default function RecommendationsPage() {
                 explainableReasons: (rec.explainable_reasons || []).map(r => ({
                   id: r.id, title: r.title, description: r.description, icon: r.icon,
                 })),
+                retailer_id: rec.retailer_id,
               }}
               onApply={() =>
-                recommendationsAPI
-                  .applyRecommendation({ recommendation_id: rec.id, retailer_id: rec.retailer_id, action: 'apply' })
-                  .then(refetch)
+                recommendationsAPI.applyRecommendation({
+                  recommendation_id: rec.id,
+                  retailer_id: rec.retailer_id,
+                  action: 'apply',
+                })
               }
               onDismiss={() =>
-                recommendationsAPI
-                  .applyRecommendation({ recommendation_id: rec.id, retailer_id: rec.retailer_id, action: 'dismiss' })
-                  .then(refetch)
+                recommendationsAPI.applyRecommendation({
+                  recommendation_id: rec.id,
+                  retailer_id: rec.retailer_id,
+                  action: 'dismiss',
+                })
               }
             />
           ))}

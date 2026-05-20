@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { MapPin, Clock, Sparkles, X } from 'lucide-react';
 import { ProgressRing } from '@/components/shared/ProgressRing';
 import { cn } from '@/lib/utils';
@@ -19,6 +20,7 @@ const tagColors: Record<string, string> = {
 };
 
 export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardProps) {
+  const navigate = useNavigate();
   const [actionState, setActionState] = useState<'idle' | 'loading' | 'completed'>('idle');
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -118,10 +120,17 @@ export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardPro
                 ? getSuccessText(visit.actions[0])
                 : visit.actions[0]}
             </button>
-            <button onClick={handleSecondaryAction}
-              className="flex-1 lg:flex-none px-5 py-2.5 rounded-button bg-light-gray dark:bg-white/5 text-text-primary dark:text-white text-sm font-medium hover:bg-light-gray/80 transition-all">
-              {visit.actions[1]}
-            </button>
+            {actionState === 'completed' && visit.actions[0].toLowerCase().includes('start') ? (
+              <button onClick={() => navigate(`/visit-feedback?retailer_id=${retailerId}&name=${encodeURIComponent(visit.name)}`)}
+                className="flex-1 lg:flex-none px-5 py-2.5 rounded-button bg-lime-green/20 text-lime-green dark:text-lime-green hover:bg-lime-green/30 text-sm font-bold transition-all animate-in slide-in-from-top-1 duration-200">
+                Log Feedback
+              </button>
+            ) : (
+              <button onClick={handleSecondaryAction}
+                className="flex-1 lg:flex-none px-5 py-2.5 rounded-button bg-light-gray dark:bg-white/5 text-text-primary dark:text-white text-sm font-medium hover:bg-light-gray/80 transition-all">
+                {visit.actions[1]}
+              </button>
+            )}
           </div>
         </div>
       </div>

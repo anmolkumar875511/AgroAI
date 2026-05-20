@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ChevronDown, Sprout, ShieldAlert, CloudSun, FlaskConical, Info,
@@ -20,6 +21,7 @@ const reasoningIcons: Record<string, React.ComponentType<{ className?: string }>
 };
 
 export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: ExplainableAICardProps) {
+  const navigate = useNavigate();
   const [expanded, setExpanded] = useState(false);
   const [showExplain, setShowExplain] = useState(false);
   const [actionState, setActionState] = useState<'idle' | 'loading' | 'applied' | 'dismissed'>('idle');
@@ -51,16 +53,32 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
     return (
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }} animate={{ opacity: 1, scale: 1 }}
-        className="bg-lime-green/10 border border-lime-green/30 rounded-card p-5 flex items-center gap-4"
+        className="bg-lime-green/10 border border-lime-green/30 rounded-card p-5 flex flex-col md:flex-row md:items-center justify-between gap-4"
       >
-        <div className="w-12 h-12 rounded-full bg-lime-green flex items-center justify-center flex-shrink-0 shadow-glow-green">
-          <CheckCircle2 className="w-6 h-6 text-white" />
+        <div className="flex items-center gap-4">
+          <div className="w-12 h-12 rounded-full bg-lime-green flex items-center justify-center flex-shrink-0 shadow-glow-green">
+            <CheckCircle2 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h4 className="font-semibold text-deep-green dark:text-lime-green text-base md:text-lg">Recommendation Applied</h4>
+            <p className="text-xs md:text-sm text-deep-green/80 dark:text-lime-green/80 mt-1">
+              Action scheduled for {rec.village}. {rec.farmer ? `Farmer ${rec.farmer} notified.` : ''}
+            </p>
+          </div>
         </div>
-        <div>
-          <h4 className="font-semibold text-deep-green dark:text-lime-green text-lg">Recommendation Applied</h4>
-          <p className="text-sm text-deep-green/80 dark:text-lime-green/80 mt-1">
-            Action scheduled for {rec.village}. {rec.farmer ? `Farmer ${rec.farmer} notified.` : ''}
-          </p>
+        <div className="flex gap-2 flex-wrap md:flex-nowrap">
+          <button
+            onClick={() => navigate('/visit-planner')}
+            className="px-3.5 py-1.5 rounded-button bg-deep-green text-white hover:bg-deep-green/90 dark:bg-lime-green dark:text-deep-forest dark:hover:bg-lime-green/95 text-xs font-bold transition-all shadow-glow-green"
+          >
+            Go to Planner
+          </button>
+          <button
+            onClick={() => navigate(`/visit-feedback?retailer_id=${rec.retailer_id || ''}&name=${encodeURIComponent(rec.village)}`)}
+            className="px-3.5 py-1.5 rounded-button bg-deep-green/15 text-deep-green border border-deep-green/30 hover:bg-deep-green/20 dark:bg-lime-green/20 dark:text-lime-green dark:border-lime-green/30 dark:hover:bg-lime-green/30 text-xs font-bold transition-all"
+          >
+            Log Feedback
+          </button>
         </div>
       </motion.div>
     );

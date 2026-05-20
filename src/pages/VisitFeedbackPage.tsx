@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { CheckCircle2, Loader2, MapPin, Package, MessageSquare, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { visitFeedbackAPI } from '@/api/client';
@@ -22,9 +23,12 @@ const PRODUCTS = [
 export default function VisitFeedbackPage() {
   const { user } = useAuth();
   const territory_id = user?.territory_id || 'TER_0001';
+  const [searchParams] = useSearchParams();
+  const initialRetailerId = searchParams.get('retailer_id') || '';
+  const retailerName = searchParams.get('name') || '';
 
   const [form, setForm] = useState({
-    retailer_id: '',
+    retailer_id: initialRetailerId,
     visit_status: 'completed',
     products_discussed: [] as string[],
     order_placed: false,
@@ -36,6 +40,12 @@ export default function VisitFeedbackPage() {
     competitor_issue: '',
     notes: '',
   });
+
+  useEffect(() => {
+    if (initialRetailerId) {
+      setForm(f => ({ ...f, retailer_id: initialRetailerId }));
+    }
+  }, [initialRetailerId]);
 
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -110,9 +120,16 @@ export default function VisitFeedbackPage() {
 
         {/* Retailer ID */}
         <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
-          <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider mb-3">
-            <MapPin className="w-3.5 h-3.5 inline mr-1.5" />Retailer ID *
-          </label>
+          <div className="flex justify-between items-center mb-3">
+            <label className="block text-xs font-semibold text-text-muted uppercase tracking-wider">
+              <MapPin className="w-3.5 h-3.5 inline mr-1.5" />Retailer ID *
+            </label>
+            {initialRetailerId && (
+              <span className="px-2 py-0.5 rounded bg-lime-green/10 text-lime-green text-[10px] font-bold uppercase animate-pulse">
+                Pre-filled {retailerName ? `(${retailerName})` : ''}
+              </span>
+            )}
+          </div>
           <input type="text" required value={form.retailer_id}
             onChange={e => setForm(f => ({ ...f, retailer_id: e.target.value }))}
             placeholder="e.g. RTL_00001"

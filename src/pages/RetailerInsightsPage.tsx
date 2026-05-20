@@ -1,9 +1,11 @@
-import { useState } from 'react';
-import { Search, RefreshCw, MapPin, Clock, Package, TrendingUp, Star } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { Search, RefreshCw, MapPin, Clock, Package, TrendingUp, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
-import { retailersAPI, type RetailerCard } from '@/api/client';
+import { retailersAPI, visitPlannerAPI, type RetailerCard } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const PRIORITY_COLORS: Record<string, string> = {
   High:   'bg-danger-red/10 text-danger-red border-danger-red/20',
@@ -19,11 +21,34 @@ const STOCK_COLORS: Record<string, string> = {
 
 function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRescore: (id: string) => void }) {
   const [rescoring, setRescoring] = useState(false);
+  const [planning, setPlanning] = useState(false);
+  const { user } = useAuth();
+  const navigate = useNavigate();
 
   const handleRescore = async () => {
     setRescoring(true);
     try { await retailersAPI.rescore(retailer.retailer_id); onRescore(retailer.retailer_id); }
     finally { setRescoring(false); }
+  };
+
+  const handlePlanVisit = async () => {
+    setPlanning(true);
+    try {
+      await visitPlannerAPI.recordAction(
+        { retailer_id: retailer.retailer_id, action: 'start' },
+        user?.territory_id || 'TER_0001'
+      );
+      toast.success(`Retailer ${retailer.retailer_id} added to today's route!`, {
+        action: {
+          label: 'View Planner',
+          onClick: () => navigate('/visit-planner'),
+        },
+      });
+    } catch {
+      toast.error('Failed to plan visit. Please try again.');
+    } finally {
+      setPlanning(false);
+    }
   };
 
   return (
@@ -93,8 +118,16 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
 
       {/* Action */}
       <div className="flex gap-2">
-        <button className="flex-1 py-2 rounded-button gradient-primary text-white text-xs font-semibold hover:brightness-110 transition-all">
-          Plan Visit
+        <button
+          onClick={handlePlanVisit}
+          disabled={planning}
+          className="flex-1 py-2 rounded-button gradient-primary text-white text-xs font-semibold hover:brightness-110 transition-all flex justify-center items-center gap-1"
+        >
+          {planning ? (
+            <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : (
+            'Plan Visit'
+          )}
         </button>
         <button
           onClick={handleRescore}
@@ -112,12 +145,51 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
 export default function RetailerInsightsPage() {
   const { user } = useAuth();
   const territory_id = user?.territory_id || 'TER_0001';
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [search, setSearch]   = useState('');
-  const [priority, setPriority] = useState('all');
-  const [stock, setStock]     = useState('all');
+  const initialSearch = searchParams.get('search') || '';
+  const initialPriority = searchParams.get('priority') || 'all';
+  const initialStock = searchParams.get('stock') || 'all';
+
+  const [search, setSearch]   = useState(initialSearch);
+  const [priority, setPriority] = useState(initialPriority);
+  const [stock, setStock]     = useState(initialStock);
   const [page, setPage]       = useState(0);
   const limit = 12;
+
+  // Sync state with URL search params when they change
+  useEffect(() => {
+    setSearch(searchParams.get('search') || '');
+    setPriority(searchParams.get('priority') || 'all');
+    setStock(searchParams.get('stock') || 'all');
+    setPage(0);
+  }, [searchParams]);
+
+  const updateParams = (newSearch: string, newPriority: string, newStock: string) => {
+    const params: Record<string, string> = {};
+    if (newSearch) params.search = newSearch;
+    if (newPriority !== 'all') params.priority = newPriority;
+    if (newStock !== 'all') params.stock = newStock;
+    setSearchParams(params);
+  };
+
+  const handleSearchChange = (val: string) => {
+    setSearch(val);
+    setPage(0);
+    updateParams(val, priority, stock);
+  };
+
+  const handlePriorityChange = (val: string) => {
+    setPriority(val);
+    setPage(0);
+    updateParams(search, val, stock);
+  };
+
+  const handleStockChange = (val: string) => {
+    setStock(val);
+    setPage(0);
+    updateParams(search, priority, val);
+  };
 
   const { data, loading, refetch } = useApi(
     () => retailersAPI.list({ territory_id, priority: priority !== 'all' ? priority : undefined, stock: stock !== 'all' ? stock : undefined, search, skip: page * limit, limit }),
@@ -144,14 +216,14 @@ export default function RetailerInsightsPage() {
           <Search className="w-4 h-4 text-text-muted flex-shrink-0" />
           <input
             type="text" value={search}
-            onChange={e => { setSearch(e.target.value); setPage(0); }}
+            onChange={e => handleSearchChange(e.target.value)}
             placeholder="Search retailer, tehsil, product..."
             className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary dark:text-white placeholder:text-text-muted"
           />
         </div>
 
         {/* Priority filter */}
-        <select value={priority} onChange={e => { setPriority(e.target.value); setPage(0); }}
+        <select value={priority} onChange={e => handlePriorityChange(e.target.value)}
           className="h-9 px-3 rounded-button bg-white dark:bg-white/5 border border-light-gray dark:border-white/10 text-sm text-text-primary dark:text-white outline-none cursor-pointer">
           <option value="all">All Priorities</option>
           <option value="High">High</option>
@@ -160,7 +232,7 @@ export default function RetailerInsightsPage() {
         </select>
 
         {/* Stock filter */}
-        <select value={stock} onChange={e => { setStock(e.target.value); setPage(0); }}
+        <select value={stock} onChange={e => handleStockChange(e.target.value)}
           className="h-9 px-3 rounded-button bg-white dark:bg-white/5 border border-light-gray dark:border-white/10 text-sm text-text-primary dark:text-white outline-none cursor-pointer">
           <option value="all">All Stock</option>
           <option value="Low Stock">Low Stock</option>

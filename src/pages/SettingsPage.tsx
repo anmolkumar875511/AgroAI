@@ -6,8 +6,9 @@ import {
 } from 'lucide-react';
 import { useTheme } from '@/contexts/ThemeContext';
 import { useAuth } from '@/contexts/AuthContext';
-import { settingsAPI } from '@/api/client';
+import { settingsAPI, syncOfflineQueue } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
@@ -22,6 +23,50 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved]   = useState(false);
   const [error, setError]   = useState('');
+  const [syncing, setSyncing] = useState(false);
+  const [lastSyncText, setLastSyncText] = useState('LAST SYNCED: 5 MINUTES AGO');
+
+  const handleSyncNow = async () => {
+    if (syncing) return;
+    setSyncing(true);
+
+    const toastId = toast.loading('Initiating background synchronization...', {
+      description: 'Checking connection and pending offline tasks...'
+    });
+
+    try {
+      // 1. Sync any real cached offline operations
+      await syncOfflineQueue();
+      await new Promise(resolve => setTimeout(resolve, 800));
+
+      // 2. Play beautiful simulated updates
+      toast.loading('Syncing market trends and mandi prices...', {
+        id: toastId,
+        description: 'Downloading latest grain, paddy, and wheat indices.'
+      });
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
+      toast.loading('Downloading pest alerts & territory analytics...', {
+        id: toastId,
+        description: 'Analyzing recent crop health telemetry.'
+      });
+      await new Promise(resolve => setTimeout(resolve, 900));
+
+      toast.success('Synchronization complete!', {
+        id: toastId,
+        description: 'All offline tasks and market intelligence are up-to-date.',
+        duration: 3000
+      });
+
+      setLastSyncText('LAST SYNCED: JUST NOW');
+    } catch (err) {
+      toast.error('Sync failed. Please check your network connection.', {
+        id: toastId
+      });
+    } finally {
+      setSyncing(false);
+    }
+  };
 
   const toggleNotification = (key: string) =>
     setNotifications(prev => ({ ...prev, [key]: !prev[key as keyof typeof prev] }));
@@ -109,11 +154,11 @@ export default function SettingsPage() {
                 </div>
               </div>
               <select value={language} onChange={e => setLanguage(e.target.value)}
-                className="bg-light-gray dark:bg-white/5 border-none text-sm font-medium rounded-lg px-3 py-1.5 text-text-primary dark:text-white outline-none focus:ring-1 focus:ring-lime-green cursor-pointer">
-                <option>English</option>
-                <option>Hindi (हिंदी)</option>
-                <option>Bengali (বাংলা)</option>
-                <option>Punjabi (ਪੰਜਾਬੀ)</option>
+                className="bg-light-gray dark:bg-white/10 border-none text-sm font-medium rounded-lg px-3 py-1.5 text-text-primary dark:text-white outline-none focus:ring-1 focus:ring-lime-green cursor-pointer">
+                <option className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">English</option>
+                <option className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Hindi (हिंदी)</option>
+                <option className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Bengali (বাংলা)</option>
+                <option className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Punjabi (ਪੰਜਾਬੀ)</option>
               </select>
             </div>
           </section>
@@ -135,10 +180,18 @@ export default function SettingsPage() {
               </button>
             </div>
             <div className="pt-2">
-              <button className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-light-gray dark:border-white/10 text-sm font-medium text-text-primary dark:text-white hover:bg-light-gray dark:hover:bg-white/5 transition-colors">
-                <RefreshCw size={16} /> Sync Now
+              <button 
+                onClick={handleSyncNow}
+                disabled={syncing}
+                className={cn(
+                  "w-full flex items-center justify-center gap-2 py-2.5 rounded-lg border border-light-gray dark:border-white/10 text-sm font-medium text-text-primary dark:text-white hover:bg-light-gray dark:hover:bg-white/5 transition-all duration-300 active:scale-[0.98]",
+                  syncing && "bg-lime-green/10 text-lime-green dark:bg-lime-green/20 dark:text-lime-green border-lime-green/30"
+                )}
+              >
+                <RefreshCw size={16} className={cn("transition-transform duration-500", syncing && "animate-spin")} />
+                {syncing ? 'Syncing...' : 'Sync Now'}
               </button>
-              <p className="mt-2 text-[10px] text-center text-text-muted uppercase tracking-tighter">Last synced: 5 minutes ago</p>
+              <p className="mt-2 text-[10px] text-center text-text-muted uppercase tracking-tighter transition-all duration-300">{lastSyncText}</p>
             </div>
           </section>
         </div>

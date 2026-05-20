@@ -16,7 +16,7 @@ async def recommendations(
     limit: int = Query(default=10, le=50),
     current_user: dict = Depends(get_current_user),
 ):
-    return await get_recommendations(territory_id, limit)
+    return await get_recommendations(territory_id, limit, user_id=current_user["sub"])
 
 
 @router.post("/apply", summary="Apply or dismiss a recommendation")

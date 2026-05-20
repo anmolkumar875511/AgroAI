@@ -93,6 +93,14 @@
   .dark body {
     @apply bg-deep-forest text-white;
   }
+  select option {
+    background-color: #ffffff;
+    color: #1A1D18;
+  }
+  .dark select option {
+    background-color: #142818;
+    color: #ffffff;
+  }
 }
 
 @layer components {

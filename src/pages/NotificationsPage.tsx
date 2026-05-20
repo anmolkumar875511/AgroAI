@@ -1,4 +1,5 @@
 import { Bell, CheckCheck, AlertTriangle, Info, CheckCircle, AlertCircle } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/useApi';
 import { notificationsAPI, type NotificationItem } from '@/api/client';
 import { cn } from '@/lib/utils';
@@ -40,6 +41,7 @@ function NotifRow({ notif, onRead }: { notif: NotificationItem; onRead: () => vo
 }
 
 export default function NotificationsPage() {
+  const navigate = useNavigate();
   const { data, loading, refetch } = useApi(
     () => notificationsAPI.getAll(false, 50),
     [],
@@ -48,9 +50,42 @@ export default function NotificationsPage() {
   const notifications = data?.notifications || [];
   const unreadCount = data?.unread_count || 0;
 
-  const handleRead = async (id: string) => {
-    await notificationsAPI.markRead(id);
-    refetch();
+  const handleNotificationClick = async (notif: NotificationItem) => {
+    if (!notif.read) {
+      await notificationsAPI.markRead(notif.id);
+      refetch();
+    }
+
+    const title = notif.title;
+    const message = notif.message;
+    const combined = `${title} ${message}`.toLowerCase();
+
+    let path = '/visit-planner';
+    
+    if (combined.includes('follow-up') || combined.includes('feedback') || combined.includes('reminder')) {
+      const match = combined.match(/(rtl[-_]?\d+|r\d+)/i);
+      const retailerId = match ? match[0].toUpperCase() : '';
+      path = `/visit-feedback${retailerId ? `?retailer_id=${retailerId}` : ''}`;
+    } else if (combined.includes('stock') || combined.includes('inventory') || combined.includes('shortage')) {
+      const match = combined.match(/(rtl[-_]?\d+|r\d+)/i);
+      const retailerId = match ? match[0].toUpperCase() : '';
+      path = `/retailer-insights${retailerId ? `?search=${retailerId}` : ''}`;
+    } else if (combined.includes('pest') || combined.includes('disease') || combined.includes('outbreak') || 
+               combined.includes('stress') || combined.includes('ndvi') || combined.includes('risk') || 
+               combined.includes('anomaly') || combined.includes('weather')) {
+      path = '/risk-analyzer';
+    } else if (combined.includes('report') || combined.includes('analytics') || combined.includes('performance') || 
+               combined.includes('kpi') || combined.includes('sales') || combined.includes('target')) {
+      path = '/analytics';
+    } else if (combined.includes('gap') || combined.includes('route') || combined.includes('schedule') || 
+               combined.includes('planner') || combined.includes('visit')) {
+      path = '/visit-planner';
+    } else if (combined.includes('recommendation') || combined.includes('advisory') || combined.includes('forecast') || 
+               combined.includes('demand') || combined.includes('ml')) {
+      path = '/recommendations';
+    }
+
+    navigate(path);
   };
 
   const handleMarkAllRead = async () => {
@@ -103,7 +138,7 @@ export default function NotificationsPage() {
                 <h3 className="text-sm font-semibold text-text-primary dark:text-white">New ({grouped.unread.length})</h3>
               </div>
               {grouped.unread.map(n => (
-                <NotifRow key={n.id} notif={n} onRead={() => handleRead(n.id)} />
+                <NotifRow key={n.id} notif={n} onRead={() => handleNotificationClick(n)} />
               ))}
             </div>
           )}
@@ -115,7 +150,7 @@ export default function NotificationsPage() {
                 <h3 className="text-sm font-semibold text-text-muted">Earlier</h3>
               </div>
               {grouped.read.map(n => (
-                <NotifRow key={n.id} notif={n} onRead={() => {}} />
+                <NotifRow key={n.id} notif={n} onRead={() => handleNotificationClick(n)} />
               ))}
             </div>
           )}
