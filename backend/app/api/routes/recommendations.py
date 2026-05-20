@@ -1,45 +1,59 @@
-from fastapi import APIRouter, Depends, Query, HTTPException
+from fastapi import APIRouter, Depends, Query
 from app.core.security import get_current_user
-from app.schemas.schemas import ApplyRecommendationRequest, PredictRequest, PredictResponse
-from app.services.recommendations_service import (
-    get_recommendations,
-    apply_recommendation,
-)
-from app.ml.predictor import ml_service
+from app.core.database import get_collection
+from typing import List
 
 router = APIRouter()
 
-
-@router.get("/", summary="Get AI recommendations for the territory")
-async def recommendations(
-    territory_id: str = Query(default="T001"),
-    limit: int = Query(default=10, le=50),
+@router.get("/", summary="Get AI Recommendations with Explainability")
+async def get_recommendations(
+    territory_id: str = Query(default="TER_0001"),
+    limit: int = Query(default=10),
     current_user: dict = Depends(get_current_user),
 ):
-    return await get_recommendations(territory_id, limit, user_id=current_user["sub"])
+    recs_col = get_collection("recommendations")
+    feat_col = get_collection("feature_importance")
+    
+    # Fetch recommendations for this territory
+    cursor = recs_col.find({"territory_id": territory_id}).limit(limit)
+    
+    recommendations = []
+    async for doc in cursor:
+        rec_id = doc.get("recommendation_id", str(doc["_id"]))
+        retailer_id = doc.get("retailer_id", "")
+        
+        # Fetch the Explainable AI reasons for this specific recommendation/retailer
+        reasons_cursor = feat_col.find({"retailer_id": retailer_id}).limit(3)
+        explainable_reasons = []
+        
+        async for feat in reasons_cursor:
+            explainable_reasons.append({
+                "id": str(feat["_id"]),
+                "title": feat.get("feature_name", "Demand Spike").replace("_", " ").title(),
+                "description": f"Impact score: {feat.get('importance_score', 0)}",
+                "icon": "TrendingUp" if float(feat.get('importance_score', 0)) > 0 else "AlertCircle"
+            })
+            
+        # Fallback reasons if feature_importance table is empty for this row
+        if not explainable_reasons:
+            explainable_reasons = [
+                {"id": "r1", "title": "High Historical Sales", "description": "Retailer performs well in this season", "icon": "TrendingUp"}
+            ]
 
-
-@router.post("/apply", summary="Apply or dismiss a recommendation")
-async def apply(
-    data: ApplyRecommendationRequest,
-    current_user: dict = Depends(get_current_user),
-):
-    return await apply_recommendation(
-        recommendation_id=data.recommendation_id,
-        retailer_id=data.retailer_id,
-        action=data.action,
-        user_id=current_user["sub"],
-    )
-
-
-@router.post("/predict", response_model=PredictResponse, summary="Run ML model on custom retailer features")
-async def predict(
-    data: PredictRequest,
-    current_user: dict = Depends(get_current_user),
-):
-    """
-    Accepts the 19 features from the AgroAI ML model and returns
-    visit_priority_score, priority_level, action_type, and explanation.
-    """
-    result = ml_service.predict(data.model_dump())
-    return result
+        recommendations.append({
+            "id": rec_id,
+            "retailer_id": retailer_id,
+            "priority": doc.get("priority", "Medium").lower(),
+            "crop": doc.get("crop", "General"),
+            "message": doc.get("message", "Routine checkup advised."),
+            "weather": doc.get("weather_context", "Clear skies"),
+            "product": doc.get("recommended_product", "Standard Stock"),
+            "village": doc.get("village", "Local"),
+            "farmer": doc.get("top_farmer", ""),
+            "pest_risk": doc.get("pest_risk", "Low"),
+            "next_action": doc.get("next_action", "Visit Store"),
+            "follow_up_timeline": ["Day 1: Call", "Day 3: Visit"],
+            "explainable_reasons": explainable_reasons
+        })
+        
+    return recommendations
