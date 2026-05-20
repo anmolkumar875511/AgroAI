@@ -1,10 +1,3 @@
-// src/sections/risk-analyzer/AIInsightsPanel.tsx  — CHANGED
-// What changed:
-// - Removed: hardcoded insights array
-// - Added: insights prop (string[]) and overallRisk prop from RiskAnalyzerPage
-// - Added: territoryId prop for broadcast alert API call
-// - Schedule visit / Broadcast alert buttons call visitPlannerAPI / riskAPI
-
 import { useState } from 'react';
 import { AlertTriangle, TrendingUp, CheckCircle, BellRing, CalendarPlus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';

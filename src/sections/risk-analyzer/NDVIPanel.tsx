@@ -1,8 +1,3 @@
-// src/sections/risk-analyzer/NDVIPanel.tsx  — CHANGED
-// What changed:
-// - Removed: import { ndviData } from '@/data/mockData'
-// - Added: data prop (NDVIPoint[]) passed from RiskAnalyzerPage
-
 import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area, ComposedChart } from 'recharts';
 
 interface NDVIPoint {

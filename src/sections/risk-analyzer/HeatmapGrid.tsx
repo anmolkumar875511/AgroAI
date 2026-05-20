@@ -1,11 +1,3 @@
-// src/sections/risk-analyzer/HeatmapGrid.tsx  — CHANGED
-// What changed:
-// - Removed: all internal mock data generation
-// - Added: cells prop (HeatmapCell[]) passed from RiskAnalyzerPage live API
-// - Added: regionLat, regionLng, regionZoom props for Google Maps center
-// - Google Map heatmap still uses HeatmapLayerF, points built from cells prop
-// - Dropdown selects call parent refetch in future; for now drive crop filter locally
-
 import { useMemo, useState } from 'react';
 import { GoogleMap, HeatmapLayerF } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/hooks/useGoogleMaps';

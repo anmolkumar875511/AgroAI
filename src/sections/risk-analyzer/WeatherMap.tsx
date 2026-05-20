@@ -1,8 +1,3 @@
-// src/sections/risk-analyzer/WeatherMap.tsx  — CHANGED
-// What changed:
-// - Removed: internal useMemo generating mock weatherData
-// - Added: anomalies, regionLat, regionLng, regionZoom props from RiskAnalyzerPage
-
 import { useState } from 'react';
 import { GoogleMap, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/hooks/useGoogleMaps';

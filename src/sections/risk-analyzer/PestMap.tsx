@@ -1,8 +1,3 @@
-// src/sections/risk-analyzer/PestMap.tsx  — CHANGED
-// What changed:
-// - Removed: internal useMemo generating mock pestOutbreaks
-// - Added: outbreaks, regionLat, regionLng, regionZoom props from RiskAnalyzerPage
-
 import { useState, useMemo } from 'react';
 import { GoogleMap, MarkerF, HeatmapLayerF, InfoWindowF } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/hooks/useGoogleMaps';
