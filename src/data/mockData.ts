@@ -1,22 +1,7 @@
-/**
- * CHANGED FILE: src/data/mockData.ts
- *
- * What changed:
- * - KEPT: sidebarItems, testimonials, trustedByItems, howItWorksSteps, weatherData
- *         (still needed for landing page, sidebar, weather widget)
- * - UPDATED sidebarItems: added retailer-insights, grower-insights, notifications
- *           with correct paths; removed placeholder /dashboard paths
- * - REMOVED: kpiData, aiRecommendations, priorityVisits, notifications,
- *            weeklyPerformanceData, fieldEfficiencyData, revenuePerVisitData,
- *            recommendationAcceptanceData, regionalPerformanceData,
- *            cropRiskTrendsData, stockUtilizationData, heatmapData, ndviData
- *            (all now fetched live from the backend API)
- */
 import type {
   Testimonial,
   SidebarItem,
   WeatherData,
-  NDVIData
 } from '@/types';
 
 // ─── Sidebar (used by Sidebar.tsx + MobileSidebarDrawer.tsx) ─────────────────
@@ -102,14 +87,3 @@ export const weatherData: WeatherData = {
   humidity: 65,
   rainfall: 0,
 };
-
-
-export const ndviData: NDVIData[] = Array.from({ length: 30 }, (_, i) => {
-  const day = i + 1;
-  return {
-    date: `Jan ${day}`,
-    healthy: 0.75 + Math.sin(day * 0.2) * 0.1 + Math.random() * 0.05,
-    moderate: 0.55 + Math.sin(day * 0.15) * 0.08 + Math.random() * 0.05,
-    stressed: 0.35 + Math.sin(day * 0.1) * 0.06 + Math.random() * 0.05,
-  };
-});
