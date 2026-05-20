@@ -1,10 +1,3 @@
-// src/sections/recommendations/ExplainableAICard.tsx  — CHANGED
-// What changed:
-// - Added onApply and onDismiss optional callback props
-// - handleApply now calls onApply() if provided, then sets state
-// - handleDismiss now calls onDismiss() if provided
-// - All existing UI is identical
-
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
