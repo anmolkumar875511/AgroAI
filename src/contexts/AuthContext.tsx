@@ -1,10 +1,3 @@
-/**
- * CHANGED FILE: src/contexts/AuthContext.tsx  (NEW FILE)
- *
- * What changed: Created new AuthContext to manage login state, JWT token,
- * and user profile globally. Previously there was no auth - the app jumped
- * straight to the dashboard. Now login is required.
- */
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
 import { authAPI, getToken, setToken, clearToken, type UserProfile } from '@/api/client';
 
