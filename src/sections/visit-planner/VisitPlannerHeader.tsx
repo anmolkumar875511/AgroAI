@@ -7,9 +7,9 @@ interface VisitPlannerHeaderProps {
 }
 
 const filters = [
-  { id: 'all', label: 'All' },
+  { id: 'all',       label: 'All' },
   { id: 'high-risk', label: 'High Risk' },
-  { id: 'revenue', label: 'Revenue' },
+  { id: 'revenue',   label: 'Revenue' },
   { id: 'follow-up', label: 'Follow-up' },
 ];
 
@@ -25,7 +25,7 @@ export function VisitPlannerHeader({ filter, onFilterChange }: VisitPlannerHeade
 
       <div className="mt-4 flex flex-wrap items-center gap-3">
         <Filter className="w-4 h-4 text-text-muted" />
-        {filters.map((f) => (
+        {filters.map(f => (
           <button
             key={f.id}
             onClick={() => onFilterChange(f.id)}
@@ -33,7 +33,7 @@ export function VisitPlannerHeader({ filter, onFilterChange }: VisitPlannerHeade
               'px-4 py-2 rounded-pill text-sm font-medium transition-all duration-200',
               filter === f.id
                 ? 'gradient-primary text-white shadow-sm'
-                : 'bg-light-gray dark:bg-white/5 text-text-primary dark:text-white/70 hover:bg-light-gray/80 dark:hover:bg-white/10'
+                : 'bg-light-gray dark:bg-white/5 text-text-primary dark:text-white/70 hover:bg-light-gray/80 dark:hover:bg-white/10',
             )}
           >
             {f.label}

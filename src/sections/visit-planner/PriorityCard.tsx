@@ -1,11 +1,3 @@
-// src/sections/visit-planner/PriorityCard.tsx  — CHANGED
-// What changed:
-// - Added retailerId prop (from backend visit data)
-// - Added territoryId prop
-// - handlePrimaryAction now calls visitPlannerAPI.recordAction() via backend
-// - handleSecondaryAction opens the modal (unchanged)
-// - All UI is identical to original
-
 import { useState } from 'react';
 import { MapPin, Clock, Sparkles, X } from 'lucide-react';
 import { ProgressRing } from '@/components/shared/ProgressRing';

@@ -1,10 +1,3 @@
-// src/sections/visit-planner/RouteVisualization.tsx  — CHANGED
-// What changed:
-// - Added territoryId prop
-// - Fetches route stops from visitPlannerAPI.getRoute() instead of hardcoded stops
-// - Google Maps markers and polyline use live stop coordinates
-// - Recalculate button calls refetch()
-
 import { useState, useMemo } from 'react';
 import { RefreshCw } from 'lucide-react';
 import { GoogleMap, MarkerF, PolylineF, InfoWindowF } from '@react-google-maps/api';
