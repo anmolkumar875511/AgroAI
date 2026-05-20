@@ -85,11 +85,11 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
   }
 
   return (
-    <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 overflow-hidden">
+    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 overflow-hidden hover:shadow-lg hover:border-white/50 dark:hover:border-white/10 transition-all duration-300">
       {/* Header */}
       <button
         onClick={() => setExpanded(!expanded)}
-        className="w-full p-5 flex items-center gap-4 text-left hover:bg-light-gray/30 dark:hover:bg-white/5 transition-colors"
+        className="w-full p-5 flex items-center gap-4 text-left hover:bg-light-gray/40 dark:hover:bg-white/10 transition-colors"
       >
         <PriorityBadge priority={rec.priority} showLabel />
         <div className="w-12 h-12 flex-shrink-0">
@@ -116,53 +116,53 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
             initial={{ height: 0, opacity: 0 }} animate={{ height: 'auto', opacity: 1 }}
             exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.3, ease: 'easeInOut' }}
           >
-            <div className="px-5 pb-5 border-t border-light-gray dark:border-white/10 pt-4 space-y-4">
+            <div className="px-5 pb-5 border-t border-light-gray/40 dark:border-white/5 pt-4 space-y-4">
               {/* Detail Grid */}
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div className="p-3 rounded-lg bg-off-white dark:bg-white/5 flex items-start gap-3">
-                  <Sprout className="w-4 h-4 text-lime-green flex-shrink-0 mt-0.5" />
+                <div className="p-3 rounded-xl bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 flex items-start gap-3">
+                  <Sprout className="w-4 h-4 text-lime-green flex-shrink-0 mt-0.5 animate-pulse-slow" />
                   <div className="text-xs space-y-1">
                     <p className="font-semibold text-text-primary dark:text-white">Crop: {rec.crop}</p>
-                    <p className="text-text-muted">Stage: Tillering</p>
-                    <p className="text-text-muted">Land: 5 acres</p>
+                    <p className="text-text-muted dark:text-white/60">Stage: Tillering</p>
+                    <p className="text-text-muted dark:text-white/60">Land: 5 acres</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-off-white dark:bg-white/5 flex items-start gap-3">
+                <div className="p-3 rounded-xl bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 flex items-start gap-3">
                   <ShieldAlert className="w-4 h-4 text-danger-red flex-shrink-0 mt-0.5" />
                   <div className="text-xs space-y-1">
                     <p className="font-semibold text-text-primary dark:text-white">Pest: Stem Borer</p>
-                    <p className="text-text-muted">Risk: {rec.pestRisk}</p>
-                    <p className="text-text-muted">Spread: 3 adjacent fields</p>
+                    <p className="text-text-muted dark:text-white/60">Risk: {rec.pestRisk}</p>
+                    <p className="text-text-muted dark:text-white/60">Spread: 3 adjacent fields</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-off-white dark:bg-white/5 flex items-start gap-3">
+                <div className="p-3 rounded-xl bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 flex items-start gap-3">
                   <CloudSun className="w-4 h-4 text-accent-yellow flex-shrink-0 mt-0.5" />
                   <div className="text-xs space-y-1">
                     <p className="font-semibold text-text-primary dark:text-white">Temp: 32°C</p>
-                    <p className="text-text-muted">Humidity: 75%</p>
-                    <p className="text-text-muted">Rain: 20% chance</p>
+                    <p className="text-text-muted dark:text-white/60">Humidity: 75%</p>
+                    <p className="text-text-muted dark:text-white/60">Rain: 20% chance</p>
                   </div>
                 </div>
-                <div className="p-3 rounded-lg bg-off-white dark:bg-white/5 flex items-start gap-3">
+                <div className="p-3 rounded-xl bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 flex items-start gap-3">
                   <FlaskConical className="w-4 h-4 text-info-blue flex-shrink-0 mt-0.5" />
                   <div className="text-xs space-y-1">
                     <p className="font-semibold text-text-primary dark:text-white">Recommended: {rec.product}</p>
-                    <p className="text-text-muted">Dosage: 200ml/acre</p>
-                    <p className="text-lime-green font-medium">Stock: Available</p>
+                    <p className="text-text-muted dark:text-white/60">Dosage: 200ml/acre</p>
+                    <p className="text-lime-green font-semibold">Stock: Available</p>
                   </div>
                 </div>
               </div>
 
               {/* Next Best Action */}
-              <div className="p-4 rounded-lg bg-off-white dark:bg-white/5">
+              <div className="p-4 rounded-2xl bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5">
                 <h5 className="text-sm font-semibold text-text-primary dark:text-white mb-2">Next Best Action</h5>
-                <p className="text-xs text-text-secondary dark:text-white/60 leading-relaxed">{rec.nextAction}</p>
+                <p className="text-xs text-text-secondary dark:text-white/70 leading-relaxed">{rec.nextAction}</p>
                 {rec.followUpTimeline && (
                   <div className="mt-3 flex items-center gap-2">
                     {rec.followUpTimeline.map((time, i) => (
                       <div key={i} className="flex items-center gap-2">
-                        <div className={`flex items-center gap-1 ${i === 0 ? 'text-lime-green' : 'text-text-muted'}`}>
-                          <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-lime-green' : 'bg-text-muted/30'}`} />
+                        <div className={`flex items-center gap-1 ${i === 0 ? 'text-lime-green font-semibold' : 'text-text-muted'}`}>
+                          <div className={`w-2 h-2 rounded-full ${i === 0 ? 'bg-lime-green animate-pulse' : 'bg-text-muted/30'}`} />
                           <span className="text-[11px] font-medium">{time}</span>
                         </div>
                         {i < rec.followUpTimeline!.length - 1 && <span className="text-text-muted/30">→</span>}
@@ -189,11 +189,11 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
                       {rec.explainableReasons.map((reason) => {
                         const ReasonIcon = reasoningIcons[reason.icon] || Info;
                         return (
-                          <div key={reason.id} className="p-3 rounded-lg bg-off-white dark:bg-white/5 flex items-start gap-3">
+                          <div key={reason.id} className="p-3 rounded-xl bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 flex items-start gap-3">
                             <ReasonIcon className="w-4 h-4 text-lime-green flex-shrink-0 mt-0.5" />
                             <div>
                               <p className="text-xs font-semibold text-text-primary dark:text-white">{reason.title}</p>
-                              <p className="text-[11px] text-text-muted mt-0.5 leading-relaxed">{reason.description}</p>
+                              <p className="text-[11px] text-text-muted dark:text-white/60 mt-0.5 leading-relaxed">{reason.description}</p>
                             </div>
                           </div>
                         );
@@ -204,10 +204,10 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
               </div>
 
               {/* Action Buttons */}
-              <div className="pt-4 mt-2 border-t border-light-gray dark:border-white/10 flex flex-col sm:flex-row gap-3">
+              <div className="pt-4 mt-2 border-t border-light-gray/40 dark:border-white/5 flex flex-col sm:flex-row gap-3">
                 <button onClick={handleApply} disabled={actionState === 'loading'}
                   className={cn(
-                    'flex-1 py-3 rounded-button text-sm font-semibold text-white transition-all flex justify-center items-center shadow-glow-green hover:scale-[1.02]',
+                    'flex-1 py-3 rounded-xl text-sm font-semibold text-white transition-all flex justify-center items-center shadow-glow-green hover:scale-[1.02]',
                     actionState === 'loading' ? 'bg-deep-green opacity-80 cursor-not-allowed' : 'gradient-primary hover:brightness-110'
                   )}>
                   {actionState === 'loading'
@@ -215,7 +215,7 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
                     : 'Apply Recommendation'}
                 </button>
                 <button onClick={handleDismiss}
-                  className="px-6 py-3 rounded-button bg-light-gray dark:bg-white/5 text-text-primary dark:text-white text-sm font-medium hover:bg-light-gray/80 transition-all hover:scale-[1.02]">
+                  className="px-6 py-3 rounded-xl bg-light-gray/60 dark:bg-white/5 text-text-primary dark:text-white text-sm font-semibold hover:bg-light-gray dark:hover:bg-white/10 transition-all hover:scale-[1.02]">
                   Dismiss
                 </button>
               </div>

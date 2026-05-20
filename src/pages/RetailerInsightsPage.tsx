@@ -52,13 +52,13 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
   };
 
   return (
-    <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
+    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 p-5 hover:shadow-lg hover:-translate-y-1 hover:border-white/50 dark:hover:border-white/10 transition-all duration-300">
       {/* Header */}
       <div className="flex items-start justify-between gap-3 mb-4">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h3 className="font-semibold text-text-primary dark:text-white truncate">{retailer.retailer_id}</h3>
-            <span className={cn('px-2 py-0.5 rounded-full text-xs font-medium border', PRIORITY_COLORS[retailer.priority_level] || PRIORITY_COLORS.Low)}>
+            <h3 className="font-bold text-text-primary dark:text-white truncate text-base">{retailer.retailer_id}</h3>
+            <span className={cn('px-2 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wide border', PRIORITY_COLORS[retailer.priority_level] || PRIORITY_COLORS.Low)}>
               {retailer.priority_level}
             </span>
           </div>
@@ -69,49 +69,49 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
         </div>
         {/* Score ring */}
         <div className="flex-shrink-0 text-center">
-          <div className="text-2xl font-extrabold text-deep-green dark:text-lime-green">{retailer.visit_priority_score}</div>
-          <div className="text-[10px] text-text-muted uppercase tracking-wider">Score</div>
+          <div className="text-2xl font-black text-deep-green dark:text-lime-green">{retailer.visit_priority_score}</div>
+          <div className="text-[9px] text-text-muted dark:text-white/40 uppercase tracking-widest font-extrabold">Score</div>
         </div>
       </div>
 
       {/* Stats grid */}
       <div className="grid grid-cols-2 gap-3 mb-4">
-        <div className="bg-off-white dark:bg-white/5 rounded-lg p-3">
+        <div className="bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 rounded-xl p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Package className="w-3.5 h-3.5 text-text-muted" />
-            <span className="text-xs text-text-muted">Stock</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-white/40">Stock</span>
           </div>
           <div className="text-sm font-semibold text-text-primary dark:text-white">{retailer.total_stock_qty} units</div>
           <div className={cn('text-xs font-medium mt-0.5', STOCK_COLORS[retailer.stock_status] || 'text-text-muted')}>
             {retailer.stock_status}
           </div>
         </div>
-        <div className="bg-off-white dark:bg-white/5 rounded-lg p-3">
+        <div className="bg-light-gray/40 dark:bg-[#0b150c]/40 border border-light-gray/20 dark:border-white/5 rounded-xl p-3">
           <div className="flex items-center gap-1.5 mb-1">
             <Clock className="w-3.5 h-3.5 text-text-muted" />
-            <span className="text-xs text-text-muted">Last Visit</span>
+            <span className="text-[10px] uppercase font-bold tracking-wider text-text-muted dark:text-white/40">Last Visit</span>
           </div>
           <div className="text-sm font-semibold text-text-primary dark:text-white">
             {retailer.last_visit_days > 0 ? `${retailer.last_visit_days}d ago` : 'Today'}
           </div>
-          <div className="text-xs text-text-muted mt-0.5">{retailer.last_visit_date || '—'}</div>
+          <div className="text-xs text-text-muted dark:text-white/50 mt-0.5">{retailer.last_visit_date || '—'}</div>
         </div>
       </div>
 
       {/* Recommended product */}
       {retailer.recommended_product && (
-        <div className="mb-4 px-3 py-2 rounded-lg bg-lime-green/5 border border-lime-green/20">
+        <div className="mb-4 px-3 py-2 rounded-xl bg-lime-green/10 border border-lime-green/30">
           <div className="flex items-center gap-1.5">
-            <Star className="w-3.5 h-3.5 text-lime-green" />
-            <span className="text-xs font-semibold text-lime-green">Recommended</span>
+            <Star className="w-3.5 h-3.5 text-lime-green animate-pulse-slow" />
+            <span className="text-xs font-bold text-lime-green uppercase tracking-wide">Recommended</span>
           </div>
-          <p className="text-xs text-text-primary dark:text-white mt-0.5 font-medium">{retailer.recommended_product}</p>
+          <p className="text-xs text-text-primary dark:text-white mt-0.5 font-bold">{retailer.recommended_product}</p>
         </div>
       )}
 
       {/* AI Explanation */}
       {retailer.explanation && (
-        <p className="text-xs text-text-secondary dark:text-white/60 leading-relaxed mb-4 line-clamp-2">
+        <p className="text-xs text-text-secondary dark:text-white/70 leading-relaxed mb-4 line-clamp-2">
           {retailer.explanation}
         </p>
       )}
@@ -121,7 +121,7 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
         <button
           onClick={handlePlanVisit}
           disabled={planning}
-          className="flex-1 py-2 rounded-button gradient-primary text-white text-xs font-semibold hover:brightness-110 transition-all flex justify-center items-center gap-1"
+          className="flex-1 py-2.5 rounded-xl gradient-primary text-white text-xs font-bold hover:brightness-110 transition-all flex justify-center items-center gap-1 shadow-glow-green hover:scale-[1.01]"
         >
           {planning ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
@@ -132,7 +132,7 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
         <button
           onClick={handleRescore}
           disabled={rescoring}
-          className="px-3 py-2 rounded-button bg-light-gray dark:bg-white/5 text-text-muted hover:text-text-primary dark:hover:text-white transition-colors"
+          className="px-3.5 py-2.5 rounded-xl bg-light-gray/60 dark:bg-white/5 text-text-muted hover:text-text-primary dark:hover:text-white transition-all hover:scale-[1.02]"
           title="Re-run ML score"
         >
           <RefreshCw className={cn('w-3.5 h-3.5', rescoring && 'animate-spin')} />
@@ -210,38 +210,38 @@ export default function RetailerInsightsPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-3 items-center">
         {/* Search */}
-        <div className="flex items-center gap-2 px-3 h-9 rounded-button bg-white dark:bg-white/5 border border-light-gray dark:border-white/10 flex-1 max-w-xs">
+        <div className="flex items-center gap-2.5 px-3.5 h-10 rounded-xl bg-white/80 dark:bg-[#121b14]/40 backdrop-blur-md border border-white/30 dark:border-white/5 flex-1 max-w-xs shadow-sm focus-within:border-deep-green dark:focus-within:border-lime-green transition-all duration-300">
           <Search className="w-4 h-4 text-text-muted flex-shrink-0" />
           <input
             type="text" value={search}
             onChange={e => handleSearchChange(e.target.value)}
             placeholder="Search retailer, tehsil, product..."
-            className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary dark:text-white placeholder:text-text-muted"
+            className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary dark:text-white placeholder:text-text-muted/60"
           />
         </div>
 
         {/* Priority filter */}
         <select value={priority} onChange={e => handlePriorityChange(e.target.value)}
-          className="h-9 px-3 rounded-button bg-white dark:bg-white/5 border border-light-gray dark:border-white/10 text-sm text-text-primary dark:text-white outline-none cursor-pointer">
-          <option value="all">All Priorities</option>
-          <option value="High">High</option>
-          <option value="Medium">Medium</option>
-          <option value="Low">Low</option>
+          className="h-10 px-3.5 rounded-xl bg-white/80 dark:bg-[#121b14]/40 backdrop-blur-md border border-white/30 dark:border-white/5 text-sm font-semibold text-text-primary dark:text-white outline-none cursor-pointer shadow-sm hover:scale-[1.01] transition-transform duration-300">
+          <option value="all" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">All Priorities</option>
+          <option value="High" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">High</option>
+          <option value="Medium" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Medium</option>
+          <option value="Low" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Low</option>
         </select>
 
         {/* Stock filter */}
         <select value={stock} onChange={e => handleStockChange(e.target.value)}
-          className="h-9 px-3 rounded-button bg-white dark:bg-white/5 border border-light-gray dark:border-white/10 text-sm text-text-primary dark:text-white outline-none cursor-pointer">
-          <option value="all">All Stock</option>
-          <option value="Low Stock">Low Stock</option>
-          <option value="Out of Stock">Out of Stock</option>
-          <option value="Good Stock">Good Stock</option>
+          className="h-10 px-3.5 rounded-xl bg-white/80 dark:bg-[#121b14]/40 backdrop-blur-md border border-white/30 dark:border-white/5 text-sm font-semibold text-text-primary dark:text-white outline-none cursor-pointer shadow-sm hover:scale-[1.01] transition-transform duration-300">
+          <option value="all" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">All Stock</option>
+          <option value="Low Stock" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Low Stock</option>
+          <option value="Out of Stock" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Out of Stock</option>
+          <option value="Good Stock" className="bg-white dark:bg-[#142818] text-text-primary dark:text-white">Good Stock</option>
         </select>
 
         {/* Summary badge */}
-        <div className="h-9 px-3 flex items-center rounded-button bg-deep-green/10 text-deep-green dark:text-lime-green text-sm font-medium">
+        <div className="h-10 px-4 flex items-center rounded-xl bg-deep-green/10 dark:bg-lime-green/10 text-deep-green dark:text-lime-green text-xs uppercase font-extrabold tracking-widest shadow-sm">
           {total} retailers
         </div>
       </div>

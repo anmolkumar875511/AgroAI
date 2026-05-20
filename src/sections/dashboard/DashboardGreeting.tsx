@@ -13,14 +13,18 @@ export function DashboardGreeting() {
   });
 
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-      <div>
-        <h1 className="text-2xl lg:text-3xl font-bold text-text-primary dark:text-white">
-          {greeting}, {firstName}
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-deep-green/5 via-lime-green/5 to-transparent dark:from-lime-green/10 dark:via-deep-green/5 dark:to-transparent p-6 sm:p-8 border border-deep-green/10 dark:border-lime-green/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-sm">
+      <div className="space-y-1.5 z-10">
+        <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-text-primary dark:text-white drop-shadow-sm">
+          {greeting}, <span className="bg-gradient-to-r from-deep-green to-lime-green dark:from-lime-green dark:to-emerald-400 bg-clip-text text-transparent">{firstName}</span>
         </h1>
-        <p className="mt-1 text-sm text-text-muted">{dateStr}</p>
+        <p className="text-sm font-medium text-text-muted dark:text-white/60 tracking-wide">{dateStr}</p>
       </div>
-      <WeatherWidget />
+      <div className="z-10 flex-shrink-0">
+        <WeatherWidget />
+      </div>
+      {/* Decorative premium glow vector in background */}
+      <div className="absolute top-0 right-1/4 w-64 h-64 bg-lime-green/10 rounded-full blur-3xl -z-10 pointer-events-none" />
     </div>
   );
 }

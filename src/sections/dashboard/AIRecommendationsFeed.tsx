@@ -21,52 +21,53 @@ export function AIRecommendationsFeed({ territoryId }: AIRecommendationsFeedProp
   );
 
   return (
-    <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 h-full">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-light-gray dark:border-white/10">
-        <h3 className="font-semibold text-text-primary dark:text-white">AI Recommendations</h3>
+    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 h-full flex flex-col overflow-hidden">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-light-gray dark:border-white/5">
+        <h3 className="font-semibold text-text-primary dark:text-white text-base">AI Recommendations</h3>
         <span
           onClick={() => navigate('/recommendations')}
-          className="px-2.5 py-1 rounded-full gradient-primary text-white text-[11px] font-mono font-medium cursor-pointer hover:opacity-90 transition-opacity"
+          className="px-3 py-1 rounded-full gradient-primary text-white text-[10px] font-bold uppercase tracking-wider cursor-pointer hover:scale-105 transition-all shadow-glow-green"
         >
-          {recs?.length ?? '…'} New
+          {recs?.length ?? '0'} New
         </span>
       </div>
 
-      <div className="p-4 space-y-3">
+      <div className="p-4 space-y-3.5 flex-1 overflow-y-auto">
         {loading ? (
-          [0,1,2].map(i => (
-            <div key={i} className="h-20 rounded-lg bg-light-gray dark:bg-white/5 animate-pulse" />
+          [0, 1, 2].map(i => (
+            <div key={i} className="h-20 rounded-xl bg-light-gray/60 dark:bg-white/5 animate-pulse" />
           ))
         ) : (recs || []).map((rec) => {
           const CropIcon = cropIcons[rec.crop] || Leaf;
-          const borderColor =
-            rec.priority === 'high' ? 'border-l-danger-red' :
-            rec.priority === 'medium' ? 'border-l-accent-yellow' : 'border-l-lime-green';
+          const leftLineColor =
+            rec.priority === 'high' ? 'bg-danger-red' :
+            rec.priority === 'medium' ? 'bg-accent-yellow' : 'bg-lime-green';
 
           return (
             <div
               key={rec.id}
               onClick={() => navigate('/recommendations')}
-              className={`flex items-start gap-3 p-4 rounded-lg bg-off-white dark:bg-white/5 border-l-[3px] ${borderColor} hover:bg-light-gray/50 dark:hover:bg-white/10 transition-colors cursor-pointer group`}
+              className="flex items-start gap-4 p-4 rounded-xl bg-off-white/80 dark:bg-white/5 border border-transparent dark:border-white/5 hover:border-deep-green/10 dark:hover:border-lime-green/10 hover:shadow-sm hover:translate-x-1.5 transition-all duration-300 cursor-pointer group relative overflow-hidden"
             >
-              <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 mt-1.5 ${
-                rec.priority === 'high' ? 'bg-danger-red' :
-                rec.priority === 'medium' ? 'bg-accent-yellow' : 'bg-lime-green'
-              }`} />
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2">
-                  <CropIcon className="w-3.5 h-3.5 text-lime-green" />
-                  <span className="text-sm font-semibold text-text-primary dark:text-white">{rec.crop}</span>
+              {/* Left indicator line bar */}
+              <div className={`absolute left-0 top-0 bottom-0 w-1 ${leftLineColor}`} />
+
+              <div className="flex-1 min-w-0 pl-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex items-center gap-1.5 bg-deep-green/5 dark:bg-lime-green/5 px-2 py-0.5 rounded-md">
+                    <CropIcon className="w-3.5 h-3.5 text-deep-green dark:text-lime-green animate-pulse-slow" />
+                    <span className="text-xs font-bold text-deep-green dark:text-lime-green">{rec.crop}</span>
+                  </div>
                   <PriorityBadge priority={rec.priority} />
                 </div>
-                <p className="mt-1 text-sm text-text-secondary dark:text-white/70 line-clamp-2">{rec.message}</p>
-                <div className="mt-2 flex flex-wrap gap-3">
-                  <span className="text-xs text-text-muted">Weather: {rec.weather}</span>
-                  <span className="text-xs text-deep-green dark:text-lime-green font-medium">Product: {rec.product}</span>
+                <p className="mt-2 text-sm font-medium text-text-secondary dark:text-white/80 leading-relaxed line-clamp-2">{rec.message}</p>
+                <div className="mt-3 flex flex-wrap gap-x-4 gap-y-2 border-t border-light-gray/50 dark:border-white/5 pt-2.5">
+                  <span className="text-[11px] text-text-muted dark:text-white/40 font-medium">Weather: {rec.weather}</span>
+                  <span className="text-[11px] text-deep-green dark:text-lime-green font-semibold">Product: {rec.product}</span>
                 </div>
               </div>
-              <div className="w-8 h-8 rounded-lg bg-light-gray dark:bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-deep-green/10 transition-colors">
-                <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-deep-green transition-colors" />
+              <div className="w-8 h-8 rounded-lg bg-light-gray/50 dark:bg-white/5 flex items-center justify-center flex-shrink-0 group-hover:bg-deep-green/10 dark:group-hover:bg-lime-green/10 transition-all duration-300">
+                <ChevronRight className="w-4 h-4 text-text-muted group-hover:text-deep-green dark:group-hover:text-lime-green transition-colors" />
               </div>
             </div>
           );

@@ -14,16 +14,16 @@ import { WeeklyPerformanceChart } from '@/sections/dashboard/WeeklyPerformanceCh
 // Skeleton card for loading state
 function KPISkeleton() {
   return (
-    <div className="bg-white dark:bg-white/5 rounded-card p-5 shadow-card animate-pulse border border-transparent dark:border-white/5">
+    <div className="backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-2xl p-5 border border-white/20 dark:border-white/10 shadow-card animate-pulse">
       <div className="flex items-start justify-between">
-        <div className="w-10 h-10 rounded-xl bg-light-gray dark:bg-white/10" />
-        <div className="w-12 h-5 rounded-full bg-light-gray dark:bg-white/10" />
+        <div className="w-10 h-10 rounded-xl bg-light-gray/60 dark:bg-white/10" />
+        <div className="w-12 h-5 rounded-full bg-light-gray/60 dark:bg-white/10" />
       </div>
-      <div className="mt-4 space-y-2">
-        <div className="w-20 h-8 rounded bg-light-gray dark:bg-white/10" />
-        <div className="w-32 h-3 rounded bg-light-gray dark:bg-white/10" />
+      <div className="mt-5 space-y-3">
+        <div className="w-24 h-8 rounded bg-light-gray/60 dark:bg-white/10" />
+        <div className="w-36 h-3 rounded bg-light-gray/60 dark:bg-white/10" />
       </div>
-      <div className="mt-4 h-12 rounded bg-light-gray dark:bg-white/10" />
+      <div className="mt-5 h-12 rounded-xl bg-light-gray/60 dark:bg-white/10" />
     </div>
   );
 }
@@ -75,22 +75,22 @@ export default function DashboardPage() {
   }
 
   return (
-    <div ref={pageRef} className="space-y-6">
+    <div ref={pageRef} className="space-y-6 lg:space-y-8 pb-8">
       <div className="dashboard-card">
         <DashboardGreeting />
       </div>
 
       {/* KPI Cards */}
       {loading ? (
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-          {[0,1,2,3].map(i => <KPISkeleton key={i} />)}
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
+          {[0, 1, 2, 3].map(i => <KPISkeleton key={i} />)}
         </div>
       ) : (
         <>
           {/* Mobile: horizontal scroll */}
           <div className="block sm:hidden dashboard-card">
             <div className="overflow-x-auto scrollbar-hide -mx-4 px-4">
-              <div className="flex gap-4 w-max">
+              <div className="flex gap-4 w-max py-2">
                 {(data?.kpis || []).map(kpi => (
                   <div key={kpi.id} className="w-[280px] flex-shrink-0">
                     <KPICard data={toKpiData(kpi)} />
@@ -100,7 +100,7 @@ export default function DashboardPage() {
             </div>
           </div>
           {/* Desktop: grid */}
-          <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-4">
+          <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
             {(data?.kpis || []).map(kpi => (
               <div key={kpi.id} className="dashboard-card">
                 <KPICard data={toKpiData(kpi)} />
@@ -116,7 +116,7 @@ export default function DashboardPage() {
       </div>
 
       {/* Middle: AI Recommendations + Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
         <div className="dashboard-card">
           <AIRecommendationsFeed territoryId={territory_id} />
         </div>

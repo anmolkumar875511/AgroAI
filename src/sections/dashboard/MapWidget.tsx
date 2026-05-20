@@ -95,19 +95,22 @@ export function MapWidget() {
   }
 
   return (
-    <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 h-full flex flex-col animate-fade-in">
+    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 h-full flex flex-col overflow-hidden animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-light-gray dark:border-white/10">
-        <h3 className="font-semibold text-text-primary dark:text-white">Territory Overview</h3>
-        <div className="flex gap-1">
+      <div className="flex items-center justify-between px-5 py-4 border-b border-light-gray dark:border-white/5 gap-2 flex-wrap">
+        <h3 className="font-semibold text-text-primary dark:text-white text-base">Territory Overview</h3>
+        <div className="flex gap-1.5 bg-light-gray/60 dark:bg-white/5 p-1 rounded-xl">
           {tabs.map(tab => (
-            <button key={tab.id} onClick={() => { setActiveTab(tab.id); setActiveMarker(null); }}
+            <button
+              key={tab.id}
+              onClick={() => { setActiveTab(tab.id); setActiveMarker(null); }}
               className={cn(
-                'px-3 py-1.5 text-xs font-medium rounded-md transition-colors',
+                'px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-300',
                 activeTab === tab.id
-                  ? 'text-deep-green dark:text-lime-green bg-deep-green/10 dark:bg-lime-green/10'
+                  ? 'text-deep-green dark:text-lime-green bg-white dark:bg-[#18281a] shadow-sm'
                   : 'text-text-muted hover:text-text-primary dark:hover:text-white',
-              )}>
+              )}
+            >
               {tab.label}
             </button>
           ))}
@@ -115,7 +118,7 @@ export function MapWidget() {
       </div>
 
       {/* Map */}
-      <div className="relative flex-1 min-h-[300px] bg-light-gray dark:bg-white/5 m-4 rounded-xl overflow-hidden z-0">
+      <div className="relative flex-1 min-h-[300px] bg-light-gray/60 dark:bg-[#0b150c]/40 m-4 rounded-2xl overflow-hidden z-0 border border-light-gray dark:border-white/5">
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={{ lat: activeRegion.lat, lng: activeRegion.lng }}
@@ -136,16 +139,16 @@ export function MapWidget() {
                 <InfoWindowF position={{ lat: dot.lat, lng: dot.lng }}
                   onCloseClick={() => setActiveMarker(null)}
                   options={{ pixelOffset: new window.google.maps.Size(0, -32) }}>
-                  <div className="text-xs font-semibold text-gray-900 p-1 min-w-[120px] text-center">
+                  <div className="text-xs font-semibold text-gray-900 p-2 min-w-[140px] text-center bg-white rounded-lg">
                     <span className={cn(
-                      "block text-[10px] uppercase tracking-wider font-bold mb-1",
-                      dot.type === 'risk' ? "text-red-500" :
-                      dot.type === 'visits' ? "text-blue-500" :
-                      "text-green-500"
+                      "block text-[9px] uppercase tracking-widest font-extrabold mb-1",
+                      dot.type === 'risk' ? "text-danger-red" :
+                      dot.type === 'visits' ? "text-info-blue" :
+                      "text-lime-green"
                     )}>
                       {dot.type}
                     </span>
-                    {dot.label}
+                    <span className="text-text-primary font-bold text-xs">{dot.label}</span>
                   </div>
                 </InfoWindowF>
               )}
@@ -154,15 +157,15 @@ export function MapWidget() {
         </GoogleMap>
 
         {/* Legend */}
-        <div className="absolute bottom-3 left-3 flex items-center gap-4 px-4 py-2 rounded-full bg-white/95 dark:bg-[#1A1D18]/95 backdrop-blur-md shadow-lg border border-light-gray dark:border-white/5 z-10">
+        <div className="absolute bottom-4 left-4 flex items-center gap-4 px-4 py-2.5 rounded-2xl bg-white/90 dark:bg-[#142016]/90 backdrop-blur-md shadow-md border border-white/20 dark:border-white/10 z-10 transition-all">
           {[
-            { color: 'bg-red-500', label: 'Risk' },
-            { color: 'bg-blue-500',  label: 'Visits' },
-            { color: 'bg-green-500', label: 'Retailers' },
+            { color: 'bg-red-500 shadow-red-500/50', label: 'Risk' },
+            { color: 'bg-blue-500 shadow-blue-500/50',  label: 'Visits' },
+            { color: 'bg-green-500 shadow-green-500/50', label: 'Retailers' },
           ].map(l => (
-            <div key={l.label} className="flex items-center gap-1.5">
-              <span className={`w-2.5 h-2.5 rounded-full ${l.color} shadow-sm`} />
-              <span className="text-[10px] font-semibold text-text-secondary dark:text-white/80">{l.label}</span>
+            <div key={l.label} className="flex items-center gap-2">
+              <span className={`w-2.5 h-2.5 rounded-full ${l.color} shadow-sm animate-pulse-slow`} />
+              <span className="text-[10px] font-bold tracking-wide text-text-secondary dark:text-white/80 uppercase">{l.label}</span>
             </div>
           ))}
         </div>

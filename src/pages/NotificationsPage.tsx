@@ -19,22 +19,22 @@ function NotifRow({ notif, onRead }: { notif: NotificationItem; onRead: () => vo
     <div
       onClick={onRead}
       className={cn(
-        'flex items-start gap-4 p-4 border-b border-light-gray dark:border-white/5 hover:bg-light-gray/30 dark:hover:bg-white/5 transition-colors cursor-pointer',
-        !notif.read && 'bg-lime-green/[0.03]',
+        'flex items-start gap-4 p-4 border-b border-light-gray/40 dark:border-white/5 hover:bg-light-gray/40 dark:hover:bg-white/10 transition-all duration-300 hover:translate-x-1 cursor-pointer',
+        !notif.read && 'bg-lime-green/[0.04] dark:bg-[#121b14]/20',
       )}
     >
-      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0', cfg.bg)}>
+      <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm animate-pulse-slow', cfg.bg)}>
         <Icon className={cn('w-5 h-5', cfg.color)} />
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-start justify-between gap-2">
-          <p className={cn('text-sm font-semibold', !notif.read ? 'text-text-primary dark:text-white' : 'text-text-secondary dark:text-white/70')}>
+          <p className={cn('text-sm font-bold', !notif.read ? 'text-text-primary dark:text-white' : 'text-text-secondary dark:text-white/70')}>
             {notif.title}
           </p>
-          {!notif.read && <span className="w-2 h-2 rounded-full bg-lime-green flex-shrink-0 mt-1.5" />}
+          {!notif.read && <span className="w-2 h-2 rounded-full bg-lime-green flex-shrink-0 mt-1.5 animate-pulse" />}
         </div>
-        <p className="text-xs text-text-muted mt-0.5 leading-relaxed line-clamp-2">{notif.message}</p>
-        <p className="text-[11px] text-text-muted/60 mt-1">{notif.time}</p>
+        <p className="text-xs text-text-secondary dark:text-white/70 mt-0.5 leading-relaxed line-clamp-2">{notif.message}</p>
+        <p className="text-[10px] font-bold uppercase tracking-wider text-text-muted/50 dark:text-white/40 mt-1.5">{notif.time}</p>
       </div>
     </div>
   );
@@ -118,9 +118,9 @@ export default function NotificationsPage() {
       </div>
 
       {loading ? (
-        <div className="bg-white dark:bg-white/5 rounded-card border border-transparent dark:border-white/5 overflow-hidden">
+        <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl border border-white/30 dark:border-white/5 overflow-hidden shadow-md">
           {[...Array(5)].map((_, i) => (
-            <div key={i} className="h-20 border-b border-light-gray dark:border-white/5 animate-pulse bg-light-gray/30 dark:bg-white/5" />
+            <div key={i} className="h-20 border-b border-light-gray/40 dark:border-white/5 animate-pulse bg-light-gray/30 dark:bg-white/5" />
           ))}
         </div>
       ) : notifications.length === 0 ? (
@@ -132,10 +132,10 @@ export default function NotificationsPage() {
         <>
           {/* Unread */}
           {grouped.unread.length > 0 && (
-            <div className="bg-white dark:bg-white/5 rounded-card border border-transparent dark:border-white/5 overflow-hidden shadow-card">
-              <div className="px-4 py-3 border-b border-light-gray dark:border-white/10 flex items-center gap-2">
+            <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl border border-white/30 dark:border-white/5 overflow-hidden shadow-md transition-all duration-300">
+              <div className="px-5 py-4 border-b border-light-gray/40 dark:border-white/5 flex items-center gap-2">
                 <span className="w-2 h-2 rounded-full bg-lime-green animate-pulse" />
-                <h3 className="text-sm font-semibold text-text-primary dark:text-white">New ({grouped.unread.length})</h3>
+                <h3 className="text-sm font-bold text-text-primary dark:text-white uppercase tracking-wider">New ({grouped.unread.length})</h3>
               </div>
               {grouped.unread.map(n => (
                 <NotifRow key={n.id} notif={n} onRead={() => handleNotificationClick(n)} />
@@ -145,9 +145,9 @@ export default function NotificationsPage() {
 
           {/* Read */}
           {grouped.read.length > 0 && (
-            <div className="bg-white dark:bg-white/5 rounded-card border border-transparent dark:border-white/5 overflow-hidden shadow-card">
-              <div className="px-4 py-3 border-b border-light-gray dark:border-white/10">
-                <h3 className="text-sm font-semibold text-text-muted">Earlier</h3>
+            <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl border border-white/30 dark:border-white/5 overflow-hidden shadow-md transition-all duration-300">
+              <div className="px-5 py-4 border-b border-light-gray/40 dark:border-white/5">
+                <h3 className="text-sm font-bold text-text-muted dark:text-white/40 uppercase tracking-wider">Earlier</h3>
               </div>
               {grouped.read.map(n => (
                 <NotifRow key={n.id} notif={n} onRead={() => handleNotificationClick(n)} />

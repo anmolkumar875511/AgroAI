@@ -44,10 +44,10 @@ export function WeeklyPerformanceChart({ data, loading }: WeeklyPerformanceChart
   }
 
   return (
-    <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
-      <div className="flex items-center justify-between mb-6">
-        <h3 className="font-semibold text-text-primary dark:text-white">Weekly Performance</h3>
-        <span className="px-3 py-1.5 rounded-button bg-light-gray dark:bg-white/5 text-xs font-medium text-text-primary dark:text-white">
+    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 p-6 transition-all duration-300 hover:shadow-lg">
+      <div className="flex items-center justify-between mb-6 gap-2">
+        <h3 className="font-semibold text-text-primary dark:text-white text-base">Weekly Performance</h3>
+        <span className="px-3.5 py-1.5 rounded-xl bg-light-gray/60 dark:bg-white/5 text-[10px] font-bold text-text-primary dark:text-white uppercase tracking-wider shadow-sm hover:scale-[1.02] transition-transform duration-300 cursor-default">
           This Week
         </span>
       </div>
