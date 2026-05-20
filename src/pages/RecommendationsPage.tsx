@@ -1,4 +1,3 @@
-// src/pages/RecommendationsPage.tsx
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { recommendationsAPI } from '@/api/client';

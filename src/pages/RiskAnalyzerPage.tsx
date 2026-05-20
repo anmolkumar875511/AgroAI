@@ -1,4 +1,8 @@
 import { useState } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRegion } from '@/contexts/RegionContext';
+import { useApi } from '@/hooks/useApi';
+import { riskAPI } from '@/api/client';
 import { HeatmapGrid } from '@/sections/risk-analyzer/HeatmapGrid';
 import { NDVIPanel } from '@/sections/risk-analyzer/NDVIPanel';
 import { AIInsightsPanel } from '@/sections/risk-analyzer/AIInsightsPanel';
@@ -10,13 +14,26 @@ type TabId = 'heatmap' | 'ndvi' | 'weather' | 'pest';
 
 const tabs: { id: TabId; label: string }[] = [
   { id: 'heatmap', label: 'Heatmap' },
-  { id: 'ndvi', label: 'NDVI' },
+  { id: 'ndvi',    label: 'NDVI' },
   { id: 'weather', label: 'Weather' },
-  { id: 'pest', label: 'Pest Map' },
+  { id: 'pest',    label: 'Pest Map' },
 ];
 
 export default function RiskAnalyzerPage() {
   const [activeTab, setActiveTab] = useState<TabId>('heatmap');
+  const { user } = useAuth();
+  const { activeRegion } = useRegion();
+
+  const territory_id = user?.territory_id || 'TER_0001';
+
+  const { data, loading } = useApi(
+    () => riskAPI.getAll(territory_id, activeRegion.lat, activeRegion.lng),
+    [territory_id, activeRegion.lat, activeRegion.lng],
+  );
+
+  const TabSkeleton = () => (
+    <div className="h-[500px] rounded-card bg-white dark:bg-white/5 animate-pulse border border-transparent dark:border-white/5" />
+  );
 
   return (
     <div className="space-y-6">
@@ -25,7 +42,7 @@ export default function RiskAnalyzerPage() {
           Crop Risk Analyzer
         </h2>
         <div className="mt-4 flex gap-1 border-b border-light-gray dark:border-white/10">
-          {tabs.map((tab) => (
+          {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
@@ -33,7 +50,7 @@ export default function RiskAnalyzerPage() {
                 'px-4 py-2.5 text-sm font-medium transition-all border-b-2 -mb-px',
                 activeTab === tab.id
                   ? 'text-deep-green dark:text-lime-green border-deep-green dark:border-lime-green'
-                  : 'text-text-muted border-transparent hover:text-text-primary dark:hover:text-white'
+                  : 'text-text-muted border-transparent hover:text-text-primary dark:hover:text-white',
               )}
             >
               {tab.label}
@@ -42,18 +59,49 @@ export default function RiskAnalyzerPage() {
         </div>
       </div>
 
-      {activeTab === 'heatmap' && (
-        <div className="relative">
-          <HeatmapGrid />
-          <AIInsightsPanel />
-        </div>
+      {loading ? (
+        <TabSkeleton />
+      ) : (
+        <>
+          {activeTab === 'heatmap' && (
+            <div className="relative space-y-4">
+              <HeatmapGrid
+                cells={data?.heatmap || []}
+                regionLat={activeRegion.lat}
+                regionLng={activeRegion.lng}
+                regionZoom={activeRegion.zoom}
+              />
+              <AIInsightsPanel
+                insights={data?.ai_insights || []}
+                overallRisk={data?.overall_risk_level || 'Medium'}
+                territoryId={territory_id}
+              />
+            </div>
+          )}
+
+          {activeTab === 'ndvi' && (
+            <NDVIPanel data={data?.ndvi_data || []} />
+          )}
+
+          {activeTab === 'weather' && (
+            <WeatherMap
+              anomalies={data?.weather_anomalies || []}
+              regionLat={activeRegion.lat}
+              regionLng={activeRegion.lng}
+              regionZoom={activeRegion.zoom}
+            />
+          )}
+
+          {activeTab === 'pest' && (
+            <PestMap
+              outbreaks={data?.pest_outbreaks || []}
+              regionLat={activeRegion.lat}
+              regionLng={activeRegion.lng}
+              regionZoom={activeRegion.zoom}
+            />
+          )}
+        </>
       )}
-
-      {activeTab === 'ndvi' && <NDVIPanel />}
-
-      {activeTab === 'weather' && <WeatherMap />}
-
-      {activeTab === 'pest' && <PestMap />}
     </div>
   );
 }

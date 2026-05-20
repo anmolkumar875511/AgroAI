@@ -1,4 +1,3 @@
-// src/pages/RetailerInsightsPage.tsx
 import { useState } from 'react';
 import { Search, Filter, RefreshCw, MapPin, Clock, Package, TrendingUp, Star } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';

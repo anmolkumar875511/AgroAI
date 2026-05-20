@@ -1,4 +1,3 @@
-// src/pages/NotificationsPage.tsx
 import { Bell, CheckCheck, AlertTriangle, Info, CheckCircle, AlertCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';

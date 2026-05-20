@@ -1,10 +1,3 @@
-/**
- * NEW FILE: src/pages/LoginPage.tsx
- *
- * What changed: New login page. Previously the app had no auth — clicking
- * "Launch Dashboard" on the landing page went straight in. Now users must
- * log in with email + password which calls POST /api/v1/auth/login.
- */
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Leaf, Eye, EyeOff, Loader2 } from 'lucide-react';

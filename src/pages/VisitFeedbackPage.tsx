@@ -1,4 +1,3 @@
-// src/pages/VisitFeedbackPage.tsx
 import { useState } from 'react';
 import { CheckCircle2, Loader2, MapPin, Package, MessageSquare, CalendarDays } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';

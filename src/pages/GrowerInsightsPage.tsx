@@ -1,4 +1,3 @@
-// src/pages/GrowerInsightsPage.tsx
 import { useState } from 'react';
 import { Users, Leaf, AlertTriangle, BarChart3, Sprout, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';

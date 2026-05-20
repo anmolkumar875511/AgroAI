@@ -1,10 +1,3 @@
-// src/pages/SettingsPage.tsx  — CHANGED
-// What changed:
-// - User data (name, email, territory, employee_id) now from useAuth().user
-// - Theme toggle, language, notifications, sync now saved to backend via settingsAPI.update()
-// - Save button calls the API; success toast shown inline
-// - Logout button calls useAuth().logout() then navigates to /login
-
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {

@@ -1,16 +1,14 @@
-// src/pages/AnalyticsPage.tsx
 import { useState } from 'react';
 import { Download, Calendar } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { analyticsAPI } from '@/api/client';
-import { FieldEfficiencyChart} from '@/sections/analytics/FieldEfficiencyChart';
-import { CropRiskTrendsChart } from '@/sections/analytics/CropRiskTrendsChart';
-import { StockUtilizationChart } from '@/sections/analytics/StockUtilizationChart';
+import { FieldEfficiencyChart } from '@/sections/analytics/FieldEfficiencyChart';
+import { RevenuePerVisitChart } from '@/sections/analytics/RevenuePerVisitChart';
 import { RecommendationAcceptanceChart } from '@/sections/analytics/RecommendationAcceptanceChart';
 import { RegionalPerformanceChart } from '@/sections/analytics/RegionalPerformanceChart';
-import { RevenuePerVisitChart } from '@/sections/analytics/RevenuePerVisitChart';
-
+import { CropRiskTrendsChart } from '@/sections/analytics/CropRiskTrendsChart';
+import { StockUtilizationChart } from '@/sections/analytics/StockUtilizationChart';
 
 const dateRanges = [
   { label: 'Last 7 Days', value: '7d' },

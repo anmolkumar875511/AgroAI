@@ -1,13 +1,3 @@
-/**
- * CHANGED FILE: src/pages/DashboardPage.tsx
- *
- * What changed:
- * - Removed: import { kpiData } from '@/data/mockData'
- * - Added: dashboardAPI.getDashboard() call using useApi hook
- * - KPI cards, weekly chart, and mandi prices now come from the backend
- * - territory_id comes from the logged-in user's profile via useAuth()
- * - Added loading skeleton and error state
- */
 import { useEffect, useRef } from 'react';
 import gsap from 'gsap';
 import { useAuth } from '@/contexts/AuthContext';
@@ -138,8 +128,8 @@ export default function DashboardPage() {
       {/* Weekly Performance */}
       <div className="dashboard-card">
         <WeeklyPerformanceChart
-          // data={data?.weekly_performance}
-          // loading={loading}
+          data={data?.weekly_performance}
+          loading={loading}
         />
       </div>
     </div>
