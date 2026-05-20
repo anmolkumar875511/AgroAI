@@ -1,9 +1,3 @@
-/**
- * AgroAI API Client
- * Central HTTP client for all backend communication.
- * Base URL is read from VITE_API_URL in your .env file.
- */
-
 const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000/api/v1';
 
 // ─── Token Management ────────────────────────────────────────────────────────
