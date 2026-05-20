@@ -103,6 +103,13 @@ async def grower_insights(
             "total_messages_sent": messages,
         })
 
+    if not clusters:
+        # Fallback to deterministic mock clusters if DB has no retailers or territory matches nothing
+        clusters = _get_mock_clusters(territory_id, crop, urgency)
+        total_count = len(clusters)
+        clusters = clusters[skip : skip + limit]
+        return {"clusters": clusters, "total": total_count}
+
     return {"clusters": clusters, "total": len(clusters)}
 
 
@@ -125,6 +132,35 @@ async def grower_summary(
             "high_risk_count": {"$sum": {"$cond": [{"$eq": ["$priority_level", "High"]}, 1, 0]}},
         }},
     ]
+    
+    # Check if there are any retailers in the DB for this territory
+    has_retailers = await retailers.count_documents({"territory_id": territory_id})
+    if not has_retailers:
+        # Fall back to aggregated stats from the mock clusters
+        mock_clusters = _get_mock_clusters(territory_id)
+        if not mock_clusters:
+            return {"total_growers": 0, "total_product_scans": 0, "campaign_attendance": 0,
+                    "digital_engagement_rate": 0, "avg_farm_size_acres": 0, "high_urgency_clusters": 0}
+            
+        total_growers = sum(c["grower_count"] for c in mock_clusters)
+        total_scans = sum(c["product_scans"] for c in mock_clusters)
+        total_attendance = sum(c["campaign_attendance"] for c in mock_clusters)
+        avg_farm = round(sum(c["avg_farm_size_acres"] for c in mock_clusters) / len(mock_clusters), 2)
+        
+        total_messages = sum(c["total_messages_sent"] for c in mock_clusters)
+        total_clicked = sum(int(c["total_messages_sent"] * c["engagement_rate"]) for c in mock_clusters)
+        eng_rate = round(total_clicked / (total_messages + 1), 3)
+        high_urgency = sum(1 for c in mock_clusters if c["pest_risk"] in ["High", "Critical"])
+        
+        return {
+            "total_growers": total_growers,
+            "total_product_scans": total_scans,
+            "campaign_attendance": total_attendance,
+            "digital_engagement_rate": eng_rate,
+            "avg_farm_size_acres": avg_farm,
+            "high_urgency_clusters": high_urgency,
+        }
+
     async for doc in retailers.aggregate(pipeline):
         return {
             "total_growers": int(doc.get("total_growers", 0)),
@@ -136,6 +172,7 @@ async def grower_summary(
             "avg_farm_size_acres": round(doc.get("avg_farm_size", 2.5) or 2.5, 2),
             "high_urgency_clusters": int(doc.get("high_risk_count", 0)),
         }
+        
     return {"total_growers": 0, "total_product_scans": 0, "campaign_attendance": 0,
             "digital_engagement_rate": 0, "avg_farm_size_acres": 0, "high_urgency_clusters": 0}
 
@@ -148,3 +185,83 @@ def _score_to_risk(score: float) -> str:
     elif score >= 35:
         return "Medium"
     return "Low"
+
+
+def _get_mock_clusters(territory_id: str, crop: str = "all", urgency: str = "all") -> list:
+    # Bihar default (TER_0001 or fallback)
+    state = "Bihar"
+    district = "Nalanda"
+    tehsils = ["Harnaut", "Biharsharif", "Rajgir", "Islampur", "Chandi", "Giriyak"]
+    
+    if territory_id and ("0116" in territory_id or "mh" in territory_id.lower()):
+        state = "Maharashtra"
+        district = "Amravati"
+        tehsils = ["Amravati", "Achalpur", "Morshi", "Anjangaon", "Warud", "Chandur"]
+    elif territory_id and ("0447" in territory_id or "pb" in territory_id.lower()):
+        state = "Punjab"
+        district = "Ludhiana"
+        tehsils = ["Ludhiana", "Khanna", "Samrala", "Jagraon", "Payal", "Raikot"]
+    elif not territory_id:
+        state = "Uttar Pradesh"
+        district = "Lucknow"
+        tehsils = ["Malihabad", "Bakshi Ka Talab", "Mohanlalganj", "Lucknow", "Kakori"]
+        
+    mock_data = []
+    
+    crops = ["Rice", "Wheat", "Cotton", "Maize", "Mustard", "Soybean"]
+    stages = ["Vegetative", "Tillering", "Flowering", "Grain Fill", "Germination", "Sowing"]
+    risks = ["Critical", "High", "Medium", "Low"]
+    products = ["Amistar 250 SC", "Actara 25 WG", "Priaxor", "Alika", "Volume Flexi", "Bayer Nativo"]
+    
+    for i, tehsil in enumerate(tehsils):
+        c_type = crops[i % len(crops)]
+        stage = stages[i % len(stages)]
+        risk = risks[i % len(risks)]
+        prod = products[i % len(products)]
+        adv = ADVISORIES[i % len(ADVISORIES)]
+        
+        if risk == "Critical":
+            urgency_score = 75 + (i * 3) % 20
+        elif risk == "High":
+            urgency_score = 56 + (i * 3) % 18
+        elif risk == "Medium":
+            urgency_score = 36 + (i * 3) % 18
+        else:
+            urgency_score = 15 + (i * 3) % 20
+            
+        growers = 120 + (i * 67) % 300
+        scans = growers * (4 + (i * 7) % 8)
+        attendance = int(growers * (0.3 + (i % 4) * 0.15))
+        messages = int(growers * 3)
+        clicked = int(growers * 1.5)
+        eng_rate = round(clicked / (messages + 1), 3)
+        avg_farm = round(1.8 + (i * 0.75) % 4.5, 1)
+        last_days = 5 + (i * 9) % 25
+        
+        if crop != "all" and crop.lower() != c_type.lower():
+            continue
+        if urgency != "all" and urgency.lower() != risk.lower():
+            continue
+            
+        mock_data.append({
+            "id": f"mock-cluster-{tehsil.lower()}",
+            "tehsil": tehsil,
+            "district": district,
+            "state": state,
+            "location": f"{tehsil}, {district}",
+            "crop_type": c_type,
+            "crop_stage": stage,
+            "grower_count": growers,
+            "avg_farm_size_acres": avg_farm,
+            "product_scans": scans,
+            "campaign_attendance": attendance,
+            "engagement_rate": eng_rate,
+            "pest_risk": risk,
+            "urgency_score": urgency_score,
+            "recommended_advisory": adv,
+            "recommended_product": prod,
+            "last_visit_days": last_days,
+            "total_messages_sent": messages,
+        })
+        
+    return mock_data
