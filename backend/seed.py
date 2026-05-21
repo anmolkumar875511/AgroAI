@@ -1,130 +1,692 @@
 #!/usr/bin/env python3
-"""
-AgroAI Ultimate Dataset Seed Script
-===================================
-Loads ALL data files (raw and ML-scored) into MongoDB to power every frontend page.
-"""
 
 import asyncio
+import csv
+import json
 import os
-import pandas as pd
-from datetime import datetime, timezone
+import random
+import argparse
+
+from datetime import datetime, timedelta, UTC
 from pathlib import Path
-from motor.motor_asyncio import AsyncIOMotorClient
-from passlib.context import CryptContext
+
 from dotenv import load_dotenv
 
 load_dotenv()
+
 MONGODB_URL = os.getenv("MONGODB_URL", "mongodb://localhost:27017")
 DB_NAME = os.getenv("DB_NAME", "agroai")
+
 DATA_DIR = Path(__file__).parent / "data"
 
-# Optional: Set to an integer (e.g., 500) to limit rows during dev, or None for everything
-MAX_RECORDS = 500 
+# ─────────────────────────────────────────────────────────────
+# CLI ARGS
+# ─────────────────────────────────────────────────────────────
 
-async def load_csv_to_mongo(db, file_name: str, collection_name: str, unique_col: str = None):
-    """Helper function to load, clean, and insert CSV data into MongoDB."""
-    file_path = DATA_DIR / file_name
-    if not file_path.exists():
-        print(f"⚠️ Missing {file_name}. Skipping collection: {collection_name}.")
+parser = argparse.ArgumentParser()
+
+parser.add_argument("--max-pos", type=int, default=15000)
+parser.add_argument("--max-visits", type=int, default=5000)
+parser.add_argument("--max-growers", type=int, default=2000)
+parser.add_argument("--max-inv", type=int, default=10000)
+
+args = parser.parse_args()
+
+# ─────────────────────────────────────────────────────────────
+# HELPERS
+# ─────────────────────────────────────────────────────────────
+
+
+def _b(v):
+    return str(v).strip().lower() == "true"
+
+
+def _f(v, default=0.0):
+    try:
+        f = float(v)
+        return 0.0 if (f != f) else f
+    except:
+        return default
+
+
+def _i(v, default=0):
+    try:
+        return int(float(v))
+    except:
+        return default
+
+
+def utc_now():
+    return datetime.now(UTC)
+
+
+def stream_csv(filename):
+    path = DATA_DIR / filename
+
+    if not path.exists():
+        print(f"WARNING: {filename} not found")
         return
 
-    print(f"Loading {file_name} into {collection_name}...")
-    try:
-        df = pd.read_csv(file_path, low_memory=False)
-        
-        # Deduplicate if a primary key is provided
-        if unique_col and unique_col in df.columns:
-            df = df.drop_duplicates(subset=[unique_col])
-            
-        # Safely fill NaNs so MongoDB doesn't throw BSON errors
-        df = df.fillna('')
-        
-        # Apply row limits if set
-        if MAX_RECORDS:
-            df = df.head(MAX_RECORDS)
-            
-        docs = df.to_dict(orient='records')
-        
-        if docs:
-            # Insert in batches to prevent memory overflow
-            batch_size = 1000
-            for i in range(0, len(docs), batch_size):
-                await db[collection_name].insert_many(docs[i:i+batch_size])
-            print(f"  ✅ Seeded {len(docs)} records into '{collection_name}'.")
-    except Exception as e:
-        print(f"  ❌ Error loading {file_name}: {e}")
+    with open(path, newline="", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+
+        for row in reader:
+            yield row
+
+
+# ─────────────────────────────────────────────────────────────
+# STATE COORDS
+# ─────────────────────────────────────────────────────────────
+
+STATE_COORDS = {
+    "Bihar": (25.09, 85.31),
+    "Haryana": (29.05, 76.08),
+    "Uttar Pradesh": (26.84, 80.94),
+    "Rajasthan": (27.02, 74.21),
+    "Maharashtra": (19.75, 75.71),
+    "Punjab": (31.14, 75.34),
+    "Gujarat": (22.25, 71.19),
+    "Karnataka": (15.31, 75.71),
+    "West Bengal": (22.98, 87.85),
+    "Madhya Pradesh": (23.47, 77.94),
+    "Andhra Pradesh": (15.91, 79.74),
+    "Tamil Nadu": (11.12, 78.65),
+    "Telangana": (17.12, 79.01),
+    "Odisha": (20.94, 84.80),
+    "Assam": (26.20, 92.93),
+}
+
+# ─────────────────────────────────────────────────────────────
+# MAIN
+# ─────────────────────────────────────────────────────────────
 
 
 async def seed():
+
+    from motor.motor_asyncio import AsyncIOMotorClient
+    from passlib.context import CryptContext
+
     pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
-    client = AsyncIOMotorClient(MONGODB_URL)
+
+    client = AsyncIOMotorClient(
+        MONGODB_URL,
+        maxPoolSize=50,
+        minPoolSize=10,
+    )
+
     db = client[DB_NAME]
-    print(f"Connected to MongoDB: {DB_NAME}\n")
 
-    # 1. Clean existing collections
-    collections_to_drop = [
-        "users", "retailers", "recommendations", "feature_importance", 
-        "growers", "visit_logs", "pos_data", "inventory", "campaigns", "reps"
+    print("\n🌱 AgroAI Seed Script")
+    print(f"MongoDB: {DB_NAME}")
+
+    # ─────────────────────────────────────────────────────────
+    # DROP COLLECTIONS
+    # ─────────────────────────────────────────────────────────
+
+    collections = [
+        "users",
+        "territories",
+        "retailers",
+        "pos_transactions",
+        "inventory",
+        "visit_logs",
+        "growers",
+        "whatsapp_messages",
+        "digital_funnel",
+        "notifications",
     ]
-    for col in collections_to_drop:
-        await db[col].drop()
-    print("Dropped old collections to start fresh.\n")
 
-    # 2. Seed Users (Required for LoginPage.tsx and SettingsPage.tsx)
-    now_utc = datetime.now(timezone.utc)
+    for col in collections:
+        await db[col].drop()
+        print(f"Dropped: {col}")
+
+    # ─────────────────────────────────────────────────────────
+    # USERS
+    # ─────────────────────────────────────────────────────────
+
+    print("\n👤 Seeding users...")
+
     users = [
         {
-            "name": "Amit Sharma", "email": "amit@agroai.com", "hashed_password": pwd.hash("password123"),
-            "role": "field_agent", "territory_id": "TER_0001", "region_id": "br", "created_at": now_utc
+            "name": "Amit Sharma",
+            "email": "amit@agroai.com",
+            "hashed_password": pwd.hash("password123"),
+            "role": "field_agent",
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
         },
         {
-            "name": "Sunita Rao", "email": "manager@agroai.com", "hashed_password": pwd.hash("password123"),
-            "role": "manager", "territory_id": "", "region_id": "ind", "created_at": now_utc
-        }
+            "name": "Priya Tiwari",
+            "email": "priya@agroai.com",
+            "hashed_password": pwd.hash("password123"),
+            "role": "field_agent",
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+        },
+        {
+            "name": "Rajesh Verma",
+            "email": "rajesh@agroai.com",
+            "hashed_password": pwd.hash("password123"),
+            "role": "field_agent",
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+        },
+        {
+            "name": "Manager",
+            "email": "manager@agroai.com",
+            "hashed_password": pwd.hash("password123"),
+            "role": "manager",
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+        },
+        {
+            "name": "Admin",
+            "email": "admin@agroai.com",
+            "hashed_password": pwd.hash("admin123"),
+            "role": "admin",
+            "created_at": utc_now(),
+            "updated_at": utc_now(),
+        },
     ]
+
     await db["users"].insert_many(users)
-    print("✅ Seeded Demo Users (amit@agroai.com / password123).\n")
 
-    # 3. Load all CSVs mapping to their collections
-    # Format: (CSV Filename, MongoDB Collection Name, Unique Column if applicable)
-    datasets = [
-        # AI & Master Data (Powers RecommendationsPage & RetailerInsightsPage)
-        ("agroai_master_scored_data.csv", "retailers", "retailer_id"),
-        ("agroai_recommendations.csv", "recommendations", None),
-        ("agroai_feature_importance.csv", "feature_importance", None),
-        
-        # Raw Data (Powers AnalyticsPage & DashboardPage)
-        ("retailer_visit_log.csv", "visit_logs", None),
-        ("retailer_pos.csv", "pos_data", None),
-        ("retailer_inventory_weekly.csv", "inventory", None),
-        
-        # Grower & Marketing Data (Powers GrowerInsightsPage)
-        ("growers.csv", "growers", "grower_id"),
-        ("whatsapp_campaign.csv", "campaigns", None),
-        ("digital_funnel_weekly.csv", "digital_funnel", None),
-        
-        # Team Data
-        ("reps_territory.csv", "reps", "rep_id"),
+    await db["users"].create_index("email", unique=True)
+
+    print("✅ users seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # TERRITORIES
+    # ─────────────────────────────────────────────────────────
+
+    print("\n🗺️ Seeding territories...")
+
+    territories = []
+
+    for row in stream_csv("reps_territory.csv"):
+
+        state = row.get("state", "India")
+
+        base_lat, base_lng = STATE_COORDS.get(
+            state,
+            (20.59, 78.96)
+        )
+
+        rng = random.Random(hash(row["territory_id"]))
+
+        territories.append({
+            "rep_id": row["rep_id"],
+            "territory_id": row["territory_id"],
+            "territory_name": row["territory_name"],
+            "state": row["state"],
+            "district": row["district"],
+            "tehsil_list": json.loads(
+                row["tehsil_list"]
+            ) if row.get("tehsil_list") else [],
+            "lat": round(base_lat + rng.uniform(-1.5, 1.5), 5),
+            "lng": round(base_lng + rng.uniform(-1.5, 1.5), 5),
+            "created_at": utc_now(),
+        })
+
+    if territories:
+        await db["territories"].insert_many(territories)
+
+    await db["territories"].create_index("territory_id")
+
+    print(f"✅ {len(territories)} territories")
+
+    # ─────────────────────────────────────────────────────────
+    # RETAILERS
+    # ─────────────────────────────────────────────────────────
+
+    print("\n🏪 Seeding retailers...")
+
+    batch = []
+
+    inserted = 0
+
+    for row in stream_csv("agroai_master_scored_data.csv"):
+
+        state = row.get("state", "Bihar")
+
+        base_lat, base_lng = STATE_COORDS.get(
+            state,
+            (20.59, 78.96)
+        )
+
+        rng = random.Random(hash(row["retailer_id"]))
+
+        batch.append({
+            "retailer_id": row["retailer_id"],
+            "territory_id": row["territory_id"],
+            "state": row.get("state"),
+            "district": row.get("district"),
+            "tehsil": row.get("tehsil"),
+
+            "lat": round(base_lat + rng.uniform(-2.5, 2.5), 5),
+            "lng": round(base_lng + rng.uniform(-2.5, 2.5), 5),
+
+            "sales_value_30": _f(row.get("sales_value_30")),
+            "sales_qty_30": _f(row.get("sales_qty_30")),
+
+            "total_stock_qty": _f(row.get("total_stock_qty")),
+
+            "engagement_rate": _f(row.get("engagement_rate")),
+
+            "visit_priority_score": _f(
+                row.get("visit_priority_score")
+            ),
+
+            "priority_level": row.get(
+                "priority_level",
+                "Low"
+            ),
+
+            "recommended_product": row.get(
+                "recommended_product",
+                ""
+            ),
+
+            "recommended_action": row.get(
+                "recommended_action",
+                ""
+            ),
+
+            "updated_at": utc_now(),
+        })
+
+        if len(batch) == 500:
+
+            await db["retailers"].insert_many(batch)
+
+            inserted += len(batch)
+
+            print(f"   inserted {inserted:,} retailers")
+
+            batch = []
+
+    if batch:
+        await db["retailers"].insert_many(batch)
+        inserted += len(batch)
+
+    await db["retailers"].create_index(
+        "retailer_id",
+        unique=True
+    )
+
+    await db["retailers"].create_index(
+        [("visit_priority_score", -1)]
+    )
+
+    print(f"✅ {inserted:,} retailers")
+
+    # ─────────────────────────────────────────────────────────
+    # POS TRANSACTIONS
+    # ─────────────────────────────────────────────────────────
+
+    print("\n💰 Seeding POS transactions...")
+
+    random.seed(42)
+
+    batch = []
+
+    inserted = 0
+
+    for row in stream_csv("retailer_pos.csv"):
+
+        if random.random() > 0.15:
+            continue
+
+        try:
+            txn_date = datetime.strptime(
+                row["transaction_date"],
+                "%Y-%m-%d"
+            ).replace(tzinfo=UTC)
+
+        except:
+            continue
+
+        batch.append({
+            "retailer_id": row["retailer_id"],
+            "transaction_id": row["transaction_id"],
+            "sku_id": row["sku_id"],
+            "sku_name": row["sku_name"],
+            "sku_qty": _f(row["sku_qty"]),
+            "sku_price": _f(row["sku_price"]),
+            "revenue": _f(row["sku_qty"]) * _f(row["sku_price"]),
+            "transaction_date": txn_date,
+        })
+
+        if len(batch) == 1000:
+
+            await db["pos_transactions"].insert_many(batch)
+
+            inserted += len(batch)
+
+            print(f"   inserted {inserted:,} POS")
+
+            batch = []
+
+        if inserted >= args.max_pos:
+            break
+
+    if batch:
+        await db["pos_transactions"].insert_many(batch)
+
+    await db["pos_transactions"].create_index(
+        "retailer_id"
+    )
+
+    print(f"✅ POS seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # INVENTORY
+    # ─────────────────────────────────────────────────────────
+
+    print("\n📦 Seeding inventory...")
+
+    latest = {}
+
+    for row in stream_csv("retailer_inventory_weekly.csv"):
+
+        k = (row["retailer_id"], row["sku_id"])
+
+        if (
+            k not in latest or
+            row["week_end_date"] > latest[k]["week_end_date"]
+        ):
+            latest[k] = row
+
+        if len(latest) >= args.max_inv * 2:
+            break
+
+    inventory_rows = list(latest.values())[:args.max_inv]
+
+    batch = []
+
+    for row in inventory_rows:
+
+        try:
+            wdate = datetime.strptime(
+                row["week_end_date"],
+                "%Y-%m-%d"
+            ).replace(tzinfo=UTC)
+
+        except:
+            wdate = utc_now()
+
+        qty = _f(row["sku_qty"])
+
+        batch.append({
+            "retailer_id": row["retailer_id"],
+            "sku_id": row["sku_id"],
+            "sku_name": row["sku_name"],
+            "sku_qty": qty,
+            "week_end_date": wdate,
+            "is_oos": qty == 0,
+            "is_low": 0 < qty <= 20,
+        })
+
+        if len(batch) == 1000:
+            await db["inventory"].insert_many(batch)
+            batch = []
+
+    if batch:
+        await db["inventory"].insert_many(batch)
+
+    print("✅ inventory seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # VISIT LOGS
+    # ─────────────────────────────────────────────────────────
+
+    print("\n📋 Seeding visit logs...")
+
+    batch = []
+
+    inserted = 0
+
+    for row in stream_csv("retailer_visit_log.csv"):
+
+        if random.random() > 0.25:
+            continue
+
+        try:
+            vdate = datetime.strptime(
+                row["visit_date"],
+                "%Y-%m-%d"
+            ).replace(tzinfo=UTC)
+
+        except:
+            continue
+
+        batch.append({
+            "rep_id": row["rep_id"],
+            "territory_id": row["territory_id"],
+            "visit_tehsil": row["visit_tehsil"],
+            "visit_type": row["visit_type"],
+            "product_recommended": row["product_recommended"],
+            "visit_date": vdate,
+            "status": "completed",
+            "created_at": vdate,
+        })
+
+        if len(batch) == 1000:
+
+            await db["visit_logs"].insert_many(batch)
+
+            inserted += len(batch)
+
+            print(f"   inserted {inserted:,} visits")
+
+            batch = []
+
+        if inserted >= args.max_visits:
+            break
+
+    if batch:
+        await db["visit_logs"].insert_many(batch)
+
+    print("✅ visit logs seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # GROWERS
+    # ─────────────────────────────────────────────────────────
+
+    print("\n🌾 Seeding growers...")
+
+    batch = []
+
+    inserted = 0
+
+    for row in stream_csv("growers.csv"):
+
+        if random.random() > 0.35:
+            continue
+
+        batch.append({
+            "grower_id": row["grower_id"],
+            "state": row["state"],
+            "district": row["district"],
+            "tehsil": row["tehsil"],
+            "language": row["language"],
+            "device_type": row["device_type"],
+            "grower_age": _i(row["grower_age"]),
+            "grower_farm_size": _f(
+                row["grower_farm_size"]
+            ),
+            "product_scan": _b(row["product_scan"]),
+        })
+
+        if len(batch) == 500:
+
+            await db["growers"].insert_many(batch)
+
+            inserted += len(batch)
+
+            print(f"   inserted {inserted:,} growers")
+
+            batch = []
+
+        if inserted >= args.max_growers:
+            break
+
+    if batch:
+        await db["growers"].insert_many(batch)
+
+    print("✅ growers seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # WHATSAPP
+    # ─────────────────────────────────────────────────────────
+
+    print("\n📱 Seeding WhatsApp messages...")
+
+    batch = []
+
+    for row in stream_csv("whatsapp_campaign.csv"):
+
+        try:
+            sent_dt = datetime.strptime(
+                row["message_sent_date"],
+                "%Y-%m-%d"
+            ).replace(tzinfo=UTC)
+
+        except:
+            sent_dt = utc_now()
+
+        batch.append({
+            "campaign_product": row["campaign_product"],
+            "campaign_crop": row["campaign_crop"],
+            "grower_id": row["grower_id"],
+            "message_sent_date": sent_dt,
+            "delivered_status": _b(
+                row["delivered_status"]
+            ),
+            "opened_status": _b(
+                row["opened_status"]
+            ),
+            "clicked_status": _b(
+                row["clicked_status"]
+            ),
+        })
+
+        if len(batch) == 1000:
+            await db["whatsapp_messages"].insert_many(batch)
+            batch = []
+
+    if batch:
+        await db["whatsapp_messages"].insert_many(batch)
+
+    print("✅ WhatsApp seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # DIGITAL FUNNEL
+    # ─────────────────────────────────────────────────────────
+
+    print("\n📊 Seeding digital funnel...")
+
+    docs = []
+
+    for row in stream_csv("digital_funnel_weekly.csv"):
+
+        try:
+            wdate = datetime.strptime(
+                row["week_start_date"],
+                "%Y-%m-%d"
+            ).replace(tzinfo=UTC)
+
+        except:
+            wdate = utc_now()
+
+        docs.append({
+            "campaign_id": row["campaign_id"],
+            "week_start_date": wdate,
+            "social_post_impression": _i(
+                row["social_post_impression"]
+            ),
+            "landing_page_visits": _i(
+                row["landing_page_visits"]
+            ),
+            "lead_form_submission": _i(
+                row["lead_form_submission"]
+            ),
+            "campaign_crop": row["campaign_crop"],
+            "campaign_product": row["campaign_product"],
+        })
+
+    if docs:
+        await db["digital_funnel"].insert_many(docs)
+
+    print("✅ digital funnel seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # NOTIFICATIONS
+    # ─────────────────────────────────────────────────────────
+
+    print("\n🔔 Seeding notifications...")
+
+    users = await db["users"].find().to_list(length=10)
+
+    notifications = []
+
+    for user in users:
+
+        notifications.append({
+            "user_id": str(user["_id"]),
+            "title": "Stock Alert",
+            "message": "Low inventory detected",
+            "type": "warning",
+            "read": False,
+            "created_at": utc_now(),
+        })
+
+    if notifications:
+        await db["notifications"].insert_many(
+            notifications
+        )
+
+    print("✅ notifications seeded")
+
+    # ─────────────────────────────────────────────────────────
+    # SUMMARY
+    # ─────────────────────────────────────────────────────────
+
+    print("\n" + "=" * 50)
+    print("✅ SEED COMPLETE")
+    print("=" * 50)
+
+    cols = [
+        "users",
+        "territories",
+        "retailers",
+        "pos_transactions",
+        "inventory",
+        "visit_logs",
+        "growers",
+        "whatsapp_messages",
+        "digital_funnel",
+        "notifications",
     ]
 
-    for file_name, col_name, unique_col in datasets:
-        await load_csv_to_mongo(db, file_name, col_name, unique_col)
+    for col in cols:
 
-    # 4. Create Indexes for fast querying
-    print("\nCreating database indexes...")
-    try:
-        await db["retailers"].create_index("retailer_id", unique=True)
-        await db["retailers"].create_index("territory_id")
-        await db["recommendations"].create_index("territory_id")
-        await db["visit_logs"].create_index("retailer_id")
-        await db["growers"].create_index("territory_id")
-        print("✅ Indexes created successfully.")
-    except Exception as e:
-        print(f"⚠️ Could not create some indexes: {e}")
+        count = await db[col].count_documents({})
 
-    print("\n🎉 [SUCCESS] Ultimate Data Seed Complete!")
+        print(f"{col:<22} {count:,}")
+
+    print("""
+Demo Credentials
+
+amit@agroai.com      / password123
+priya@agroai.com     / password123
+rajesh@agroai.com    / password123
+manager@agroai.com   / password123
+admin@agroai.com     / admin123
+""")
+
     client.close()
+
 
 if __name__ == "__main__":
     asyncio.run(seed())
