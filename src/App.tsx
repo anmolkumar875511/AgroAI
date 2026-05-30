@@ -20,6 +20,14 @@ import GrowerInsightsPage from '@/pages/GrowerInsightsPage';
 import VisitFeedbackPage from '@/pages/VisitFeedbackPage';
 import NotificationsPage from '@/pages/NotificationsPage';
 
+// New Manager Pages
+import TeamPerformancePage from '@/pages/TeamPerformancePage';
+import ReportsPage from '@/pages/ReportsPage';
+import RepVisitTrackingPage from '@/pages/RepVisitTrackingPage';
+import HighPriorityAreasPage from '@/pages/HighPriorityAreasPage';
+import ProductDemandTrendsPage from '@/pages/ProductDemandTrendsPage';
+import RecommendationAcceptancePage from '@/pages/RecommendationAcceptancePage';
+
 function ScrollToTop() {
   const { pathname } = useLocation();
   useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
@@ -67,6 +75,15 @@ function AppContent() {
                   <Route path="/visit-feedback"      element={<VisitFeedbackPage />} />
                   <Route path="/notifications"       element={<NotificationsPage />} />
                   <Route path="/settings"            element={<SettingsPage />} />
+
+                  {/* Manager specific routes */}
+                  <Route path="/team-performance"    element={<TeamPerformancePage />} />
+                  <Route path="/reports"             element={<ReportsPage />} />
+                  <Route path="/rep-visit-tracking"  element={<RepVisitTrackingPage />} />
+                  <Route path="/high-priority-areas" element={<HighPriorityAreasPage />} />
+                  <Route path="/product-demand-trends" element={<ProductDemandTrendsPage />} />
+                  <Route path="/recommendation-acceptance" element={<RecommendationAcceptancePage />} />
+
                   <Route path="*"                    element={<DashboardPage />} />
                 </Routes>
               </AppLayout>

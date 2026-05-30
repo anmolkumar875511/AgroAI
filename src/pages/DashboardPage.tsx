@@ -11,6 +11,9 @@ import { AIRecommendationsFeed } from '@/sections/dashboard/AIRecommendationsFee
 import { MapWidget } from '@/sections/dashboard/MapWidget';
 import { WeeklyPerformanceChart } from '@/sections/dashboard/WeeklyPerformanceChart';
 
+// Import the new Manager Dashboard Page component
+import ManagerDashboard from './ManagerDashboard';
+
 // Skeleton card for loading state
 function KPISkeleton() {
   return (
@@ -28,7 +31,7 @@ function KPISkeleton() {
   );
 }
 
-export default function DashboardPage() {
+function FieldRepDashboard() {
   const { user } = useAuth();
   const territory_id = user?.territory_id || 'TER_0001';
 
@@ -134,4 +137,14 @@ export default function DashboardPage() {
       </div>
     </div>
   );
+}
+
+export default function DashboardPage() {
+  const { user } = useAuth();
+
+  if (user?.role === 'manager') {
+    return <ManagerDashboard />;
+  }
+
+  return <FieldRepDashboard />;
 }

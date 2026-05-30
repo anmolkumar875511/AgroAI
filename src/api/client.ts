@@ -191,7 +191,10 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
   const isMutating = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(fetchOptions.method || 'GET');
   const isOnline = typeof navigator !== 'undefined' ? navigator.onLine : true;
 
-  if (!isOnline && isMutating) {
+  // Auth endpoints must NEVER be queued offline — they must fail loudly
+  const isAuthEndpoint = endpoint.startsWith('/auth/');
+
+  if (!isOnline && isMutating && !isAuthEndpoint) {
     queueOfflineRequest(url, endpoint, fetchOptions);
     return getMockedResponseForEndpoint(endpoint, fetchOptions.body) as T;
   }
@@ -221,6 +224,14 @@ async function apiFetch<T>(endpoint: string, options: FetchOptions = {}): Promis
     if (res.status === 204) return undefined as T;
     return res.json();
   } catch (error: any) {
+    // Auth endpoints must always throw — never queue silently
+    if (isAuthEndpoint) {
+      if (error instanceof TypeError || error?.message?.toLowerCase().includes('fetch')) {
+        throw new Error('Backend server unavailable. Please make sure the server is running on port 8000.');
+      }
+      throw error;
+    }
+
     if (isMutating && (error instanceof TypeError || error?.message?.toLowerCase().includes('fetch') || !navigator.onLine)) {
       console.warn(`[Network Error Interceptor] Failed request to ${endpoint}. Queueing offline...`);
       queueOfflineRequest(url, endpoint, fetchOptions);

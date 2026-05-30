@@ -7,7 +7,8 @@ import os
 import random
 import argparse
 
-from datetime import datetime, timedelta, UTC
+from datetime import datetime, timedelta, timezone
+UTC = timezone.utc
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -23,14 +24,13 @@ DATA_DIR = Path(__file__).parent / "data"
 # CLI ARGS
 # ─────────────────────────────────────────────────────────────
 
-parser = argparse.ArgumentParser()
+class SeedArgs:
+    max_pos = 15000
+    max_visits = 5000
+    max_growers = 2000
+    max_inv = 10000
 
-parser.add_argument("--max-pos", type=int, default=15000)
-parser.add_argument("--max-visits", type=int, default=5000)
-parser.add_argument("--max-growers", type=int, default=2000)
-parser.add_argument("--max-inv", type=int, default=10000)
-
-args = parser.parse_args()
+args = SeedArgs()
 
 # ─────────────────────────────────────────────────────────────
 # HELPERS
@@ -101,20 +101,22 @@ STATE_COORDS = {
 # ─────────────────────────────────────────────────────────────
 
 
-async def seed():
+async def seed(db=None):
 
-    from motor.motor_asyncio import AsyncIOMotorClient
     from passlib.context import CryptContext
 
     pwd = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-    client = AsyncIOMotorClient(
-        MONGODB_URL,
-        maxPoolSize=50,
-        minPoolSize=10,
-    )
-
-    db = client[DB_NAME]
+    should_close = False
+    if db is None:
+        from motor.motor_asyncio import AsyncIOMotorClient
+        client = AsyncIOMotorClient(
+            MONGODB_URL,
+            maxPoolSize=50,
+            minPoolSize=10,
+        )
+        db = client[DB_NAME]
+        should_close = True
 
     print("\n🌱 AgroAI Seed Script")
     print(f"MongoDB: {DB_NAME}")
@@ -685,7 +687,8 @@ manager@agroai.com   / password123
 admin@agroai.com     / admin123
 """)
 
-    client.close()
+    if should_close:
+        client.close()
 
 
 if __name__ == "__main__":
