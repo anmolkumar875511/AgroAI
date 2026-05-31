@@ -1,42 +1,37 @@
+"""
+AgroAI Backend — FastAPI Application Entry Point
+"""
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
 
 from app.core.config import settings
-from app.core.database import connect_db, disconnect_db
-from app.ml.predictor import ml_service
+from app.core.database import init_db
 from app.api.routes import (
-    auth,
-    dashboard,
-    recommendations,
-    visit_planner,
-    risk_analyzer,
-    analytics,
-    mandi,
-    ai_chat,
-    settings as settings_router,
-    retailers,
-    growers,
-    visit_feedback,
-    notifications,
+    auth, dashboard, analytics, recommendations,
+    retailers, growers, risk_analyzer, visit_planner,
+    visit_feedback, notifications, settings as settings_router,
+    mandi, ai_chat, manager,
 )
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    ml_service.load()
-    await connect_db()
+    """Startup / shutdown lifecycle."""
+    await init_db()
     yield
-    await disconnect_db()
 
 
 app = FastAPI(
-    title="AgroAI Backend API",
+    title="AgroAI Field Intelligence API",
     description="Backend for AgroAI — Farmer First Field Intelligence Platform",
-    version="1.0.0",
+    version="2.0.0",
     lifespan=lifespan,
 )
 
+# ── Middleware ────────────────────────────────────────────────────────────────
+app.add_middleware(GZipMiddleware, minimum_size=1000)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.ALLOWED_ORIGINS,
@@ -45,26 +40,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(auth.router,             prefix="/api/v1/auth",            tags=["Auth"])
-app.include_router(dashboard.router,        prefix="/api/v1/dashboard",       tags=["Dashboard"])
-app.include_router(recommendations.router,  prefix="/api/v1/recommendations", tags=["Recommendations"])
-app.include_router(visit_planner.router,    prefix="/api/v1/visit-planner",   tags=["Visit Planner"])
-app.include_router(visit_feedback.router,   prefix="/api/v1/visit-feedback",  tags=["Visit Feedback"])
-app.include_router(risk_analyzer.router,    prefix="/api/v1/risk-analyzer",   tags=["Risk Analyzer"])
-app.include_router(analytics.router,        prefix="/api/v1/analytics",       tags=["Analytics"])
-app.include_router(retailers.router,        prefix="/api/v1/retailers",       tags=["Retailer Insights"])
-app.include_router(growers.router,          prefix="/api/v1/growers",         tags=["Grower Insights"])
-app.include_router(mandi.router,            prefix="/api/v1/mandi",           tags=["Mandi Prices"])
-app.include_router(ai_chat.router,          prefix="/api/v1/ai-chat",         tags=["AI Chat"])
-app.include_router(notifications.router,    prefix="/api/v1/notifications",   tags=["Notifications"])
-app.include_router(settings_router.router,  prefix="/api/v1/settings",        tags=["Settings"])
+# ── Routers ───────────────────────────────────────────────────────────────────
+PREFIX = "/api/v1"
 
-
-@app.get("/", tags=["Health"])
-async def root():
-    return {"status": "ok", "app": "AgroAI Backend", "version": "1.0.0"}
+app.include_router(auth.router,              prefix=PREFIX + "/auth",             tags=["Auth"])
+app.include_router(dashboard.router,         prefix=PREFIX + "/dashboard",        tags=["Dashboard"])
+app.include_router(analytics.router,         prefix=PREFIX + "/analytics",        tags=["Analytics"])
+app.include_router(recommendations.router,   prefix=PREFIX + "/recommendations",  tags=["Recommendations"])
+app.include_router(retailers.router,         prefix=PREFIX + "/retailers",        tags=["Retailers"])
+app.include_router(growers.router,           prefix=PREFIX + "/growers",          tags=["Growers"])
+app.include_router(risk_analyzer.router,     prefix=PREFIX + "/risk",             tags=["Risk Analyzer"])
+app.include_router(visit_planner.router,     prefix=PREFIX + "/visit-planner",    tags=["Visit Planner"])
+app.include_router(visit_feedback.router,    prefix=PREFIX + "/visit-feedback",   tags=["Visit Feedback"])
+app.include_router(notifications.router,     prefix=PREFIX + "/notifications",    tags=["Notifications"])
+app.include_router(settings_router.router,   prefix=PREFIX + "/settings",         tags=["Settings"])
+app.include_router(mandi.router,             prefix=PREFIX + "/mandi",            tags=["Mandi Prices"])
+app.include_router(ai_chat.router,           prefix=PREFIX + "/chat",             tags=["AI Chat"])
+app.include_router(manager.router,           prefix=PREFIX + "/manager",          tags=["Manager"])
 
 
 @app.get("/health", tags=["Health"])
 async def health():
-    return {"status": "healthy", "ml_models_loaded": ml_service._loaded}
+    return {"status": "ok", "service": "AgroAI API", "version": "2.0.0"}

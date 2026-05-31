@@ -1,45 +1,28 @@
+"""App configuration via environment variables."""
 from pydantic_settings import BaseSettings
+from pydantic import ConfigDict
 from typing import List
 
 
 class Settings(BaseSettings):
-    # App
-    APP_NAME: str = "AgroAI Backend"
-    DEBUG: bool = False
+    model_config = ConfigDict(env_file=".env", extra="ignore")
 
-    # MongoDB Atlas
-    MONGODB_URL: str = "mongodb+srv://<user>:<password>@<cluster>.mongodb.net/?retryWrites=true&w=majority"
-    DB_NAME: str = "agroai"
-
-    # JWT
-    SECRET_KEY: str = "change-this-to-a-strong-secret-key-in-production"
+    SECRET_KEY: str = "agroai-super-secret-key-change-in-production-2024"
     ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24  # 24 hours
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7
 
-    # CORS — add your frontend URL here
+    DATABASE_URL: str = "sqlite+aiosqlite:///./agroai.db"
+
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:5173",
         "http://localhost:3000",
         "http://127.0.0.1:5173",
-        "http://127.0.0.1:3000",
         "https://agroai.vercel.app",
     ]
 
-    # ML model paths (relative to project root)
-    MODEL_DIR: str = "models"
-    REGRESSOR_PATH: str = "models/agroai_visit_priority_regressor.pkl"
-    CLASSIFIER_PATH: str = "models/agroai_priority_classifier.pkl"
-    FEATURES_PATH: str = "models/agroai_model_features.pkl"
-
-    # OpenWeatherMap (optional — for live weather)
-    OPENWEATHER_API_KEY: str = ""
-
-    # Google Maps (optional — for geocoding)
-    GOOGLE_MAPS_API_KEY: str = ""
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
+    ANTHROPIC_API_KEY: str = ""
+    APP_NAME: str = "AgroAI"
+    DEBUG: bool = True
 
 
 settings = Settings()

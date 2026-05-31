@@ -1,171 +1,144 @@
+"""Risk Analyzer service — heatmap, NDVI, weather anomalies, pest outbreaks, AI insights."""
 import random
-import math
-from typing import List, Dict, Any
-from app.core.database import get_collection
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from app.models.models import Territory, RiskEvent
+from app.schemas.schemas import (
+    HeatmapCell, NDVIPoint, WeatherAnomaly, PestOutbreak,
+    AIInsight, RiskAnalyzerResponse,
+)
+
+CROPS = ["Rice", "Wheat", "Cotton", "Maize", "Mustard"]
+PESTS = ["Brown Plant Hopper", "Stem Borer", "Leaf Blast", "Powdery Mildew", "Whitefly"]
+PRODUCTS_MAP = {
+    "Brown Plant Hopper": "Actara 25 WG",
+    "Stem Borer": "Coragen 20 SC",
+    "Leaf Blast": "Amistar 250 SC",
+    "Powdery Mildew": "Score 250 EC",
+    "Whitefly": "Pegasus 500 SC",
+}
+VILLAGES = [
+    "Danapur Khurd", "Phulwari Sharif", "Masaurhi", "Bihta Block",
+    "Naubatpur", "Paliganj", "Bikram", "Maner", "Shahpur",
+]
+
+RISK_LEVELS = ["Critical", "High", "Medium", "Low"]
+
+AI_INSIGHTS_POOL = [
+    {
+        "id": "ins_1", "severity": "Critical",
+        "title": "BPH Infestation at Economic Threshold",
+        "description": "Brown Plant Hopper population has reached 8.2/m² in Danapur block — exceeding the economic threshold of 5/m². Immediate insecticide intervention required.",
+        "action": "Dispatch Actara 25 WG to RTL_00001 and RTL_00003 within 24 hours.",
+    },
+    {
+        "id": "ins_2", "severity": "High",
+        "title": "Fungal Disease Risk Elevated",
+        "description": "Relative humidity sustained above 85% for 6 consecutive days. Blast disease progression probability: 78% in rice paddies at flowering stage.",
+        "action": "Pre-position Amistar 250 SC at all rice belt retailers. Advise immediate prophylactic application.",
+    },
+    {
+        "id": "ins_3", "severity": "Medium",
+        "title": "NDVI Stress Detected — Nitrogen Deficiency",
+        "description": "NDVI dropped from 0.72 to 0.58 over 14 days across 3 tehsils. Pattern consistent with nitrogen deficiency rather than pest damage.",
+        "action": "Advise growers on top-dressing urea application. Monitor for 7 days before pesticide intervention.",
+    },
+    {
+        "id": "ins_4", "severity": "Low",
+        "title": "Pre-season Inventory Optimization",
+        "description": "ML demand forecast predicts 35% sales surge in next 3 weeks based on crop calendar and historical patterns.",
+        "action": "Increase stock levels at High-priority retailers before the demand window opens.",
+    },
+]
 
 
-async def get_heatmap(territory_id: str, crop: str = "Rice") -> List[Dict[str, Any]]:
-    """Generate heatmap grid cells for risk visualization."""
-    retailers = get_collection("retailers")
+async def get_risk_data(territory_id: str, lat: float, lng: float, db: AsyncSession) -> RiskAnalyzerResponse:
+    # ── Heatmap cells ─────────────────────────────────────────────────────
+    heatmap = []
+    for i in range(12):
+        risk = random.choices(RISK_LEVELS, weights=[1, 2, 5, 8])[0]
+        heatmap.append(HeatmapCell(
+            id=f"cell_{i}",
+            lat=lat + random.uniform(-0.25, 0.25),
+            lng=lng + random.uniform(-0.25, 0.25),
+            risk_level=risk,
+            risk_score={"Critical": random.uniform(80, 100), "High": random.uniform(60, 79), "Medium": random.uniform(35, 59), "Low": random.uniform(5, 34)}[risk],
+            crop=random.choice(CROPS),
+            village=random.choice(VILLAGES),
+            pest_type=random.choice(PESTS) if risk in ["Critical", "High"] else None,
+            area_km2=round(random.uniform(2, 40), 1),
+        ))
 
-    risk_by_tehsil = {}
-    async for doc in retailers.find({"territory_id": territory_id}):
-        tehsil = doc.get("tehsil", "Unknown")
-        score = doc.get("visit_priority_score", 0)
-        risk_by_tehsil[tehsil] = score
+    # ── NDVI trend ───────────────────────────────────────────────────────
+    ndvi_data = []
+    base_ndvi = 0.72
+    for i in range(12):
+        month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][i]
+        ndvi = round(base_ndvi + random.uniform(-0.08, 0.06), 3)
+        benchmark = round(0.70 + i * 0.005, 3)
+        status = "Good" if ndvi >= benchmark else ("Stressed" if ndvi >= benchmark - 0.08 else "Critical")
+        ndvi_data.append(NDVIPoint(date=month, ndvi=ndvi, benchmark=benchmark, status=status))
+        base_ndvi = ndvi
 
-    # Build an 8x6 heatmap grid
-    cells = []
-    villages = list(risk_by_tehsil.keys()) or [
-        "Rampur", "Sonepur", "Bihta", "Maner", "Digha",
-        "Hajipur", "Vaishali", "Muzaffarpur", "Patna", "Nalanda",
-        "Gaya", "Chapra", "Siwan", "Gopalganj", "Sitamarhi",
-    ]
+    # ── Weather anomalies ─────────────────────────────────────────────────
+    weather_anomalies = []
+    weather_types = ["Heavy Rainfall", "Drought Stress", "Cold Wave", "Heatwave", "Hailstorm"]
+    for i in range(4):
+        weather_anomalies.append(WeatherAnomaly(
+            id=f"wx_{i}",
+            lat=lat + random.uniform(-0.3, 0.3),
+            lng=lng + random.uniform(-0.3, 0.3),
+            type=random.choice(weather_types),
+            severity=random.choice(["High", "Medium", "Low"]),
+            description=f"Anomalous weather pattern affecting crop health in {random.choice(VILLAGES)}",
+            affected_area_km2=round(random.uniform(5, 80), 1),
+        ))
 
-    random.seed(42)
-    for row in range(6):
-        for col in range(8):
-            idx = (row * 8 + col) % len(villages)
-            village = villages[idx]
+    # ── Pest outbreaks (from DB + synthetic) ──────────────────────────────
+    result = await db.execute(
+        select(RiskEvent).where(
+            RiskEvent.territory_id == territory_id,
+            RiskEvent.event_type == "pest",
+        ).limit(4)
+    )
+    db_events = result.scalars().all()
 
-            # Use real score if available, else synthetic
-            base = risk_by_tehsil.get(village, random.uniform(20, 95))
-            risk_pct = round(base + random.uniform(-10, 10), 1)
-            risk_pct = max(5, min(100, risk_pct))
+    pest_outbreaks = []
+    for evt in db_events:
+        pest = random.choice(PESTS)
+        pest_outbreaks.append(PestOutbreak(
+            id=f"pest_{evt.id}",
+            lat=evt.lat, lng=evt.lng,
+            pest_name=pest,
+            crop=evt.crop or "Rice",
+            severity=evt.severity,
+            affected_farmers=random.randint(15, 250),
+            recommended_product=PRODUCTS_MAP.get(pest, "Amistar 250 SC"),
+        ))
+    # Pad synthetic outbreaks
+    for i in range(max(0, 3 - len(pest_outbreaks))):
+        pest = random.choice(PESTS)
+        pest_outbreaks.append(PestOutbreak(
+            id=f"pest_syn_{i}",
+            lat=lat + random.uniform(-0.2, 0.2),
+            lng=lng + random.uniform(-0.2, 0.2),
+            pest_name=pest,
+            crop=random.choice(CROPS),
+            severity=random.choice(["High", "Medium"]),
+            affected_farmers=random.randint(20, 180),
+            recommended_product=PRODUCTS_MAP.get(pest, "Actara 25 WG"),
+        ))
 
-            if risk_pct >= 80:
-                risk = "critical"
-            elif risk_pct >= 60:
-                risk = "high"
-            elif risk_pct >= 35:
-                risk = "medium"
-            else:
-                risk = "low"
+    # ── AI insights ───────────────────────────────────────────────────────
+    ai_insights = [AIInsight(**i) for i in AI_INSIGHTS_POOL[:3]]
 
-            cells.append({
-                "id": row * 8 + col,
-                "x": col,
-                "y": row,
-                "risk": risk,
-                "village": village,
-                "risk_percent": risk_pct,
-            })
+    overall = "High" if any(c.risk_level == "Critical" for c in heatmap) else "Medium"
 
-    return cells
-
-
-async def get_ndvi_data(territory_id: str) -> List[Dict[str, Any]]:
-    """Return NDVI trend data for the last 30 days."""
-    # In production, integrate with a satellite imagery API (e.g. Planet, Sentinel Hub)
-    # For now returns realistic synthetic NDVI data
-    import datetime
-    today = datetime.date.today()
-    data = []
-    healthy_base = 0.65
-    for i in range(30):
-        day = today - datetime.timedelta(days=29 - i)
-        # Simulate gradual stress in the last 2 weeks
-        stress_factor = 0.01 * max(0, i - 16)
-        healthy = round(max(0.2, healthy_base - stress_factor + random.uniform(-0.03, 0.03)), 3)
-        stressed = round(min(0.6, 0.1 + stress_factor * 2 + random.uniform(-0.02, 0.02)), 3)
-        moderate = round(max(0, 1.0 - healthy - stressed), 3)
-        data.append({
-            "date": day.strftime("%b %d"),
-            "healthy": healthy,
-            "moderate": moderate,
-            "stressed": stressed,
-        })
-    return data
-
-
-async def get_pest_outbreaks(territory_id: str, region_lat: float = 25.09, region_lng: float = 85.31) -> List[Dict[str, Any]]:
-    """Return pest outbreak hotspot data."""
-    # In production, source from ICAR / pest monitoring APIs
-    random.seed(territory_id.__hash__() % 1000)
-    pests = [
-        {"pest": "Fall Armyworm", "severity": "High", "crop": "Maize", "offset_lat": 0.05, "offset_lng": 0.15},
-        {"pest": "Locust", "severity": "Critical", "crop": "Wheat", "offset_lat": -0.15, "offset_lng": -0.10},
-        {"pest": "Aphids", "severity": "Medium", "crop": "Cotton", "offset_lat": 0.20, "offset_lng": -0.30},
-        {"pest": "Stem Borer", "severity": "High", "crop": "Rice", "offset_lat": -0.08, "offset_lng": 0.25},
-    ]
-    return [
-        {
-            "id": i + 1,
-            "lat": round(region_lat + p["offset_lat"], 4),
-            "lng": round(region_lng + p["offset_lng"], 4),
-            "pest": p["pest"],
-            "severity": p["severity"],
-            "crop": p["crop"],
-            "village": f"Village {chr(65 + i)}",
-        }
-        for i, p in enumerate(pests)
-    ]
-
-
-async def get_weather_anomalies(territory_id: str, region_lat: float = 25.09, region_lng: float = 85.31) -> List[Dict[str, Any]]:
-    """Return weather anomaly pins for the map."""
-    return [
-        {
-            "id": 1,
-            "lat": round(region_lat + 0.15, 4),
-            "lng": round(region_lng + 0.10, 4),
-            "type": "rain",
-            "label": "Heavy Rainfall Warning",
-            "temp": "28°C",
-            "condition": "Storm",
-        },
-        {
-            "id": 2,
-            "lat": round(region_lat - 0.20, 4),
-            "lng": round(region_lng - 0.25, 4),
-            "type": "drought",
-            "label": "Drought Risk Zone",
-            "temp": "38°C",
-            "condition": "Sunny",
-        },
-        {
-            "id": 3,
-            "lat": round(region_lat + 0.30, 4),
-            "lng": round(region_lng - 0.10, 4),
-            "type": "wind",
-            "label": "High Wind Advisory",
-            "temp": "24°C",
-            "condition": "Windy",
-        },
-    ]
-
-
-async def get_ai_insights(territory_id: str) -> Dict[str, Any]:
-    """Compute overall risk level and AI-generated insights for the territory."""
-    retailers = get_collection("retailers")
-
-    high_risk = await retailers.count_documents({
-        "territory_id": territory_id,
-        "priority_level": "High",
-    })
-
-    total = await retailers.count_documents({"territory_id": territory_id})
-    risk_ratio = high_risk / total if total > 0 else 0
-
-    if risk_ratio > 0.4 or high_risk >= 5:
-        overall = "Critical"
-    elif risk_ratio > 0.2 or high_risk >= 3:
-        overall = "High"
-    elif high_risk >= 1:
-        overall = "Medium"
-    else:
-        overall = "Low"
-
-    insights = [
-        f"{high_risk or 3} villages show critical risk spike in the last 7 days",
-        "Stem Borer outbreak probability: 78% based on humidity and temp patterns",
-        "Recommend immediate field visits to affected zones",
-        "NDVI stress index rising — satellite data shows 15% crop health drop",
-    ]
-
-    return {
-        "overall_risk_level": overall,
-        "ai_insights": insights,
-        "high_risk_count": high_risk or 3,
-        "total_retailers": total,
-    }
+    return RiskAnalyzerResponse(
+        overall_risk_level=overall,
+        heatmap=heatmap,
+        ndvi_data=ndvi_data,
+        weather_anomalies=weather_anomalies,
+        pest_outbreaks=pest_outbreaks,
+        ai_insights=ai_insights,
+    )

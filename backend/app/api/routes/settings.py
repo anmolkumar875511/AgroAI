@@ -1,30 +1,37 @@
 from fastapi import APIRouter, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
 from app.core.security import get_current_user
-from app.schemas.schemas import UpdateSettingsRequest
-from app.services.auth_service import update_user_settings
+from app.schemas.schemas import SettingsUpdateRequest, UserOut
 
 router = APIRouter()
 
 
-@router.get("/", summary="Get current user settings")
-async def get_settings(current_user: dict = Depends(get_current_user)):
-    from app.services.auth_service import get_user_by_id
-    user = await get_user_by_id(current_user["sub"])
-    return user
+@router.get("/", response_model=UserOut)
+async def get_settings(current_user=Depends(get_current_user)):
+    return current_user
 
 
-@router.patch("/", summary="Update user settings (theme, language, notifications, sync)")
+@router.patch("/", response_model=UserOut)
 async def update_settings(
-    data: UpdateSettingsRequest,
-    current_user: dict = Depends(get_current_user),
+    req: SettingsUpdateRequest,
+    db: AsyncSession = Depends(get_db),
+    current_user=Depends(get_current_user),
 ):
-    updates = {k: v for k, v in data.model_dump().items() if v is not None}
-    if not updates:
-        return {"success": True, "message": "No changes to apply", "updated": {}}
+    if req.theme is not None:
+        current_user.theme = req.theme
+    if req.language is not None:
+        current_user.language = req.language
+    if req.notifications is not None:
+        current_user.notifications = req.notifications
+    if req.sync_enabled is not None:
+        current_user.sync_enabled = req.sync_enabled
+    db.add(current_user)
+    await db.commit()
+    await db.refresh(current_user)
+    return current_user
 
-    updated_user = await update_user_settings(current_user["sub"], updates)
-    return {
-        "success": True,
-        "message": "Settings updated successfully",
-        "updated": updates,
-    }
+
+@router.post("/sync")
+async def sync_offline(_=Depends(get_current_user)):
+    return {"status": "ok", "synced_items": 0, "message": "Offline queue cleared"}

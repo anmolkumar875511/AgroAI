@@ -1,14 +1,18 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
 from app.core.security import get_current_user
+from app.schemas.schemas import AnalyticsResponse
 from app.services.analytics_service import get_analytics
 
 router = APIRouter()
 
 
-@router.get("/", summary="Full analytics data for all 6 charts")
+@router.get("/{territory_id}", response_model=AnalyticsResponse)
 async def analytics(
-    territory_id: str = Query(default="T001"),
-    date_range: str = Query(default="14d"),  # 7d | 14d | 30d | 90d
-    current_user: dict = Depends(get_current_user),
+    territory_id: str,
+    date_range: str = Query("14d"),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
 ):
-    return await get_analytics(territory_id, date_range)
+    return await get_analytics(territory_id, date_range, db)

@@ -1,199 +1,192 @@
-# AgroAI Backend
+# AgroAI Backend — Field Intelligence API v2.0
 
-FastAPI backend for **AgroAI — Farmer First Field Intelligence Platform**.  
-Built for Syngenta Hackathon 2026 · Track: AI-Guided Field Force Intelligence
+FastAPI backend for the AgroAI Farmer First Field Intelligence Platform.
 
 ---
 
-## Tech Stack
+## Python Version Compatibility
 
-| Layer | Technology |
-|---|---|
-| Framework | FastAPI + Uvicorn |
-| Database | MongoDB Atlas (Motor async driver) |
-| Auth | JWT (python-jose + passlib bcrypt) |
-| ML Models | scikit-learn RandomForest (joblib pkl) |
-| Validation | Pydantic v2 |
+| Python | Status | Notes |
+|--------|--------|-------|
+| 3.11   | ✅ Supported | Recommended minimum |
+| 3.12   | ✅ Supported | Tested, all 40 tests pass |
+| 3.13   | ✅ Supported | |
+| 3.14   | ✅ Supported | Requires pydantic>=2.11.0 (already in requirements.txt) |
+
+> **If you hit a `pydantic-core` build error** it means your pip is trying to resolve an old pinned version. The loose bounds in `requirements.txt` (`pydantic[email]>=2.11.0`) will pull a pre-built wheel for Python 3.14 automatically.
+
+---
+
+## Quick Start (3 commands)
+
+```bash
+# 1. Install dependencies
+pip install -r requirements.txt
+
+# 2. Copy and configure env
+cp .env.example .env        # edit SECRET_KEY, optionally add ANTHROPIC_API_KEY
+
+# 3. Start server  (auto-creates DB + seeds demo data on first boot)
+uvicorn app.main:app --reload --port 8000
+```
+
+Swagger docs: http://localhost:8000/docs  
+ReDoc: http://localhost:8000/redoc  
+Health: http://localhost:8000/health
+
+---
+
+## Demo Credentials
+
+| Role     | Email                  | Password      |
+|----------|------------------------|---------------|
+| Agent    | amit@agroai.com        | password123   |
+| Manager  | manager@agroai.com     | password123   |
 
 ---
 
 ## Project Structure
 
 ```
-agroai-backend/
+agroai_backend/
 ├── app/
-│   ├── main.py                    # FastAPI app + lifespan
-│   ├── api/routes/
-│   │   ├── auth.py                # Register, Login, Me
-│   │   ├── dashboard.py           # KPIs, weekly performance
-│   │   ├── recommendations.py     # AI recs + ML predict endpoint
-│   │   ├── visit_planner.py       # Priority visits + route
-│   │   ├── visit_feedback.py      # Visit outcome form
-│   │   ├── risk_analyzer.py       # Heatmap, NDVI, pest, weather
-│   │   ├── retailers.py           # Retailer insights CRUD
-│   │   ├── growers.py             # Grower cluster insights
-│   │   ├── analytics.py           # 6 chart endpoints
-│   │   ├── mandi.py               # Mandi prices
-│   │   ├── ai_chat.py             # AI assistant chat
-│   │   ├── notifications.py       # Notification center
-│   │   └── settings.py            # User settings
+│   ├── main.py                    ← FastAPI app + router registration
+│   ├── api/routes/                ← One file per domain
+│   │   ├── auth.py                POST /login, GET /me
+│   │   ├── dashboard.py           GET /{territory_id}
+│   │   ├── analytics.py           GET /{territory_id}?date_range=
+│   │   ├── retailers.py           GET /, POST /{id}/rescore
+│   │   ├── growers.py             GET /summary/{id}, GET /clusters
+│   │   ├── recommendations.py     GET /{territory_id}, POST /apply
+│   │   ├── risk_analyzer.py       GET /{territory_id}
+│   │   ├── visit_planner.py       GET /priority/{id}, POST /action, GET /route
+│   │   ├── visit_feedback.py      POST /submit/{territory_id}
+│   │   ├── notifications.py       GET /, PATCH /{id}/read, PATCH /mark-all-read
+│   │   ├── settings.py            GET /, PATCH /
+│   │   ├── mandi.py               GET /
+│   │   ├── ai_chat.py             POST /
+│   │   └── manager.py             GET /dashboard, GET /team-tracking, POST /nudge
 │   ├── core/
-│   │   ├── config.py              # Env-based settings
-│   │   ├── database.py            # Motor MongoDB connection
-│   │   └── security.py            # JWT + password utils
-│   ├── models/models.py           # MongoDB document models
-│   ├── schemas/schemas.py         # Request/Response Pydantic schemas
-│   ├── services/                  # Business logic layer
-│   └── ml/predictor.py            # ML model loader + inference
-├── models/                        # Place your .pkl files here
-│   ├── agroai_visit_priority_regressor.pkl
-│   ├── agroai_priority_classifier.pkl
-│   └── agroai_model_features.pkl
-├── data/                          # Place CSV files here
-│   └── agroai_master_scored_data.csv
-├── seed.py                        # Database seed script
+│   │   ├── config.py              Pydantic settings (env vars)
+│   │   ├── database.py            Async SQLAlchemy engine + session
+│   │   └── security.py            JWT + bcrypt
+│   ├── models/models.py           SQLAlchemy ORM (all tables)
+│   ├── schemas/schemas.py         Pydantic v2 request/response models
+│   ├── services/                  Business logic (one file per domain)
+│   │   ├── seed_service.py        Seeds 3 users, 18 retailers, 15 grower clusters…
+│   │   ├── dashboard_service.py
+│   │   ├── analytics_service.py
+│   │   ├── retailers_service.py
+│   │   ├── growers_service.py
+│   │   ├── recommendations_service.py
+│   │   ├── risk_service.py
+│   │   ├── visit_service.py
+│   │   ├── notifications_service.py
+│   │   ├── mandi_service.py
+│   │   └── chat_service.py
+│   └── ml/predictor.py            Visit priority scorer (sklearn + heuristic fallback)
+├── scripts/train_model.py         Generates models_pkl/ pickles (optional)
+├── tests/test_api.py              40 pytest tests (all pass)
 ├── requirements.txt
-└── .env.example
+├── requirements-dev.txt
+├── .env.example
+├── pytest.ini
+├── Dockerfile
+├── docker-compose.yml
+└── client.ts                      ← Copy to src/api/client.ts in your frontend
 ```
 
 ---
 
-## Setup
+## API Endpoints Summary
 
-### 1. Clone and install
-
-```bash
-cd agroai-backend
-python -m venv venv
-source venv/bin/activate        # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-### 2. Configure environment
-
-```bash
-cp .env.example .env
-# Edit .env — set MONGODB_URL and SECRET_KEY
-```
-
-### 3. Place ML model files
-
-Copy your three pkl files into the `models/` folder:
-```
-models/agroai_visit_priority_regressor.pkl
-models/agroai_priority_classifier.pkl
-models/agroai_model_features.pkl
-```
-
-### 4. Place CSV data
-
-```
-data/agroai_master_scored_data.csv
-```
-
-### 5. Seed the database
-
-```bash
-python seed.py
-```
-
-This will:
-- Create 5 demo users (field agents, manager, admin)
-- Import all **4,000 retailers** from the CSV with ML scores
-- Seed notifications and visit logs for demo
-
-**Demo credentials:**
-```
-amit@agroai.com     / password123   (Field Agent - Bihar)
-priya@agroai.com    / password123   (Field Agent - Maharashtra)
-rajesh@agroai.com   / password123   (Field Agent - Punjab)
-manager@agroai.com  / password123   (Manager)
-admin@agroai.com    / admin123      (Admin)
-```
-
-### 6. Run the server
-
-```bash
-uvicorn app.main:app --reload --port 8000
-```
-
-API docs: **http://localhost:8000/docs**
+| Method | Path | Description |
+|--------|------|-------------|
+| POST | /api/v1/auth/login | Get JWT token |
+| GET | /api/v1/auth/me | Current user profile |
+| GET | /api/v1/dashboard/{territory_id} | KPIs, mandi prices, weekly chart |
+| GET | /api/v1/analytics/{territory_id} | 6 analytics charts |
+| GET | /api/v1/retailers/ | Paginated + filtered retailer cards |
+| POST | /api/v1/retailers/{id}/rescore | Re-run ML priority score |
+| GET | /api/v1/growers/summary/{territory_id} | Grower aggregate stats |
+| GET | /api/v1/growers/clusters | Filtered grower clusters |
+| GET | /api/v1/recommendations/{territory_id} | AI recommendations |
+| POST | /api/v1/recommendations/apply | Apply or dismiss recommendation |
+| GET | /api/v1/risk/{territory_id} | Heatmap, NDVI, weather, pest data |
+| GET | /api/v1/visit-planner/priority/{territory_id} | Priority visit queue |
+| POST | /api/v1/visit-planner/action/{territory_id} | Record visit action |
+| GET | /api/v1/visit-planner/route/{territory_id} | Optimised route stops |
+| POST | /api/v1/visit-feedback/submit/{territory_id} | Submit visit feedback |
+| GET | /api/v1/notifications/ | User notifications |
+| PATCH | /api/v1/notifications/{id}/read | Mark one read |
+| PATCH | /api/v1/notifications/mark-all-read | Mark all read |
+| GET | /api/v1/settings/ | User settings |
+| PATCH | /api/v1/settings/ | Update settings |
+| GET | /api/v1/mandi/ | Mandi commodity prices |
+| POST | /api/v1/chat/ | AI chat (Anthropic) |
+| GET | /api/v1/manager/dashboard | Manager overview |
+| GET | /api/v1/manager/team-tracking | Rep visit tracking |
+| POST | /api/v1/manager/nudge | Send rep nudge notification |
 
 ---
 
-## API Overview
+## Known Dependency Constraints
 
-All routes (except `/api/v1/auth/*`) require Bearer JWT token.
-
-| Method | Endpoint | Description |
-|---|---|---|
-| POST | `/api/v1/auth/register` | Register new user |
-| POST | `/api/v1/auth/login` | Login → JWT token |
-| GET | `/api/v1/auth/me` | Current user profile |
-| GET | `/api/v1/dashboard/` | Full dashboard data |
-| GET | `/api/v1/recommendations/` | AI recommendations |
-| POST | `/api/v1/recommendations/predict` | Run ML model on custom features |
-| POST | `/api/v1/recommendations/apply` | Apply/dismiss recommendation |
-| GET | `/api/v1/visit-planner/` | Priority visits list |
-| GET | `/api/v1/visit-planner/route` | Optimized route |
-| POST | `/api/v1/visit-planner/action` | Record visit action |
-| POST | `/api/v1/visit-feedback/` | Submit visit outcome form |
-| GET | `/api/v1/risk-analyzer/` | Full risk data |
-| GET | `/api/v1/risk-analyzer/heatmap` | Risk heatmap grid |
-| GET | `/api/v1/risk-analyzer/ndvi` | NDVI trend data |
-| GET | `/api/v1/risk-analyzer/pests` | Pest outbreak pins |
-| GET | `/api/v1/risk-analyzer/weather` | Weather anomalies |
-| GET | `/api/v1/retailers/` | Retailer insights list |
-| GET | `/api/v1/retailers/{retailer_id}` | Full retailer card |
-| POST | `/api/v1/retailers/{retailer_id}/score` | Re-run ML score |
-| GET | `/api/v1/growers/` | Grower cluster insights |
-| GET | `/api/v1/growers/summary` | Territory grower summary |
-| GET | `/api/v1/analytics/` | All 6 analytics charts |
-| GET | `/api/v1/mandi/` | Today's mandi prices |
-| POST | `/api/v1/ai-chat/` | Chat with AgroAI assistant |
-| GET | `/api/v1/ai-chat/history` | Chat history |
-| GET | `/api/v1/notifications/` | Notification center |
-| PATCH | `/api/v1/notifications/{id}/read` | Mark as read |
-| GET | `/api/v1/settings/` | Get user settings |
-| PATCH | `/api/v1/settings/` | Update settings |
+**bcrypt must be `>=4.0.0,<5.0.0`** — `passlib` (which handles password hashing) is incompatible with `bcrypt>=5.x`. The `requirements.txt` pins this range automatically.
 
 ---
 
-## ML Models
+## Database
 
-The backend uses two models trained on Syngenta hackathon dataset:
+- **Default**: SQLite (`agroai.db`) — zero configuration, auto-created on startup
+- **Production**: Set `DATABASE_URL=postgresql+asyncpg://user:pass@host/db` in `.env`
 
-| Model | Type | Purpose |
-|---|---|---|
-| `agroai_visit_priority_regressor.pkl` | RandomForestRegressor | Predict 0-100 visit priority score |
-| `agroai_priority_classifier.pkl` | RandomForestClassifier | Classify High / Medium / Low |
-| `agroai_model_features.pkl` | List[str] | Feature names (19 features) |
+Tables: `users`, `territories`, `retailers`, `retailer_inventory`, `visits`,
+`visit_feedback`, `growers`, `recommendations`, `risk_events`, `notifications`,
+`mandi_prices`
 
-**Top features by importance:**
-1. `last_visit_days` (61%)
-2. `product_sales_qty_30` (18%)
-3. `total_stock_qty` (13%)
-4. `sales_qty_30` (3.6%)
-5. `engagement_rate` (1.3%)
+---
+
+## ML Scoring
+
+The visit priority scorer (`app/ml/predictor.py`) uses a weighted heuristic by default.
+For sklearn-backed scoring, run the training script once:
+
+```bash
+python scripts/train_model.py
+```
+
+This creates `models_pkl/agroai_visit_priority_regressor.pkl` and the app will use it automatically.
+
+---
+
+## AI Chat
+
+Set `ANTHROPIC_API_KEY` in `.env` to enable the Claude-powered field intelligence assistant.
+The chat endpoint falls back to a rule-based responder when the key is not set.
+
+---
+
+## Testing
+
+```bash
+pip install -r requirements-dev.txt
+pytest tests/ -v
+# 40 tests, all pass
+```
+
+---
+
+## Docker
+
+```bash
+docker-compose up --build
+# API available at http://localhost:8000
+```
 
 ---
 
 ## Frontend Integration
 
-In your React frontend, set the base URL:
-
-```typescript
-// In your API client / .env
-VITE_API_URL=http://localhost:8000/api/v1
-```
-
-Login flow:
-```typescript
-const res = await fetch(`${VITE_API_URL}/auth/login`, {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ email, password }),
-});
-const { access_token, user } = await res.json();
-// Store token, use as: Authorization: Bearer <token>
-```
+Copy `client.ts` to `src/api/client.ts` in your Vite/React project.
+Set `VITE_API_URL=http://localhost:8000/api/v1` in your frontend `.env`.

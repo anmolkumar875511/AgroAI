@@ -1,137 +1,121 @@
+"""
+AgroAI ML Predictor — visit priority scoring.
+
+Uses a trained sklearn model when available (models_pkl/), falls back to
+a deterministic weighted heuristic so the app always works.
+"""
+from __future__ import annotations
 import os
-import joblib
-import numpy as np
-import pandas as pd
-from typing import Dict, Any, List
-from app.core.config import settings
+import pickle
+import random
+from typing import Optional
+
+MODEL_PATH = os.path.join(os.path.dirname(__file__), "../../models_pkl/agroai_visit_priority_regressor.pkl")
+FEATURES_PATH = os.path.join(os.path.dirname(__file__), "../../models_pkl/agroai_model_features.pkl")
+
+_model = None
+_feature_names: list[str] = []
 
 
-class MLService:
-    """Loads and runs the AgroAI visit priority ML models."""
+def _load_model():
+    global _model, _feature_names
+    try:
+        with open(MODEL_PATH, "rb") as f:
+            _model = pickle.load(f)
+        if os.path.exists(FEATURES_PATH):
+            with open(FEATURES_PATH, "rb") as f:
+                _feature_names = pickle.load(f)
+    except Exception:
+        _model = None
+        _feature_names = []
 
-    def __init__(self):
-        self.regressor = None
-        self.classifier = None
-        self.features: List[str] = []
-        self._loaded = False
 
-    def load(self):
-        """Load all three pkl files. Called once at startup."""
+_load_model()
+
+
+def _heuristic_score(
+    days_since_visit: int,
+    stock_status: str,
+    priority_level: str,
+    monthly_revenue: float,
+    pest_risk: str = "Low",
+) -> float:
+    """Weighted heuristic when ML model is unavailable."""
+    score = 40.0
+
+    # Visit gap penalty (max +30)
+    if days_since_visit >= 30:
+        score += 30
+    elif days_since_visit >= 21:
+        score += 20
+    elif days_since_visit >= 14:
+        score += 12
+    elif days_since_visit >= 7:
+        score += 5
+
+    # Stock status (+20)
+    score += {"Out of Stock": 20, "Low Stock": 12, "Good Stock": 0}.get(stock_status, 0)
+
+    # Priority (+15)
+    score += {"High": 15, "Medium": 8, "Low": 0}.get(priority_level, 0)
+
+    # Revenue weight (+10)
+    if monthly_revenue >= 200000:
+        score += 10
+    elif monthly_revenue >= 100000:
+        score += 6
+    elif monthly_revenue >= 50000:
+        score += 3
+
+    # Pest risk (+10)
+    score += {"Critical": 10, "High": 7, "Medium": 3, "Low": 0}.get(pest_risk, 0)
+
+    # Small jitter for realism
+    score += random.uniform(-1.5, 1.5)
+    return round(min(max(score, 10.0), 100.0), 1)
+
+
+def predict_priority_score(
+    days_since_visit: int,
+    stock_status: str,
+    priority_level: str,
+    monthly_revenue: float,
+    pest_risk: str = "Low",
+    extra_features: Optional[dict] = None,
+) -> float:
+    """
+    Returns a priority score 0-100.
+    Uses ML model if loaded, otherwise heuristic.
+    """
+    if _model is not None and _feature_names:
         try:
-            self.regressor = joblib.load(settings.REGRESSOR_PATH)
-            self.classifier = joblib.load(settings.CLASSIFIER_PATH)
-            self.features = joblib.load(settings.FEATURES_PATH)
-            self._loaded = True
-            print(f"[ML] Models loaded. Features: {self.features}")
-        except FileNotFoundError as e:
-            print(f"[ML] WARNING: Model file not found — {e}. Predictions will use rule-based fallback.")
-            self._loaded = False
+            import numpy as np
+            stock_map = {"Out of Stock": 2, "Low Stock": 1, "Good Stock": 0}
+            priority_map = {"High": 2, "Medium": 1, "Low": 0}
+            risk_map = {"Critical": 3, "High": 2, "Medium": 1, "Low": 0}
 
-    def predict(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
-        """
-        Predict visit priority score and level for a retailer.
-
-        Args:
-            input_data: dict with the 19 model features.
-
-        Returns:
-            dict with visit_priority_score, priority_level, action_type, explanation.
-        """
-        if not self._loaded:
-            return self._rule_based_fallback(input_data)
-
-        try:
-            df = pd.DataFrame([input_data])
-            for col in self.features:
-                if col not in df.columns:
-                    df[col] = 0
-            df = df[self.features].fillna(0)
-
-            score = float(self.regressor.predict(df)[0])
-            level = self.classifier.predict(df)[0]
-
-            action_map = {"High": "urgent", "Medium": "planned", "Low": "monitor"}
-            explanation = self._build_explanation(input_data, level)
-
-            return {
-                "visit_priority_score": round(score, 2),
-                "priority_level": level,
-                "action_type": action_map.get(level, "monitor"),
-                "explanation": explanation,
+            feat_dict = {
+                "days_since_visit": days_since_visit,
+                "stock_status_enc": stock_map.get(stock_status, 0),
+                "priority_enc": priority_map.get(priority_level, 1),
+                "monthly_revenue": monthly_revenue,
+                "pest_risk_enc": risk_map.get(pest_risk, 0),
             }
-        except Exception as e:
-            print(f"[ML] Prediction error: {e}")
-            return self._rule_based_fallback(input_data)
+            if extra_features:
+                feat_dict.update(extra_features)
 
-    def predict_batch(self, records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        """Predict for a batch of retailers at once."""
-        if not self._loaded:
-            return [self._rule_based_fallback(r) for r in records]
+            feat_vec = np.array([[feat_dict.get(f, 0) for f in _feature_names]])
+            score = float(_model.predict(feat_vec)[0])
+            return round(min(max(score, 10.0), 100.0), 1)
+        except Exception:
+            pass
 
-        try:
-            df = pd.DataFrame(records)
-            for col in self.features:
-                if col not in df.columns:
-                    df[col] = 0
-            df = df[self.features].fillna(0)
-
-            scores = self.regressor.predict(df)
-            levels = self.classifier.predict(df)
-            action_map = {"High": "urgent", "Medium": "planned", "Low": "monitor"}
-
-            results = []
-            for i, (score, level) in enumerate(zip(scores, levels)):
-                results.append({
-                    "visit_priority_score": round(float(score), 2),
-                    "priority_level": level,
-                    "action_type": action_map.get(level, "monitor"),
-                    "explanation": self._build_explanation(records[i], level),
-                })
-            return results
-        except Exception as e:
-            print(f"[ML] Batch prediction error: {e}")
-            return [self._rule_based_fallback(r) for r in records]
-
-    def _build_explanation(self, data: Dict[str, Any], level: str) -> str:
-        reasons = []
-        if data.get("sales_qty_30", 0) > 70:
-            reasons.append("Recent sales demand is high")
-        if data.get("total_stock_qty", 999) < 20:
-            reasons.append("Current retailer stock is critically low")
-        if data.get("last_visit_days", 0) > 20:
-            reasons.append("This area has not been visited recently")
-        if data.get("product_sales_qty_30", 0) > 50:
-            reasons.append("Recommended product has strong recent demand")
-        if data.get("engagement_rate", 0) > 0.2:
-            reasons.append("Nearby grower digital engagement is high")
-        if not reasons:
-            reasons.append("Priority based on combined sales, stock, visit gap and grower signals")
-        return " | ".join(reasons)
-
-    def _rule_based_fallback(self, data: Dict[str, Any]) -> Dict[str, Any]:
-        """Simple weighted score when models aren't loaded."""
-        sales = min(data.get("sales_qty_30", 0) / 200.0, 1.0)
-        stock_inv = 1.0 - min(data.get("total_stock_qty", 100) / 100.0, 1.0)
-        gap = min(data.get("last_visit_days", 0) / 60.0, 1.0)
-        score = round((sales * 0.35 + stock_inv * 0.30 + gap * 0.35) * 100, 2)
-
-        if score >= 70:
-            level = "High"
-            action_type = "urgent"
-        elif score >= 45:
-            level = "Medium"
-            action_type = "planned"
-        else:
-            level = "Low"
-            action_type = "monitor"
-
-        return {
-            "visit_priority_score": score,
-            "priority_level": level,
-            "action_type": action_type,
-            "explanation": self._build_explanation(data, level),
-        }
+    return _heuristic_score(days_since_visit, stock_status, priority_level, monthly_revenue, pest_risk)
 
 
-# Singleton instance — imported by routes
-ml_service = MLService()
+def classify_priority(score: float) -> str:
+    if score >= 70:
+        return "High"
+    elif score >= 45:
+        return "Medium"
+    return "Low"

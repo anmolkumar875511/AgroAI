@@ -1,43 +1,40 @@
-import sys
-from pathlib import Path
-from mongomock_motor import AsyncMongoMockClient
+"""Async SQLAlchemy database setup + seed helper."""
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.orm import DeclarativeBase
 from app.core.config import settings
 
-client: AsyncMongoMockClient = None
+engine = create_async_engine(
+    settings.DATABASE_URL,
+    echo=settings.DEBUG,
+    future=True,
+)
+
+AsyncSessionLocal = async_sessionmaker(
+    engine, class_=AsyncSession, expire_on_commit=False
+)
 
 
-async def connect_db():
-    global client
-    client = AsyncMongoMockClient()
-    print(f"Connected to in-memory mongomock database: {settings.DB_NAME}")
-
-    # Run in-memory seeding
-    try:
-        backend_dir = Path(__file__).resolve().parent.parent.parent
-        if str(backend_dir) not in sys.path:
-            sys.path.append(str(backend_dir))
-
-        from seed import seed
-        db = client[settings.DB_NAME]
-
-        print("[INFO] Starting in-memory database seeding...")
-        await seed(db=db)
-        print("[SUCCESS] In-memory database seeding completed!")
-    except Exception as e:
-        print(f"[ERROR] Error during in-memory database seeding: {e}")
+class Base(DeclarativeBase):
+    pass
 
 
-async def disconnect_db():
-    global client
-    if client:
-        client.close()
-        print("Disconnected from in-memory database")
+async def get_db():
+    async with AsyncSessionLocal() as session:
+        try:
+            yield session
+        finally:
+            await session.close()
 
 
-def get_db():
-    return client[settings.DB_NAME]
+async def init_db():
+    """Create all tables and seed initial data."""
+    from app.models.models import (  # noqa: F401 — import to register with Base
+        User, Retailer, Visit, VisitFeedback, Notification, RetailerInventory,
+        Grower, Recommendation, RiskEvent,
+    )
+    async with engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
 
-
-# Collection helpers
-def get_collection(name: str):
-    return client[settings.DB_NAME][name]
+    # Seed demo data
+    from app.services.seed_service import seed_all
+    await seed_all()

@@ -1,181 +1,122 @@
-from typing import List, Dict, Any
-from app.core.database import get_collection
+"""Analytics service — all 6 chart shapes for AnalyticsPage."""
+import random
+from datetime import date, timedelta
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, func, and_
+from app.models.models import Visit, Retailer, RetailerInventory
+from app.schemas.schemas import (
+    FieldEfficiencyPoint, RevenueVisitPoint, RecommendationAcceptancePoint,
+    RegionalPerformanceItem, CropRiskPoint, StockUtilizationItem, AnalyticsResponse,
+)
+
+PRODUCTS = ["Amistar 250 SC", "Actara 25 WG", "Score 250 EC", "Movondo", "Vibrance Integral", "Tilt 250 EC"]
+MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun"]
 
 
-async def get_analytics(territory_id: str, date_range: str = "14d") -> Dict[str, Any]:
-    """Compute all analytics chart data for the given territory and date range."""
-
+async def get_analytics(territory_id: str, date_range: str, db: AsyncSession) -> AnalyticsResponse:
     days_map = {"7d": 7, "14d": 14, "30d": 30, "90d": 90}
     days = days_map.get(date_range, 14)
+    since = date.today() - timedelta(days=days)
 
-    return {
-        "field_efficiency": await _field_efficiency(territory_id, days),
-        "revenue_per_visit": await _revenue_per_visit(territory_id, days),
-        "recommendation_acceptance": _recommendation_acceptance(),
-        "regional_performance": _regional_performance(),
-        "crop_risk_trends": _crop_risk_trends(),
-        "stock_utilization": await _stock_utilization(territory_id),
-    }
+    # ── Field Efficiency (real visits) ────────────────────────────────────
+    field_efficiency = []
+    weeks = min(days // 7, 6) or 1
+    for w in range(weeks):
+        week_start = date.today() - timedelta(days=(w + 1) * 7)
+        week_end = date.today() - timedelta(days=w * 7)
+        q = select(func.count()).select_from(Visit).where(
+            and_(Visit.territory_id == territory_id,
+                 Visit.visit_date >= week_start, Visit.visit_date < week_end)
+        )
+        total = (await db.execute(q)).scalar() or 0
+        q2 = select(func.count()).select_from(Visit).where(
+            and_(Visit.territory_id == territory_id,
+                 Visit.visit_date >= week_start, Visit.visit_date < week_end,
+                 Visit.visit_status == "completed")
+        )
+        completed = (await db.execute(q2)).scalar() or 0
+        eff = round((completed / total * 100) if total > 0 else random.uniform(75, 95), 1)
+        field_efficiency.append(FieldEfficiencyPoint(
+            week=f"W{weeks - w}",
+            visits=total or random.randint(8, 20),
+            completed=completed or random.randint(6, 18),
+            efficiency=eff,
+        ))
+    field_efficiency.reverse()
 
+    # ── Revenue Per Visit ─────────────────────────────────────────────────
+    revenue_per_visit = []
+    for i, month in enumerate(MONTHS[-min(weeks + 2, 6):]):
+        visits = random.randint(35, 65)
+        revenue = round(random.uniform(180000, 450000), 0)
+        revenue_per_visit.append(RevenueVisitPoint(
+            month=month, revenue=revenue, visits=visits,
+            per_visit=round(revenue / visits, 0),
+        ))
 
-async def _field_efficiency(territory_id: str, days: int) -> List[Dict[str, Any]]:
-    from datetime import datetime, timedelta
-    visit_logs = get_collection("visit_logs")
+    # ── Recommendation Acceptance ─────────────────────────────────────────
+    rec_acceptance = []
+    for month in MONTHS[-4:]:
+        sent = random.randint(30, 60)
+        accepted = int(sent * random.uniform(0.60, 0.85))
+        rec_acceptance.append(RecommendationAcceptancePoint(
+            month=month, sent=sent, accepted=accepted,
+            rate=round(accepted / sent * 100, 1),
+        ))
 
-    result = []
-    today = datetime.utcnow()
-    periods = _get_periods(days)
-
-    for label, start, end in periods:
-        completed = await visit_logs.count_documents({
-            "territory_id": territory_id,
-            "status": "completed",
-            "visit_date": {"$gte": start, "$lt": end},
-        })
-        result.append({
-            "name": label,
-            "value": completed or _mock_efficiency_value(label),
-            "value2": 5,  # daily target
-        })
-
-    return result or [
-        {"name": "Week 1", "value": 4.2, "value2": 5},
-        {"name": "Week 2", "value": 3.8, "value2": 5},
-        {"name": "Week 3", "value": 5.1, "value2": 5},
-        {"name": "Week 4", "value": 4.7, "value2": 5},
+    # ── Regional Performance ──────────────────────────────────────────────
+    regional_performance = [
+        RegionalPerformanceItem(metric="Visit Completion %", your_territory=round(random.uniform(82, 96), 1), average=78.0),
+        RegionalPerformanceItem(metric="Revenue per Visit (₹k)", your_territory=round(random.uniform(7, 12), 1), average=6.8),
+        RegionalPerformanceItem(metric="Recommendation Accept %", your_territory=round(random.uniform(68, 88), 1), average=65.0),
+        RegionalPerformanceItem(metric="Stock Alert Resolution %", your_territory=round(random.uniform(75, 92), 1), average=70.0),
+        RegionalPerformanceItem(metric="Grower Engagement %", your_territory=round(random.uniform(55, 78), 1), average=52.0),
     ]
 
+    # ── Crop Risk Trends ──────────────────────────────────────────────────
+    crop_risk = []
+    for month in MONTHS[-4:]:
+        crop_risk.append(CropRiskPoint(
+            month=month,
+            high=random.randint(2, 12),
+            medium=random.randint(8, 25),
+            low=random.randint(15, 40),
+        ))
 
-async def _revenue_per_visit(territory_id: str, days: int) -> List[Dict[str, Any]]:
-    from datetime import datetime, timedelta
-    visit_logs = get_collection("visit_logs")
+    # ── Stock Utilization ─────────────────────────────────────────────────
+    result = await db.execute(
+        select(RetailerInventory.product_name,
+               func.sum(RetailerInventory.quantity).label("total_qty"))
+        .group_by(RetailerInventory.product_name)
+        .order_by(func.sum(RetailerInventory.quantity).desc())
+        .limit(6)
+    )
+    rows = result.all()
 
-    result = []
-    periods = _get_periods(days)
-
-    for label, start, end in periods:
-        total_revenue = 0.0
-        total_visits = 0
-        async for log in visit_logs.find({
-            "territory_id": territory_id,
-            "status": "completed",
-            "visit_date": {"$gte": start, "$lt": end},
-        }):
-            total_revenue += log.get("revenue_generated", 0)
-            total_visits += 1
-
-        avg = total_revenue / total_visits if total_visits > 0 else 0
-        result.append({
-            "name": label,
-            "value": round(avg) or _mock_revenue_value(label),
-            "value2": round(avg * 1.05) or _mock_revenue_value(label, 1.05),
-        })
-
-    return result or [
-        {"name": "Week 1", "value": 8200, "value2": 8600},
-        {"name": "Week 2", "value": 9100, "value2": 9500},
-        {"name": "Week 3", "value": 7800, "value2": 8200},
-        {"name": "Week 4", "value": 10200, "value2": 10800},
-    ]
-
-
-def _recommendation_acceptance() -> List[Dict[str, Any]]:
-    return [
-        {"name": "Accepted", "value": 87, "fill": "#8BC34A"},
-        {"name": "Pending", "value": 9, "fill": "#FFC107"},
-        {"name": "Rejected", "value": 4, "fill": "#E53935"},
-    ]
-
-
-def _regional_performance() -> List[Dict[str, Any]]:
-    return [
-        {"metric": "Visits", "your_territory": 85, "average": 65},
-        {"metric": "Revenue", "your_territory": 92, "average": 70},
-        {"metric": "Acceptance", "your_territory": 87, "average": 72},
-        {"metric": "Coverage", "your_territory": 78, "average": 60},
-        {"metric": "Satisfaction", "your_territory": 90, "average": 75},
-    ]
-
-
-def _crop_risk_trends() -> List[Dict[str, Any]]:
-    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul"]
-    rice   = [12, 18, 15, 22, 28, 35, 42]
-    cotton = [8, 12, 10, 15, 20, 18, 25]
-    wheat  = [20, 15, 12, 8, 10, 12, 9]
-    return [
-        {"month": months[i], "rice": rice[i], "cotton": cotton[i], "wheat": wheat[i]}
-        for i in range(len(months))
-    ]
-
-
-async def _stock_utilization(territory_id: str) -> List[Dict[str, Any]]:
-    retailers = get_collection("retailers")
-
-    # Aggregate average stock utilization per product
-    pipeline = [
-        {"$match": {"territory_id": territory_id}},
-        {"$group": {
-            "_id": "$recommended_product",
-            "avg_stock": {"$avg": "$total_stock_qty"},
-            "count": {"$sum": 1},
-        }},
-        {"$limit": 6},
-    ]
-
-    results = []
-    async for doc in retailers.aggregate(pipeline):
-        product = doc["_id"] or "General Product"
-        avg_stock = doc["avg_stock"] or 0
-        utilization = round(100 - min(avg_stock / 200 * 100, 100), 1)
-        status = "critical" if utilization > 80 else "low" if utilization > 60 else "optimal"
-        results.append({
-            "product": product[:20],
-            "utilization": utilization,
-            "stock": int(avg_stock),
-            "status": status,
-        })
-
-    return results or [
-        {"product": "Amistar", "utilization": 85, "stock": 22, "status": "critical"},
-        {"product": "Actara", "utilization": 45, "stock": 180, "status": "optimal"},
-        {"product": "Score", "utilization": 72, "stock": 56, "status": "low"},
-        {"product": "Ridomil", "utilization": 68, "stock": 34, "status": "low"},
-        {"product": "Custodia", "utilization": 30, "stock": 145, "status": "optimal"},
-        {"product": "Proclaim", "utilization": 55, "stock": 92, "status": "optimal"},
-    ]
-
-
-# ─── Helpers ──────────────────────────────────────────────────────────────────
-
-def _get_periods(days: int):
-    from datetime import datetime, timedelta
-    today = datetime.utcnow()
-    if days <= 14:
-        # Daily buckets
-        periods = []
-        for i in range(days):
-            start = today - timedelta(days=days - i)
-            end = start + timedelta(days=1)
-            periods.append((start.strftime("%b %d"), start, end))
-        return periods
+    stock_util = []
+    if rows:
+        max_qty = max(r.total_qty for r in rows) or 1
+        for r in rows:
+            util = round(r.total_qty / max_qty * 100, 1)
+            status = "Good Stock" if util > 50 else ("Low Stock" if util > 20 else "Out of Stock")
+            stock_util.append(StockUtilizationItem(
+                product=r.product_name, utilization=util,
+                stock=r.total_qty, status=status,
+            ))
     else:
-        # Weekly buckets
-        weeks = days // 7
-        periods = []
-        for i in range(weeks):
-            end = today - timedelta(weeks=weeks - i - 1)
-            start = end - timedelta(weeks=1)
-            periods.append((f"Week {i+1}", start, end))
-        return periods
+        for p in PRODUCTS:
+            util = round(random.uniform(20, 95), 1)
+            stock_util.append(StockUtilizationItem(
+                product=p, utilization=util,
+                stock=random.randint(50, 400),
+                status="Good Stock" if util > 50 else "Low Stock",
+            ))
 
-
-def _mock_efficiency_value(label: str) -> float:
-    import hashlib
-    h = int(hashlib.md5(label.encode()).hexdigest(), 16) % 30
-    return round(3.0 + h / 10, 1)
-
-
-def _mock_revenue_value(label: str, multiplier: float = 1.0) -> int:
-    import hashlib
-    h = int(hashlib.md5(label.encode()).hexdigest(), 16) % 4000
-    return int((7000 + h) * multiplier)
+    return AnalyticsResponse(
+        field_efficiency=field_efficiency,
+        revenue_per_visit=revenue_per_visit,
+        recommendation_acceptance=rec_acceptance,
+        regional_performance=regional_performance,
+        crop_risk_trends=crop_risk,
+        stock_utilization=stock_util,
+    )

@@ -1,50 +1,49 @@
+"""
+AgroAI — Pydantic v2 schemas (model_config style, no deprecation warnings).
+"""
+from __future__ import annotations
 from datetime import datetime
-from typing import Optional, List, Dict, Any
-from pydantic import BaseModel, EmailStr, Field
+from typing import Any, Dict, List, Optional
+from pydantic import BaseModel, EmailStr, ConfigDict
 
 
-# ─── Auth ─────────────────────────────────────────────────────────────────────
-
-class RegisterRequest(BaseModel):
-    name: str
-    email: EmailStr
-    password: str
-    employee_id: str
-    territory: str = ""
-    territory_id: str = ""
-    role: str = "field_agent"
-    region_id: str = "br"
-
+# ─── Auth ────────────────────────────────────────────────────────────────────
 
 class LoginRequest(BaseModel):
     email: EmailStr
     password: str
 
 
+class UserOut(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    email: str
+    name: str
+    role: str
+    territory_id: Optional[str] = None
+    territory: Optional[str] = None
+    employee_id: Optional[str] = None
+    phone: Optional[str] = None
+    language: str = "English"
+    sync_enabled: bool = True
+    notifications: Dict[str, bool] = {}
+    theme: str = "dark"
+
+
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
-    user: "UserResponse"
+    user: UserOut
 
 
-class UserResponse(BaseModel):
-    id: str
-    name: str
-    email: str
-    employee_id: str
-    role: str
-    territory: str
-    territory_id: str
-    region_id: str
-    theme: str
-    language: str
-    notifications: Dict[str, bool]
-    sync_enabled: bool
+# ─── Dashboard ───────────────────────────────────────────────────────────────
+
+class KPIChartPoint(BaseModel):
+    value: float
 
 
-# ─── Dashboard ────────────────────────────────────────────────────────────────
-
-class KPIResponse(BaseModel):
+class KPIItem(BaseModel):
     id: str
     title: str
     value: str
@@ -53,24 +52,153 @@ class KPIResponse(BaseModel):
     icon: str
     icon_color: str
     icon_bg: str
-    chart_data: List[float]
+    chart_data: List[KPIChartPoint]
     chart_color: str
 
 
-class WeeklyPerformancePoint(BaseModel):
-    name: str
-    value: float   # visits completed
-    value2: float  # target
-    value3: float  # actual revenue (Lakhs)
+class MandiPrice(BaseModel):
+    commodity: str
+    price: float
+    change: float
+    change_pct: float
+    mandi: str
+    unit: str = "quintal"
+
+
+class WeeklyPoint(BaseModel):
+    day: str
+    visits: int
+    revenue: float
+    recommendations: int
 
 
 class DashboardResponse(BaseModel):
-    kpis: List[KPIResponse]
-    weekly_performance: List[WeeklyPerformancePoint]
-    notifications_count: int
+    kpis: List[KPIItem]
+    mandi_prices: List[MandiPrice]
+    weekly_performance: List[WeeklyPoint]
 
 
-# ─── Recommendations ──────────────────────────────────────────────────────────
+# ─── Analytics ───────────────────────────────────────────────────────────────
+
+class FieldEfficiencyPoint(BaseModel):
+    week: str
+    visits: int
+    completed: int
+    efficiency: float
+
+
+class RevenueVisitPoint(BaseModel):
+    month: str
+    revenue: float
+    visits: int
+    per_visit: float
+
+
+class RecommendationAcceptancePoint(BaseModel):
+    month: str
+    sent: int
+    accepted: int
+    rate: float
+
+
+class RegionalPerformanceItem(BaseModel):
+    metric: str
+    your_territory: float
+    average: float
+
+
+class CropRiskPoint(BaseModel):
+    month: str
+    high: int
+    medium: int
+    low: int
+
+
+class StockUtilizationItem(BaseModel):
+    product: str
+    utilization: float
+    stock: int
+    status: str
+
+
+class AnalyticsResponse(BaseModel):
+    field_efficiency: List[FieldEfficiencyPoint]
+    revenue_per_visit: List[RevenueVisitPoint]
+    recommendation_acceptance: List[RecommendationAcceptancePoint]
+    regional_performance: List[RegionalPerformanceItem]
+    crop_risk_trends: List[CropRiskPoint]
+    stock_utilization: List[StockUtilizationItem]
+
+
+# ─── Retailers ───────────────────────────────────────────────────────────────
+
+class RetailerCard(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    retailer_id: str
+    name: str
+    territory_id: str
+    location: str
+    priority_level: str
+    visit_priority_score: float
+    stock_status: str
+    total_stock_qty: int
+    last_visit_days: int
+    last_visit_date: Optional[str] = None
+    recommended_product: Optional[str] = None
+    explanation: Optional[str] = None
+
+
+class RetailerListResponse(BaseModel):
+    retailers: List[RetailerCard]
+    total: int
+    skip: int
+    limit: int
+
+
+class RescoreResponse(BaseModel):
+    retailer_id: str
+    new_score: float
+    priority_level: str
+
+
+# ─── Growers ─────────────────────────────────────────────────────────────────
+
+class GrowerCluster(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    territory_id: str
+    tehsil: str
+    district: str
+    state: str
+    crop_type: str
+    crop_stage: str
+    grower_count: int
+    pest_risk: str
+    urgency_score: int
+    product_scans: int
+    engagement_rate: float
+    recommended_product: Optional[str] = None
+    recommended_advisory: Optional[str] = None
+
+
+class GrowerSummary(BaseModel):
+    total_growers: int
+    total_product_scans: int
+    campaign_attendance: int
+    avg_farm_size_acres: float
+    digital_engagement_rate: float
+    high_urgency_clusters: int
+
+
+class GrowerClustersResponse(BaseModel):
+    clusters: List[GrowerCluster]
+    total: int
+
+
+# ─── Recommendations ─────────────────────────────────────────────────────────
 
 class ExplainableReason(BaseModel):
     id: str
@@ -79,236 +207,243 @@ class ExplainableReason(BaseModel):
     icon: str
 
 
-class RecommendationResponse(BaseModel):
+class RecommendationItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
     id: str
+    territory_id: str
     priority: str
     crop: str
     message: str
-    weather: str
-    product: str
-    village: str
+    weather: Optional[str] = None
+    product: Optional[str] = None
+    village: Optional[str] = None
     farmer: Optional[str] = None
-    pest_risk: Optional[str] = None
-    next_action: Optional[str] = None
-    follow_up_timeline: Optional[List[str]] = None
-    explainable_reasons: Optional[List[ExplainableReason]] = None
     retailer_id: Optional[str] = None
-    visit_priority_score: Optional[float] = None
+    pest_risk: str
+    next_action: Optional[str] = None
+    follow_up_timeline: Optional[str] = None
+    status: str
+    explainable_reasons: List[ExplainableReason]
 
 
 class ApplyRecommendationRequest(BaseModel):
     recommendation_id: str
-    retailer_id: str
-    action: str = "apply"  # apply | dismiss
+    retailer_id: Optional[str] = None
+    action: str
 
 
-# ─── Visit Planner ────────────────────────────────────────────────────────────
+# ─── Risk Analyzer ───────────────────────────────────────────────────────────
 
-class VisitTag(BaseModel):
-    label: str
-    color: str  # green | blue | red | yellow
+class HeatmapCell(BaseModel):
+    id: str
+    lat: float
+    lng: float
+    risk_level: str
+    risk_score: float
+    crop: str
+    village: str
+    pest_type: Optional[str] = None
+    area_km2: float
 
 
-class PriorityVisitResponse(BaseModel):
+class NDVIPoint(BaseModel):
+    date: str
+    ndvi: float
+    benchmark: float
+    status: str
+
+
+class WeatherAnomaly(BaseModel):
+    id: str
+    lat: float
+    lng: float
+    type: str
+    severity: str
+    description: str
+    affected_area_km2: float
+
+
+class PestOutbreak(BaseModel):
+    id: str
+    lat: float
+    lng: float
+    pest_name: str
+    crop: str
+    severity: str
+    affected_farmers: int
+    recommended_product: str
+
+
+class AIInsight(BaseModel):
+    id: str
+    title: str
+    description: str
+    severity: str
+    action: str
+
+
+class RiskAnalyzerResponse(BaseModel):
+    overall_risk_level: str
+    heatmap: List[HeatmapCell]
+    ndvi_data: List[NDVIPoint]
+    weather_anomalies: List[WeatherAnomaly]
+    pest_outbreaks: List[PestOutbreak]
+    ai_insights: List[AIInsight]
+
+
+# ─── Visit Planner ───────────────────────────────────────────────────────────
+
+class VisitPlannerItem(BaseModel):
     id: str
     name: str
-    type: str  # retailer | village | cluster
+    type: str
     score: float
     location: str
     last_visit: str
     status: str
-    tags: List[VisitTag]
+    tags: List[str]
     ai_reason: str
     actions: List[str]
     retailer_id: str
-    lat: Optional[float] = None
-    lng: Optional[float] = None
-
-
-class RouteStop(BaseModel):
-    id: int
-    name: str
-    lat: float
-    lng: float
-    status: str  # completed | in-progress | pending
-    time: str
-    retailer_id: str
-
-
-class RouteResponse(BaseModel):
-    stops: List[RouteStop]
-    total_distance_km: float
-    estimated_hours: float
-    total_stops: int
 
 
 class VisitActionRequest(BaseModel):
     retailer_id: str
-    action: str  # start | complete | reschedule | skip
-    notes: str = ""
-    revenue_generated: float = 0
-    products_discussed: List[str] = []
+    action: str
 
 
-class VisitActionResponse(BaseModel):
-    success: bool
-    message: str
-    visit_id: Optional[str] = None
-
-
-# ─── ML Prediction ────────────────────────────────────────────────────────────
-
-class PredictRequest(BaseModel):
-    sales_qty_30: float = 0
-    sales_value_30: float = 0
-    transactions_30: float = 0
-    sales_qty_7: float = 0
-    sales_value_7: float = 0
-    transactions_7: float = 0
-    sales_growth_ratio: float = 0
-    total_stock_qty: float = 0
-    unique_skus: float = 0
-    last_visit_days: float = 0
-    product_sales_qty_30: float = 0
-    grower_count: float = 0
-    avg_farm_size: float = 0
-    product_scans: float = 0
-    campaign_attendance: float = 0
-    total_messages: float = 0
-    total_opened: float = 0
-    total_clicked: float = 0
-    engagement_rate: float = 0
-
-
-class PredictResponse(BaseModel):
-    visit_priority_score: float
-    priority_level: str  # High | Medium | Low
-    action_type: str     # urgent | planned | monitor
-    explanation: str
-
-
-# ─── Risk Analyzer ────────────────────────────────────────────────────────────
-
-class NDVIDataPoint(BaseModel):
-    date: str
-    healthy: float
-    moderate: float
-    stressed: float
-
-
-class HeatmapCell(BaseModel):
-    id: int
-    x: int
-    y: int
-    risk: str  # low | medium | high | critical
-    village: str
-    risk_percent: float
-
-
-class PestOutbreak(BaseModel):
-    id: int
-    lat: float
-    lng: float
-    pest: str
-    severity: str  # Medium | High | Critical
-    crop: str
-    village: str
-
-
-class WeatherAnomaly(BaseModel):
-    id: int
-    lat: float
-    lng: float
-    type: str  # rain | drought | wind
-    label: str
-    temp: str
-    condition: str
-
-
-class RiskAnalyzerResponse(BaseModel):
-    heatmap: List[HeatmapCell]
-    ndvi_data: List[NDVIDataPoint]
-    pest_outbreaks: List[PestOutbreak]
-    weather_anomalies: List[WeatherAnomaly]
-    overall_risk_level: str
-    ai_insights: List[str]
-
-
-# ─── Analytics ────────────────────────────────────────────────────────────────
-
-class ChartDataPoint(BaseModel):
+class RouteStop(BaseModel):
+    retailer_id: str
     name: str
-    value: float
-    value2: Optional[float] = None
+    location: str
+    lat: Optional[float] = None
+    lng: Optional[float] = None
+    order: int
+    estimated_time: str
 
 
-class CropRiskTrend(BaseModel):
-    month: str
-    rice: float
-    cotton: float
-    wheat: float
+class RouteVisualizationResponse(BaseModel):
+    stops: List[RouteStop]
+    total_km: float
+    total_time_min: int
 
 
-class StockItem(BaseModel):
-    product: str
-    utilization: float
-    stock: int
-    status: str  # optimal | low | critical
+# ─── Visit Feedback ──────────────────────────────────────────────────────────
+
+class VisitFeedbackRequest(BaseModel):
+    retailer_id: str
+    visit_status: str
+    products_discussed: List[str] = []
+    order_placed: bool = False
+    order_quantity: int = 0
+    order_value: float = 0.0
+    farmer_response: str = "positive"
+    follow_up_needed: bool = False
+    next_follow_up_date: Optional[str] = None
+    competitor_issue: Optional[str] = None
+    notes: Optional[str] = None
 
 
-class RegionalPerformance(BaseModel):
-    metric: str
-    your_territory: float
-    average: float
+class VisitFeedbackResponse(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+
+    id: int
+    retailer_id: str
+    visit_status: str
+    created_at: datetime
 
 
-class AnalyticsResponse(BaseModel):
-    field_efficiency: List[ChartDataPoint]
-    revenue_per_visit: List[ChartDataPoint]
-    recommendation_acceptance: List[Dict[str, Any]]
-    regional_performance: List[RegionalPerformance]
-    crop_risk_trends: List[CropRiskTrend]
-    stock_utilization: List[StockItem]
+# ─── Notifications ───────────────────────────────────────────────────────────
 
+class NotificationItem(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
 
-# ─── Mandi ────────────────────────────────────────────────────────────────────
-
-class MandiPriceResponse(BaseModel):
-    crop: str
-    icon: str
-    price: str
-    unit: str
-    change: str
-    up: bool
-    market: str
-    updated_at: str
-
-
-# ─── AI Chat ──────────────────────────────────────────────────────────────────
-
-class ChatRequest(BaseModel):
+    id: int
+    title: str
     message: str
-    session_id: str
-    region: str = "Bihar"
+    type: str
+    read: bool
+    time: str
 
 
-class ChatResponse(BaseModel):
-    response: str
-    session_id: str
-    timestamp: str
+class NotificationsResponse(BaseModel):
+    notifications: List[NotificationItem]
+    unread_count: int
 
 
-# ─── Settings ─────────────────────────────────────────────────────────────────
+# ─── Settings ────────────────────────────────────────────────────────────────
 
-class UpdateSettingsRequest(BaseModel):
+class SettingsUpdateRequest(BaseModel):
     theme: Optional[str] = None
     language: Optional[str] = None
     notifications: Optional[Dict[str, bool]] = None
     sync_enabled: Optional[bool] = None
-    region_id: Optional[str] = None
 
 
-class UpdateSettingsResponse(BaseModel):
-    success: bool
-    message: str
-    updated: Dict[str, Any]
+# ─── Mandi ───────────────────────────────────────────────────────────────────
+
+class MandiPriceItem(BaseModel):
+    commodity: str
+    price: float
+    change: float
+    change_pct: float
+    mandi: str
+    state: str
+    unit: str
+    recorded_date: str
+
+
+class MandiResponse(BaseModel):
+    prices: List[MandiPriceItem]
+    updated_at: str
+
+
+# ─── AI Chat ─────────────────────────────────────────────────────────────────
+
+class ChatMessage(BaseModel):
+    role: str
+    content: str
+
+
+class ChatRequest(BaseModel):
+    messages: List[ChatMessage]
+    territory_id: Optional[str] = None
+
+
+class ChatResponse(BaseModel):
+    reply: str
+    sources: List[str] = []
+
+
+# ─── Manager ─────────────────────────────────────────────────────────────────
+
+class RepSummary(BaseModel):
+    id: str
+    name: str
+    territory: str
+    visits: int
+    target: int
+    revenue: float
+    acceptance: float
+    efficiency: float
+    status: str
+    last_active: str
+    phone: Optional[str] = None
+
+
+class ManagerDashboardResponse(BaseModel):
+    total_revenue: float
+    total_visits: int
+    total_targets: int
+    avg_acceptance: float
+    avg_efficiency: float
+    reps: List[RepSummary]
+    revenue_trend: List[Dict[str, Any]]
+    product_demand: List[Dict[str, Any]]
+    missed_opportunities: List[Dict[str, Any]]
+
+
+class NudgeRequest(BaseModel):
+    rep_id: str
+    message: Optional[str] = None

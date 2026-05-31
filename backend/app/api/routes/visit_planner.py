@@ -1,44 +1,38 @@
 from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.core.database import get_db
 from app.core.security import get_current_user
-from app.schemas.schemas import VisitActionRequest
-from app.services.visit_service import (
-    get_priority_visits,
-    get_optimized_route,
-    record_visit_action,
-)
+from app.schemas.schemas import VisitPlannerItem, VisitActionRequest, RouteVisualizationResponse
+from app.services.visit_service import get_priority_visits, record_action, get_route
+from typing import List
 
 router = APIRouter()
 
 
-@router.get("/", summary="Get priority-ranked visits for today")
+@router.get("/priority/{territory_id}", response_model=List[VisitPlannerItem])
 async def priority_visits(
-    territory_id: str = Query(default="T001"),
-    filter: str = Query(default="all"),  # all | high-risk | revenue | follow-up
-    current_user: dict = Depends(get_current_user),
+    territory_id: str,
+    filter: str = Query("all"),
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
 ):
-    return await get_priority_visits(territory_id, filter)
+    return await get_priority_visits(territory_id, filter, db)
 
 
-@router.get("/route", summary="Get today's optimized route with stops")
-async def optimized_route(
-    territory_id: str = Query(default="T001"),
-    current_user: dict = Depends(get_current_user),
+@router.post("/action/{territory_id}")
+async def action(
+    territory_id: str,
+    req: VisitActionRequest,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
 ):
-    return await get_optimized_route(territory_id)
+    return await record_action(req, territory_id, db)
 
 
-@router.post("/action", summary="Record a visit action (start/complete/skip)")
-async def visit_action(
-    data: VisitActionRequest,
-    territory_id: str = Query(default="T001"),
-    current_user: dict = Depends(get_current_user),
+@router.get("/route/{territory_id}", response_model=RouteVisualizationResponse)
+async def route(
+    territory_id: str,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(get_current_user),
 ):
-    return await record_visit_action(
-        retailer_id=data.retailer_id,
-        action=data.action,
-        user_id=current_user["sub"],
-        territory_id=territory_id,
-        notes=data.notes,
-        revenue_generated=data.revenue_generated,
-        products_discussed=data.products_discussed,
-    )
+    return await get_route(territory_id, db)

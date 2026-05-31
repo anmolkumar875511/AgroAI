@@ -1,59 +1,58 @@
-from datetime import datetime, timedelta
-from typing import List, Dict, Any
-from app.core.database import get_collection
+"""
+Mandi service — attempts to pull live prices from data.gov.in,
+falls back to DB seed data gracefully.
+"""
+from __future__ import annotations
+import httpx
+from datetime import datetime, timezone, date
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, update
+from app.models.models import MandiPrice
 
 
-# Static seed prices (INR per quintal) — refreshed daily in production
-BASE_PRICES = {
-    "Wheat":       {"base": 2230, "icon": "Wheat",  "market": "Patna Mandi"},
-    "Rice (Paddy)":{"base": 2201, "icon": "Sprout", "market": "Muzaffarpur"},
-    "Maize":       {"base": 1930, "icon": "Sprout", "market": "Gaya Mandi"},
-    "Mustard":     {"base": 5330, "icon": "Sprout", "market": "Patna Mandi"},
-    "Soybean":     {"base": 3780, "icon": "Sprout", "market": "Chapra Mandi"},
-    "Cotton":      {"base": 6200, "icon": "Sprout", "market": "Patna Mandi"},
-}
+AGMARKNET_URL = (
+    "https://api.data.gov.in/resource/9ef84268-d588-465a-a308-a864a43d0070"
+    "?api-key=579b464db66ec23bdd000001cdd3946e44ce4aebb6364a17de2c&format=json&limit=20"
+)
 
 
-async def get_mandi_prices(state: str = "Bihar") -> List[Dict[str, Any]]:
-    """
-    Return today's mandi prices.
-    In production: fetch from data.gov.in API and cache in MongoDB.
-    For now: returns realistic synthetic daily-varying prices.
-    """
-    mandi_col = get_collection("mandi_prices")
+async def fetch_live_prices() -> list[dict]:
+    """Try to pull from Agmarknet. Returns empty list on any error."""
+    try:
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            r = await client.get(AGMARKNET_URL)
+            if r.status_code == 200:
+                data = r.json()
+                records = data.get("records", [])
+                prices = []
+                for rec in records[:10]:
+                    try:
+                        modal = float(rec.get("modal_price", 0))
+                        min_p = float(rec.get("min_price", modal))
+                        change = round(modal - min_p, 2)
+                        change_pct = round((change / min_p * 100) if min_p else 0, 2)
+                        prices.append({
+                            "commodity": rec.get("commodity", "Unknown"),
+                            "mandi": rec.get("market", "Unknown"),
+                            "state": rec.get("state", "Unknown"),
+                            "price": modal,
+                            "change": change,
+                            "change_pct": change_pct,
+                            "unit": "quintal",
+                        })
+                    except Exception:
+                        continue
+                return prices
+    except Exception:
+        pass
+    return []
 
-    # Check cache (updated today)
-    today_start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
-    cached = await mandi_col.find_one({"state": state, "date": {"$gte": today_start}})
 
-    if cached and "prices" in cached:
-        return cached["prices"]
-
-    # Generate today's prices with daily variance
-    import random
-    seed = int(datetime.utcnow().strftime("%Y%m%d"))
-    random.seed(seed)
-
-    prices = []
-    for crop, info in BASE_PRICES.items():
-        change = random.randint(-80, 150)
-        price = info["base"] + change
-        prices.append({
-            "crop": crop,
-            "icon": info["icon"],
-            "price": f"₹{price:,}",
-            "unit": "/qtl",
-            "change": f"+₹{change}" if change >= 0 else f"-₹{abs(change)}",
-            "up": change >= 0,
-            "market": info["market"],
-            "updated_at": datetime.utcnow().isoformat(),
-        })
-
-    # Cache for the day
-    await mandi_col.update_one(
-        {"state": state, "date": {"$gte": today_start}},
-        {"$set": {"state": state, "prices": prices, "date": datetime.utcnow()}},
-        upsert=True,
-    )
-
-    return prices
+async def get_mandi_prices(state: str | None, limit: int, db: AsyncSession) -> list[MandiPrice]:
+    """Return prices from DB (seeded or refreshed from live)."""
+    q = select(MandiPrice)
+    if state:
+        q = q.where(MandiPrice.state == state)
+    q = q.order_by(MandiPrice.recorded_date.desc()).limit(limit)
+    result = await db.execute(q)
+    return result.scalars().all()

@@ -1,172 +1,61 @@
-from datetime import datetime
-from typing import List, Dict, Any
-from app.core.database import get_collection
+"""
+Chat service — builds context-enriched prompts from territory data,
+streams Anthropic Claude responses.
+"""
+from __future__ import annotations
+import os
+from typing import AsyncIterator
+from app.schemas.schemas import ChatMessage
+
+SYSTEM_PROMPT = """You are AgroAI — an expert field intelligence assistant for Syngenta crop protection field representatives operating across India (Bihar, UP, Maharashtra, Punjab, Gujarat).
+
+Your expertise covers:
+• Crop protection: fungicides, insecticides, herbicides, seed treatments
+• Key Syngenta brands: Amistar 250 SC (azoxystrobin), Actara 25 WG (thiamethoxam), Tilt 250 EC (propiconazole), Score 250 EC (difenoconazole), Movondo (mefentrifluconazole), Vibrance Integral (sedaxane+thiamethoxam), Ridomil Gold (metalaxyl-M), Axial 50 EC (pinoxaden), Coragen 20 SC (chlorantraniliprole), Pegasus 500 SC (diafenthiuron)
+• Pest identification: BPH, stem borer, leaf blast, powdery mildew, downy mildew, whitefly, aphids, bollworm
+• Crop stages: rice, wheat, cotton, maize, mustard, soybean, sugarcane
+• Mandi market intelligence and price trends
+• Visit planning, retailer prioritization, grower engagement
+
+Respond concisely (2-4 sentences unless detail is requested). Always be practical, farmer-first, and actionable. Quote specific dosages when recommending products. Use Indian units (bags, quintals, acres, bighas)."""
 
 
-# Intent keywords → response builder
-INTENTS = {
-    "pest":    ["pest", "kide", "keeda", "insect", "borer", "armyworm", "aphid", "locust"],
-    "weather": ["weather", "mausam", "rain", "temperature", "forecast", "barish"],
-    "visit":   ["visit", "plan", "route", "schedule", "kab"],
-    "stock":   ["stock", "inventory", "supply", "reorder", "available"],
-    "mandi":   ["mandi", "price", "bhav", "rate", "market"],
-    "disease": ["disease", "bimari", "photo", "identify", "leaf", "symptom"],
-    "ndvi":    ["ndvi", "satellite", "crop health", "fasal"],
-    "revenue": ["revenue", "income", "sale", "profit", "earning"],
-}
+async def get_ai_response(messages: list[ChatMessage], territory_id: str | None = None) -> str:
+    """Returns plain text response from Anthropic."""
+    try:
+        import anthropic
+        api_key = os.getenv("ANTHROPIC_API_KEY", "")
+        if not api_key:
+            return _fallback_response(messages[-1].content if messages else "")
 
-RESPONSES = {
-    "pest": lambda region: f"""🔍 **Pest Analysis for {region}**
+        client = anthropic.Anthropic(api_key=api_key)
+        api_messages = [{"role": m.role, "content": m.content} for m in messages]
 
-Based on current weather data (humidity >70%, temp 28-32°C), I detect **high risk for Stem Borer** in rice fields.
+        response = client.messages.create(
+            model="claude-sonnet-4-20250514",
+            max_tokens=1024,
+            system=SYSTEM_PROMPT,
+            messages=api_messages,
+        )
+        return response.content[0].text if response.content else "Unable to generate response."
 
-**Recommended Action:**
-• Apply Amistar 200ml/acre within 48hrs
-• Focus on fields near water bodies  
-• Schedule farmer demo in affected villages
-
-**Confidence: 87%** | Based on satellite + weather data""",
-
-    "weather": lambda region: f"""🌤️ **Weather Forecast — {region}**
-
-**Today:** 32°C, Partly Cloudy, Humidity 68%  
-**Tomorrow:** 30°C, Light Rain Expected  
-**Next 3 Days:** Intermittent showers
-
-⚠️ **Advisory:** Reschedule outdoor spraying. Pre-harvest drying may be affected. Recommend covered storage for harvested grain.""",
-
-    "visit": lambda region: f"""📋 **Optimized Visit Plan — Today**
-
-1. **09:00 AM** — Retailer R12, GreenAgro Store (Stock replenishment)
-2. **11:30 AM** — Village Rampur, Farmer Cluster (Pest demo)
-3. **02:00 PM** — Kisan Kendra, Sonepur (New product launch)
-4. **04:30 PM** — Dharnai, Cotton Growers (Follow-up)
-
-**Total Distance:** 28km | **Est. Revenue:** ₹45,000
-
-Shall I recalculate based on priority?""",
-
-    "stock": lambda region: f"""📦 **Inventory Alert — {region}**
-
-🔴 **Critical:** Score (22 units) — Reorder NOW  
-🟡 **Low:** Custodia (34 units), Ridomil (56 units)  
-🟢 **Optimal:** Amistar (145), Actara (180)
-
-**Recommendation:** Place emergency order for Score. 3 retailers reporting stockout. Estimated revenue loss: ₹18,000/day.""",
-
-    "mandi": lambda region: """💰 **Today's Mandi Prices**
-
-• Wheat: ₹2,275/qtl (↑₹45)
-• Rice (Paddy): ₹2,183/qtl (↓₹18)
-• Maize: ₹1,962/qtl (↑₹32)
-• Mustard: ₹5,450/qtl (↑₹120)
-
-📈 Wheat prices trending upward for 5 consecutive days. Good time for farmers to sell stored grain.""",
-
-    "disease": lambda region: f"""📸 **Disease Detection Ready**
-
-To identify a crop disease:
-1. Click the 📷 camera icon below
-2. Upload a close-up photo of the affected leaf/stem
-3. I'll analyze it using computer vision
-
-**Common diseases in {region} this season:**
-• Rice Blast (Magnaporthe oryzae)
-• Bacterial Leaf Blight
-• Sheath Blight
-
-Upload a photo and I'll provide specific treatment recommendations.""",
-
-    "ndvi": lambda region: f"""🛰️ **NDVI Status — {region}**
-
-**Crop Health Index:** 0.62 (↓ from 0.71 last week)
-
-**Zone Breakdown:**
-• Healthy (>0.65): 48% of monitored area
-• Moderate (0.4-0.65): 35% of area
-• Stressed (<0.4): 17% — Action Needed
-
-**Hotspots:** Rampur tehsil showing 15% NDVI decline. Possible drought stress or pest damage. Recommend field visit within 48hrs.""",
-
-    "revenue": lambda region: f"""📈 **Revenue Intelligence — {region}**
-
-**This Week:** ₹2.4L vs ₹2.0L target (+20%)  
-**Top Opportunity:** Score product push — ₹45K potential  
-**Pending Conversions:** 3 retailers × avg ₹12K each
-
-**AI Suggestion:** Visit R12 and R08 today to close pending orders. Estimated revenue if completed: ₹2.9L for the week.""",
-}
-
-DEFAULT_RESPONSES = [
-    "Based on current data, I recommend focusing on 3 high-priority villages showing early signs of pest stress. NDVI analysis indicates a 15% drop in crop health index over the past week. Shall I generate a detailed action plan?",
-    "Revenue opportunity detected: 5 farmers in Cluster B have crossed the nutrient application window. Recommending Miravis Duo push — estimated ₹2.4L opportunity. Want me to add them to today's visit plan?",
-    "Soil moisture data shows 4 of 12 monitoring stations below optimal. With a dry spell predicted for next week, I recommend advising farmers on supplementary irrigation.",
-]
+    except ImportError:
+        return "AI chat requires the 'anthropic' package. Run: pip install anthropic"
+    except Exception as e:
+        return f"AI service temporarily unavailable. ({str(e)[:80]})"
 
 
-async def handle_chat(
-    message: str,
-    session_id: str,
-    user_id: str,
-    region: str,
-) -> str:
-    """
-    Match user intent and return a context-aware response.
-    Stores message history in MongoDB.
-    """
-    chat_col = get_collection("chat_messages")
-
-    # Store user message
-    await chat_col.insert_one({
-        "session_id": session_id,
-        "user_id": user_id,
-        "role": "user",
-        "content": message,
-        "timestamp": datetime.utcnow(),
-    })
-
-    # Detect intent
-    lower = message.lower()
-    response_text = None
-
-    for intent, keywords in INTENTS.items():
-        if any(kw in lower for kw in keywords):
-            builder = RESPONSES.get(intent)
-            if builder:
-                response_text = builder(region)
-            break
-
-    if not response_text:
-        import random
-        import hashlib
-        h = int(hashlib.md5(message.encode()).hexdigest(), 16) % len(DEFAULT_RESPONSES)
-        response_text = DEFAULT_RESPONSES[h].replace("{region}", region)
-
-    # Store assistant response
-    await chat_col.insert_one({
-        "session_id": session_id,
-        "user_id": user_id,
-        "role": "assistant",
-        "content": response_text,
-        "timestamp": datetime.utcnow(),
-    })
-
-    return response_text
-
-
-async def get_chat_history(session_id: str, user_id: str, limit: int = 50) -> List[Dict[str, Any]]:
-    """Retrieve previous messages for a chat session."""
-    chat_col = get_collection("chat_messages")
-    messages = []
-    async for doc in chat_col.find(
-        {"session_id": session_id, "user_id": user_id},
-        sort=[("timestamp", 1)],
-        limit=limit,
-    ):
-        messages.append({
-            "id": str(doc["_id"]),
-            "role": doc["role"],
-            "content": doc["content"],
-            "timestamp": doc["timestamp"].isoformat(),
-        })
-    return messages
+def _fallback_response(user_msg: str) -> str:
+    """Rule-based fallback when API key is not set."""
+    msg = user_msg.lower()
+    if any(w in msg for w in ["blast", "fungus", "fungal", "powdery", "rust"]):
+        return "For fungal diseases, apply Amistar 250 SC @ 1 ml/l or Score 250 EC @ 0.5 ml/l. Ensure good leaf coverage. Repeat after 14 days if infection persists."
+    if any(w in msg for w in ["bph", "brown plant hopper", "insect", "pest"]):
+        return "For BPH and sucking pests, Actara 25 WG @ 0.5 g/l is highly effective. Apply early morning for best results. Economic threshold: 5 BPH/hill."
+    if any(w in msg for w in ["stock", "inventory", "reorder"]):
+        return "Check retailer stock via the Retailer Insights page. Low Stock status triggers automatic rescore. Priority visit recommended within 48 hours to prevent stockout revenue loss."
+    if any(w in msg for w in ["mandi", "price", "market"]):
+        return "Mandi prices are updated daily. Check the Dashboard → Mandi Prices section for latest commodity rates across Bihar and Maharashtra mandis."
+    if any(w in msg for w in ["visit", "route", "planner"]):
+        return "Use the Visit Planner to see AI-prioritised retailer queue. Retailers are scored 0-100 based on visit gap, stock status, revenue potential, and pest risk proximity."
+    return "I'm your AgroAI field assistant. Ask me about crop diseases, pest control, product dosages, mandi prices, or territory planning. Set ANTHROPIC_API_KEY for full AI capability."
