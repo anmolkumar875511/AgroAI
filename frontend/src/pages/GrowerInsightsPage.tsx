@@ -18,7 +18,7 @@ const RISK_DOT: Record<string, string> = {
   Medium: 'bg-info-blue', Low: 'bg-lime-green',
 };
 
-function SummaryCard({ icon: Icon, label, value, color }: { icon: any; label: string; value: string | number; color: string }) {
+function SummaryCard({ icon: Icon, label, value, color }: { icon: React.ComponentType<{ className?: string }>; label: string; value: string | number; color: string }) {
   return (
     <div className="bg-white dark:bg-white/5 rounded-card p-5 shadow-card border border-transparent dark:border-white/5">
       <div className={cn('w-10 h-10 rounded-xl flex items-center justify-center mb-3', color)}>

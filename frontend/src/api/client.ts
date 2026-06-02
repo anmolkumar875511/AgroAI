@@ -38,7 +38,9 @@ async function request<T>(
     try {
       const body = await res.json();
       detail = body.detail ?? detail;
-    } catch {}
+    } catch {
+      // Ignore JSON parse errors and use default status text
+    }
     throw new Error(detail);
   }
 
@@ -310,7 +312,7 @@ export const visitPlannerAPI = {
   getPriorityVisits: (territory_id: string, filter = "all") =>
     request<VisitPlannerItem[]>(`/visit-planner/priority/${territory_id}?filter=${filter}`),
   recordAction: (payload: { retailer_id: string; action: string }, territory_id: string) =>
-    request<any>(`/visit-planner/action/${territory_id}`, {
+    request<unknown>(`/visit-planner/action/${territory_id}`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),

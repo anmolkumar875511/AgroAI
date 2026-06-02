@@ -77,12 +77,21 @@ export function PestMap({ outbreaks, regionLat, regionLng, regionZoom }: PestMap
   const heatmapData = useMemo(() => {
     if (!isLoaded || typeof window === 'undefined' || !window.google) return [];
     const points: google.maps.LatLng[] = [];
+    
+    // Seeded pseudo-random generator to remain pure/deterministic during render
+    const pseudoRandom = (seed: number) => {
+      const x = Math.sin(seed) * 10000;
+      return x - Math.floor(x);
+    };
+
     outbreaks.forEach(o => {
       const count = o.severity === 'Critical' ? 30 : o.severity === 'High' ? 15 : 5;
       for (let i = 0; i < count; i++) {
+        const randLat = pseudoRandom(o.id * 100 + i) - 0.5;
+        const randLng = pseudoRandom(o.id * 200 + i) - 0.5;
         points.push(new window.google.maps.LatLng(
-          o.lat + (Math.random() - 0.5) * 0.1,
-          o.lng + (Math.random() - 0.5) * 0.1,
+          o.lat + randLat * 0.1,
+          o.lng + randLng * 0.1,
         ));
       }
     });

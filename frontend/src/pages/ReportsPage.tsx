@@ -9,18 +9,9 @@ import { managerAPI } from '@/api/client';
 
 const COLORS = ['#1B5E20', '#8BC34A', '#FFC107', '#1E88E5', '#E53935'];
 
-const REGION_REPORTS = [
-  { id: 'rep_01', region: 'Patna Division', visits: 142, revenue: 1250000, targetAchieved: 95, topProduct: 'Amistar' },
-  { id: 'rep_02', region: 'Muzaffarpur Div', visits: 110, revenue: 980000, targetAchieved: 88, topProduct: 'Actara' },
-  { id: 'rep_03', region: 'Gaya Division', visits: 125, revenue: 1050000, targetAchieved: 92, topProduct: 'Score' },
-];
+const REGION_REPORTS: any[] = [];
 
-const CROP_DISTRIBUTION = [
-  { name: 'Rice', value: 45 },
-  { name: 'Wheat', value: 25 },
-  { name: 'Cotton', value: 15 },
-  { name: 'Vegetables', value: 15 },
-];
+const CROP_DISTRIBUTION: any[] = [];
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState('summary');

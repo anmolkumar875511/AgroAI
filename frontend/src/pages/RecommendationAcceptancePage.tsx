@@ -7,41 +7,13 @@ import {
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
 
-const WEEKLY_TREND = [
-  { week: 'Wk 1', rate: 65 },
-  { week: 'Wk 2', rate: 68 },
-  { week: 'Wk 3', rate: 70 },
-  { week: 'Wk 4', rate: 72 },
-  { week: 'Wk 5', rate: 71 },
-  { week: 'Wk 6', rate: 74 },
-  { week: 'Wk 7', rate: 76 },
-  { week: 'Wk 8', rate: 73 },
-];
+const WEEKLY_TREND: any[] = [];
 
-const REP_ACCEPTANCE = [
-  { id: 1, name: 'Amit Sharma', territory: 'Bihar', sent: 42, accepted: 35, rejected: 4, pending: 3, rate: 83, trend: 'up' },
-  { id: 2, name: 'Priya Tiwari', territory: 'Maharashtra', sent: 38, accepted: 28, rejected: 6, pending: 4, rate: 74, trend: 'up' },
-  { id: 3, name: 'Rajesh Verma', territory: 'Punjab', sent: 35, accepted: 22, rejected: 8, pending: 5, rate: 63, trend: 'down' },
-  { id: 4, name: 'Suresh Kumar', territory: 'UP', sent: 20, accepted: 15, rejected: 3, pending: 2, rate: 75, trend: 'neutral' },
-  { id: 5, name: 'Neha Singh', territory: 'Gujarat', sent: 21, accepted: 14, rejected: 4, pending: 3, rate: 67, trend: 'up' },
-];
+const REP_ACCEPTANCE: any[] = [];
 
-const PRODUCT_ACCEPTANCE = [
-  { product: 'Amistar 250 SC', rate: 85 },
-  { product: 'Actara 25 WG', rate: 78 },
-  { product: 'Tilt 250 EC', rate: 72 },
-  { product: 'Score 250 EC', rate: 68 },
-  { product: 'Movondo', rate: 60 },
-  { product: 'Vibrance Integral', rate: 55 },
-];
+const PRODUCT_ACCEPTANCE: any[] = [];
 
-const REJECTION_REASONS = [
-  { name: 'Customer Not Interested', value: 35, color: '#E53935' },
-  { name: 'Price Concerns', value: 25, color: '#FFC107' },
-  { name: 'Already Using Competitor', value: 20, color: '#1E88E5' },
-  { name: 'Product Not Available', value: 12, color: '#8BC34A' },
-  { name: 'Other Reasons', value: 8, color: '#9C27B0' },
-];
+const REJECTION_REASONS: any[] = [];
 
 export default function RecommendationAcceptancePage() {
   const [timeFilter, setTimeFilter] = useState('This Month');
@@ -76,7 +48,7 @@ export default function RecommendationAcceptancePage() {
   const totalSent = liveRepAcceptance.reduce((acc, r) => acc + r.sent, 0);
   const totalAccepted = liveRepAcceptance.reduce((acc, r) => acc + r.accepted, 0);
   const totalPendingRejected = totalSent - totalAccepted;
-  const overallRate = totalSent > 0 ? Math.round((totalAccepted / totalSent) * 100) : 73;
+  const overallRate = totalSent > 0 ? Math.round((totalAccepted / totalSent) * 100) : 0;
 
   const filteredReps = liveRepAcceptance.filter(rep => {
     const matchesSearch = rep.name.toLowerCase().includes(searchTerm.toLowerCase());
@@ -112,7 +84,7 @@ export default function RecommendationAcceptancePage() {
             <p className="text-xs text-text-muted">Overall Acceptance Rate</p>
             <h3 className="text-2xl font-bold text-text-primary dark:text-white mt-1">{overallRate}%</h3>
             <p className="text-[10px] text-emerald-400 font-bold flex items-center gap-0.5 mt-0.5">
-              <ArrowUp className="w-3 h-3" /> +4.2% MoM growth
+              <ArrowUp className="w-3 h-3" /> 0% MoM growth
             </p>
           </div>
           <div className="relative w-14 h-14 flex items-center justify-center rounded-full border-[3.5px] border-white/10 border-t-lime-green">

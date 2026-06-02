@@ -39,6 +39,18 @@ USERS = [
         "territory_id": "TER_0005", "territory": "Amravati Sadar",
         "employee_id": "EMP002", "phone": "+91 87654 32109",
     },
+    {
+        "email": "rajesh@agroai.com", "password": "password123",
+        "name": "Rajesh Kumar", "role": "agent",
+        "territory_id": "TER_0004", "territory": "Ludhiana East",
+        "employee_id": "EMP003", "phone": "+91 76543 21098",
+    },
+    {
+        "email": "admin@agroai.com", "password": "admin123",
+        "name": "System Admin", "role": "admin",
+        "territory_id": "TER_0001", "territory": "All India",
+        "employee_id": "ADM001", "phone": "+91 90000 00000",
+    },
 ]
 
 PRODUCTS = [

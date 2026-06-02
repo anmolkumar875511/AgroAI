@@ -32,41 +32,17 @@ const COLORS = {
   lightGray: '#EDF1E8',
 };
 
-// Mock Reps Data
-const INITIAL_REPS = [
-  { id: 'rep1', name: 'Amit Sharma', role: 'Field Representative', territory: 'Patna North', visits: 38, target: 40, revenue: 320000, acceptance: 92, efficiency: 88.5, status: 'active', lastActive: '10 mins ago', phone: '+91 98765 43210' },
-  { id: 'rep2', name: 'Priya Tiwari', role: 'Field Representative', territory: 'Muzaffarpur South', visits: 29, target: 35, revenue: 245000, acceptance: 85, efficiency: 82.8, status: 'active', lastActive: '2 hrs ago', phone: '+91 87654 32109' },
-  { id: 'rep3', name: 'Rajesh Verma', role: 'Field Representative', territory: 'Gaya West', visits: 31, target: 40, revenue: 260000, acceptance: 80, efficiency: 78.4, status: 'offline', lastActive: '1 day ago', phone: '+91 76543 21098' },
-];
+// Empty fallback Data
+const INITIAL_REPS: any[] = [];
 
-// Mock Revenue per Field Day Trend
-const REVENUE_TREND = [
-  { name: 'May 20', revenue: 42000, visits: 12 },
-  { name: 'May 21', revenue: 58000, visits: 15 },
-  { name: 'May 22', revenue: 49000, visits: 11 },
-  { name: 'May 23', revenue: 65000, visits: 16 },
-  { name: 'May 24', revenue: 72000, visits: 18 },
-  { name: 'May 25', revenue: 81000, visits: 20 },
-  { name: 'May 26', revenue: 60000, visits: 14 },
-  { name: 'May 27', revenue: 89000, visits: 22 },
-  { name: 'May 28', revenue: 95000, visits: 24 },
-];
+// Empty Revenue per Field Day Trend
+const REVENUE_TREND: any[] = [];
 
-// Mock Product Demand Trends
-const PRODUCT_DEMAND = [
-  { product: 'Amistar (Fungicide)', sales: 420, stock: 22, growth: 18, color: COLORS.secondary },
-  { product: 'Actara (Insecticide)', sales: 380, stock: 180, growth: -5, color: COLORS.blue },
-  { product: 'Score (Fungicide)', sales: 290, stock: 56, growth: 12, color: COLORS.yellow },
-  { product: 'Ridomil (Fungicide)', sales: 250, stock: 34, growth: 25, color: COLORS.red },
-  { product: 'Custodia (Fungicide)', sales: 180, stock: 145, growth: 3, color: '#9C27B0' },
-];
+// Empty Product Demand Trends
+const PRODUCT_DEMAND: any[] = [];
 
-// Missed Opportunities
-const MISSED_OPPORTUNITIES = [
-  { id: 'mo1', retailer: 'Kisan Agro Kendra', area: 'Muzaffarpur North', priority: 'High', value: 45000, reason: 'High Pest Risk (BPH) alert unattended for 4 days' },
-  { id: 'mo2', retailer: 'Mandi Fertilizers', area: 'Patna Rural', priority: 'Medium', value: 28000, reason: 'Amistar Stock Out reported, rep visit pending' },
-  { id: 'mo3', retailer: 'Gaya Seeds Store', area: 'Gaya East', priority: 'High', value: 62000, reason: 'High digital engagement but no rep follow-up' },
-];
+// Empty Missed Opportunities
+const MISSED_OPPORTUNITIES: any[] = [];
 
 export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('14d');
@@ -183,7 +159,7 @@ export default function ManagerDashboard() {
             </div>
             <span className="flex items-center gap-1 text-xs font-semibold text-lime-green bg-lime-green/10 px-2 py-0.5 rounded-full">
               <ArrowUpRight className="w-3 h-3" />
-              +14.2%
+              0%
             </span>
           </div>
           <div className="mt-4">
@@ -191,7 +167,7 @@ export default function ManagerDashboard() {
             <p className="text-2xl lg:text-2.2xl font-bold text-text-primary dark:text-white mt-1">
               {formatCurrency(totalRevenue)}
             </p>
-            <p className="text-[11px] text-text-muted mt-1.5">94% of monthly target reached</p>
+            <p className="text-[11px] text-text-muted mt-1.5">0% of monthly target reached</p>
           </div>
           {/* Subtle graphic wave inside card */}
           <div className="absolute bottom-0 left-0 right-0 h-7 opacity-20">
@@ -214,7 +190,7 @@ export default function ManagerDashboard() {
             </div>
             <span className="flex items-center gap-1 text-xs font-semibold text-info-blue bg-info-blue/10 px-2 py-0.5 rounded-full">
               <ArrowUpRight className="w-3 h-3" />
-              +5.4%
+              0%
             </span>
           </div>
           <div className="mt-4">
@@ -244,7 +220,7 @@ export default function ManagerDashboard() {
             </div>
             <span className="flex items-center gap-1 text-xs font-semibold text-danger-red bg-danger-red/10 px-2 py-0.5 rounded-full">
               <ArrowDownRight className="w-3 h-3" />
-              -1.2%
+              0%
             </span>
           </div>
           <div className="mt-4">
@@ -273,7 +249,7 @@ export default function ManagerDashboard() {
               <ShieldAlert className="w-4.5 h-4.5 text-danger-red" />
             </div>
             <span className="text-xs font-semibold text-lime-green bg-lime-green/10 px-2 py-0.5 rounded-full">
-              42/50
+              0/0
             </span>
           </div>
           <div className="mt-4">
@@ -281,7 +257,7 @@ export default function ManagerDashboard() {
             <p className="text-2xl lg:text-2.2xl font-bold text-text-primary dark:text-white mt-1">
               {totalVisits} <span className="text-sm font-normal text-text-muted">/ {totalTargets} Total</span>
             </p>
-            <p className="text-[11px] text-text-muted mt-1.5">8 missed opportunities pending action</p>
+            <p className="text-[11px] text-text-muted mt-1.5">{missedOpportunities.length} missed opportunities pending action</p>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-7 opacity-20">
             <ResponsiveContainer width="100%" height="100%">
@@ -330,7 +306,7 @@ export default function ManagerDashboard() {
                   <td className="py-3 px-3">
                     <div className="flex items-center gap-2.5">
                       <div className="w-8 h-8 rounded-full bg-deep-green/10 dark:bg-lime-green/20 text-deep-green dark:text-lime-green font-bold flex items-center justify-center text-xs">
-                        {rep.name.split(' ').map(n => n[0]).join('')}
+                        {rep.name.split(' ').map((n: string) => n[0]).join('')}
                       </div>
                       <div>
                         <div className="font-semibold text-text-primary dark:text-white text-xs lg:text-sm">{rep.name}</div>

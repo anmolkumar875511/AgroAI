@@ -16,18 +16,9 @@ const COLORS = {
   red: '#E53935',
 };
 
-const REP_PERFORMANCE_DETAILS = [
-  { name: 'Amit Sharma', territory: 'Patna North', visits: 38, target: 40, sales: 320000, activeGrowers: 145, rating: 4.8, status: 'Active' },
-  { name: 'Priya Tiwari', territory: 'Muzaffarpur South', visits: 29, target: 35, sales: 245000, activeGrowers: 120, rating: 4.6, status: 'Active' },
-  { name: 'Rajesh Verma', territory: 'Gaya West', visits: 31, target: 40, sales: 260000, activeGrowers: 132, rating: 4.4, status: 'Offline' },
-];
+const REP_PERFORMANCE_DETAILS: any[] = [];
 
-const DAILY_LOGS = [
-  { time: '04:30 PM', rep: 'Amit Sharma', type: 'Visit Complete', retailer: 'Kisan Seed Store', detail: 'Discussed Amistar, order value of ₹45k placed.' },
-  { time: '02:15 PM', rep: 'Priya Tiwari', type: 'Visit Complete', retailer: 'Mahavir Fertilizers', detail: 'Stock count verified, low inventory of Actara reported.' },
-  { time: '11:00 AM', rep: 'Amit Sharma', type: 'Meeting Done', retailer: 'Patna Agri Association', detail: 'Addressed crop protection concerns for wheat sowing season.' },
-  { time: '10:15 AM', rep: 'Rajesh Verma', type: 'Route Started', retailer: 'N/A', detail: 'Route optimization synced successfully.' },
-];
+const DAILY_LOGS: any[] = [];
 
 export default function TeamPerformancePage() {
   const [searchQuery, setSearchQuery] = useState('');
@@ -263,19 +254,19 @@ export default function TeamPerformancePage() {
             <div className="grid grid-cols-2 gap-4 mt-6 text-xs bg-light-gray/20 dark:bg-white/5 p-4 rounded-xl">
               <div>
                 <div className="text-text-muted">Total Route Hours</div>
-                <div className="text-base font-bold text-text-primary dark:text-white mt-1">34.5 hrs</div>
+                <div className="text-base font-bold text-text-primary dark:text-white mt-1">0 hrs</div>
               </div>
               <div>
                 <div className="text-text-muted">Avg Visit Duration</div>
-                <div className="text-base font-bold text-text-primary dark:text-white mt-1">42 mins</div>
+                <div className="text-base font-bold text-text-primary dark:text-white mt-1">0 mins</div>
               </div>
               <div>
                 <div className="text-text-muted">Mandi Price Syncs</div>
-                <div className="text-base font-bold text-text-primary dark:text-white mt-1">12 completed</div>
+                <div className="text-base font-bold text-text-primary dark:text-white mt-1">0 completed</div>
               </div>
               <div>
                 <div className="text-text-muted">WhatsApp Campaigns Sent</div>
-                <div className="text-base font-bold text-text-primary dark:text-white mt-1">220 messages</div>
+                <div className="text-base font-bold text-text-primary dark:text-white mt-1">0 messages</div>
               </div>
             </div>
             <div className="flex gap-3 justify-end mt-6">

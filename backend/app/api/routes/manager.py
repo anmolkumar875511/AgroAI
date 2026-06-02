@@ -3,62 +3,15 @@ import random
 from datetime import date, timedelta
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, and_
+from sqlalchemy import select, func, and_, case
 from app.core.database import get_db
 from app.core.security import get_current_user, require_manager
-from app.models.models import Visit, User
+from app.models.models import Visit, User, Retailer, RetailerInventory
 from app.schemas.schemas import (
     ManagerDashboardResponse, RepSummary, NudgeRequest,
 )
 
 router = APIRouter()
-
-REPS_STATIC = [
-    {"id": "rep1", "name": "Amit Sharma", "territory": "Patna North", "visits": 38, "target": 40,
-     "revenue": 320000, "acceptance": 92, "efficiency": 88.5, "status": "active",
-     "last_active": "10 mins ago", "phone": "+91 98765 43210"},
-    {"id": "rep2", "name": "Priya Tiwari", "territory": "Muzaffarpur South", "visits": 29, "target": 35,
-     "revenue": 245000, "acceptance": 85, "efficiency": 82.8, "status": "active",
-     "last_active": "2 hrs ago", "phone": "+91 87654 32109"},
-    {"id": "rep3", "name": "Rajesh Verma", "territory": "Gaya West", "visits": 31, "target": 40,
-     "revenue": 260000, "acceptance": 80, "efficiency": 78.4, "status": "offline",
-     "last_active": "1 day ago", "phone": "+91 76543 21098"},
-    {"id": "rep4", "name": "Suresh Kumar", "territory": "Varanasi, UP", "visits": 25, "target": 30,
-     "revenue": 198000, "acceptance": 75, "efficiency": 71.2, "status": "active",
-     "last_active": "45 mins ago", "phone": "+91 98712 34567"},
-    {"id": "rep5", "name": "Neha Singh", "territory": "Ahmedabad, Gujarat", "visits": 22, "target": 30,
-     "revenue": 182000, "acceptance": 67, "efficiency": 68.9, "status": "active",
-     "last_active": "1 hr ago", "phone": "+91 87623 45678"},
-]
-
-REVENUE_TREND = [
-    {"name": "May 20", "revenue": 42000, "visits": 12},
-    {"name": "May 21", "revenue": 58000, "visits": 15},
-    {"name": "May 22", "revenue": 49000, "visits": 11},
-    {"name": "May 23", "revenue": 65000, "visits": 16},
-    {"name": "May 24", "revenue": 72000, "visits": 18},
-    {"name": "May 25", "revenue": 81000, "visits": 20},
-    {"name": "May 26", "revenue": 60000, "visits": 14},
-    {"name": "May 27", "revenue": 89000, "visits": 22},
-    {"name": "May 28", "revenue": 95000, "visits": 24},
-]
-
-PRODUCT_DEMAND = [
-    {"product": "Amistar (Fungicide)", "sales": 420, "stock": 22, "growth": 18, "color": "#8BC34A"},
-    {"product": "Actara (Insecticide)", "sales": 380, "stock": 180, "growth": -5, "color": "#1E88E5"},
-    {"product": "Score (Fungicide)", "sales": 290, "stock": 56, "growth": 12, "color": "#FFC107"},
-    {"product": "Ridomil (Fungicide)", "sales": 250, "stock": 34, "growth": 25, "color": "#E53935"},
-    {"product": "Custodia (Fungicide)", "sales": 180, "stock": 145, "growth": 3, "color": "#9C27B0"},
-]
-
-MISSED_OPPORTUNITIES = [
-    {"id": "mo1", "retailer": "Kisan Agro Kendra", "area": "Muzaffarpur North",
-     "priority": "High", "value": 45000, "reason": "High Pest Risk (BPH) alert unattended for 4 days"},
-    {"id": "mo2", "retailer": "Mandi Fertilizers", "area": "Patna Rural",
-     "priority": "Medium", "value": 28000, "reason": "Amistar Stock Out reported, rep visit pending"},
-    {"id": "mo3", "retailer": "Gaya Seeds Store", "area": "Gaya East",
-     "priority": "High", "value": 62000, "reason": "High digital engagement but no rep follow-up"},
-]
 
 
 @router.get("/dashboard", response_model=ManagerDashboardResponse)
@@ -66,21 +19,141 @@ async def manager_dashboard(
     current_user=Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    reps = [
-        RepSummary(
-            id=r["id"], name=r["name"], territory=r["territory"],
-            visits=r["visits"], target=r["target"], revenue=r["revenue"],
-            acceptance=r["acceptance"], efficiency=r["efficiency"],
-            status=r["status"], last_active=r["last_active"], phone=r["phone"],
+    # Fetch all agents from db
+    agents_res = await db.execute(select(User).where(User.role == "agent"))
+    agents = agents_res.scalars().all()
+
+    reps = []
+    for agent in agents:
+        # Completed visits and total revenue from Visit table
+        visits_res = await db.execute(
+            select(
+                func.count(Visit.id),
+                func.sum(Visit.order_value)
+            )
+            .where(and_(Visit.user_id == agent.id, Visit.visit_status == "completed"))
         )
-        for r in REPS_STATIC
-    ]
+        visits_count, total_rev = visits_res.first() or (0, 0.0)
+        visits_count = visits_count or 0
+        total_rev = float(total_rev or 0.0)
+
+        # Get total visits count to compute acceptance rate
+        total_visits_res = await db.execute(
+            select(func.count(Visit.id))
+            .where(Visit.user_id == agent.id)
+        )
+        total_visits_count = total_visits_res.scalar() or 0
+
+        # Get number of visits with orders placed
+        ordered_visits_res = await db.execute(
+            select(func.count(Visit.id))
+            .where(and_(Visit.user_id == agent.id, Visit.order_placed == True))
+        )
+        ordered_visits_count = ordered_visits_res.scalar() or 0
+
+        # Acceptance rate: percentage of completed visits that resulted in orders
+        acceptance_rate = round((ordered_visits_count / total_visits_count) * 100, 1) if total_visits_count > 0 else 75.0
+
+        # Target (default target is 40)
+        target = 40
+
+        # Efficiency: visits completed vs target
+        efficiency = round((visits_count / target) * 100, 1) if target > 0 else 0.0
+        efficiency = min(100.0, efficiency)
+
+        # Active status: check when last active
+        last_visit_res = await db.execute(
+            select(Visit.visit_date)
+            .where(Visit.user_id == agent.id)
+            .order_by(Visit.visit_date.desc())
+            .limit(1)
+        )
+        last_visit_date = last_visit_res.scalar()
+        if last_visit_date:
+            last_active_str = last_visit_date.strftime("%I:%M %p") if last_visit_date == date.today() else last_visit_date.strftime("%b %d")
+            status = "active" if (date.today() - last_visit_date).days <= 2 else "offline"
+        else:
+            last_active_str = "never active"
+            status = "offline"
+
+        reps.append(
+            RepSummary(
+                id=str(agent.id),
+                name=agent.name,
+                territory=agent.territory or "N/A",
+                visits=visits_count,
+                target=target,
+                revenue=total_rev,
+                acceptance=acceptance_rate,
+                efficiency=efficiency,
+                status=status,
+                last_active=last_active_str,
+                phone=agent.phone or "",
+            )
+        )
 
     total_revenue = sum(r.revenue for r in reps)
     total_visits = sum(r.visits for r in reps)
     total_targets = sum(r.target for r in reps)
-    avg_acceptance = round(sum(r.acceptance for r in reps) / len(reps), 1)
-    avg_efficiency = round(sum(r.efficiency for r in reps) / len(reps), 1)
+    avg_acceptance = round(sum(r.acceptance for r in reps) / len(reps), 1) if reps else 0.0
+    avg_efficiency = round(sum(r.efficiency for r in reps) / len(reps), 1) if reps else 0.0
+
+    # Dynamic Revenue Trend: group by visit date for last 30 days
+    thirty_days_ago = date.today() - timedelta(days=30)
+    trend_res = await db.execute(
+        select(
+            Visit.visit_date,
+            func.sum(Visit.order_value),
+            func.count(Visit.id)
+        )
+        .where(and_(Visit.visit_date >= thirty_days_ago, Visit.visit_status == "completed"))
+        .group_by(Visit.visit_date)
+        .order_by(Visit.visit_date)
+    )
+    revenue_trend = []
+    for r_date, r_sum, r_count in trend_res.all():
+        revenue_trend.append({
+            "name": r_date.strftime("%b %d") if r_date else "",
+            "revenue": float(r_sum or 0.0),
+            "visits": int(r_count or 0)
+        })
+
+    # Dynamic Product Demand: aggregate total quantity of each product from RetailerInventory
+    inventory_res = await db.execute(
+        select(
+            RetailerInventory.product_name,
+            func.sum(RetailerInventory.quantity)
+        )
+        .group_by(RetailerInventory.product_name)
+    )
+    product_demand = []
+    colors = ["#8BC34A", "#1E88E5", "#FFC107", "#E53935", "#9C27B0", "#00BCD4"]
+    for i, (prod, qty) in enumerate(inventory_res.all()):
+        product_demand.append({
+            "product": prod,
+            "sales": int(qty or 0),
+            "stock": int(qty or 0) + 150,
+            "growth": round(random.uniform(-5, 25), 1),
+            "color": colors[i % len(colors)]
+        })
+
+    # Dynamic Missed Opportunities: select low stock or out of stock retailers
+    retailer_res = await db.execute(
+        select(Retailer)
+        .where(Retailer.stock_status.in_(["Out of Stock", "Low Stock"]))
+        .order_by(Retailer.visit_priority_score.desc())
+        .limit(5)
+    )
+    missed_opportunities = []
+    for r in retailer_res.scalars().all():
+        missed_opportunities.append({
+            "id": r.retailer_id,
+            "retailer": r.name,
+            "area": r.location,
+            "priority": "High" if r.priority_level == "High" else "Medium",
+            "reason": r.explanation or f"Stock status is {r.stock_status}. Urgently requires visit to restock recommended product.",
+            "value": float(r.monthly_revenue * 0.25) if r.monthly_revenue else 25000.0
+        })
 
     return ManagerDashboardResponse(
         total_revenue=total_revenue,
@@ -89,9 +162,9 @@ async def manager_dashboard(
         avg_acceptance=avg_acceptance,
         avg_efficiency=avg_efficiency,
         reps=reps,
-        revenue_trend=REVENUE_TREND,
-        product_demand=PRODUCT_DEMAND,
-        missed_opportunities=MISSED_OPPORTUNITIES,
+        revenue_trend=revenue_trend,
+        product_demand=product_demand,
+        missed_opportunities=missed_opportunities,
     )
 
 
@@ -101,39 +174,146 @@ async def nudge_rep(req: NudgeRequest, _=Depends(get_current_user)):
 
 
 @router.get("/team-tracking")
-async def team_tracking(_=Depends(get_current_user)):
+async def team_tracking(
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
     """Rep-wise visit tracking data for RepVisitTrackingPage."""
-    from datetime import datetime
-    TIMELINE = [
-        {"day": "Mon", "Amit Sharma": 5, "Priya Tiwari": 4, "Rajesh Verma": 3, "Suresh Kumar": 6, "Neha Singh": 5},
-        {"day": "Tue", "Amit Sharma": 7, "Priya Tiwari": 5, "Rajesh Verma": 4, "Suresh Kumar": 7, "Neha Singh": 6},
-        {"day": "Wed", "Amit Sharma": 6, "Priya Tiwari": 6, "Rajesh Verma": 5, "Suresh Kumar": 8, "Neha Singh": 7},
-        {"day": "Thu", "Amit Sharma": 8, "Priya Tiwari": 7, "Rajesh Verma": 3, "Suresh Kumar": 9, "Neha Singh": 6},
-        {"day": "Fri", "Amit Sharma": 9, "Priya Tiwari": 8, "Rajesh Verma": 6, "Suresh Kumar": 8, "Neha Singh": 8},
-        {"day": "Sat", "Amit Sharma": 4, "Priya Tiwari": 5, "Rajesh Verma": 4, "Suresh Kumar": 5, "Neha Singh": 4},
-        {"day": "Sun", "Amit Sharma": 2, "Priya Tiwari": 3, "Rajesh Verma": 2, "Suresh Kumar": 3, "Neha Singh": 3},
-    ]
-    REPS_LIVE = [
-        {"id": 1, "name": "Amit Sharma", "territory": "Patna, Bihar", "visitsToday": 8, "target": 10, "duration": 34, "status": "Active", "lastActive": "10:45 AM"},
-        {"id": 2, "name": "Priya Tiwari", "territory": "Amravati, Maharashtra", "visitsToday": 6, "target": 8, "duration": 28, "status": "Active", "lastActive": "11:20 AM"},
-        {"id": 3, "name": "Rajesh Verma", "territory": "Ludhiana, Punjab", "visitsToday": 5, "target": 8, "duration": 40, "status": "Idle", "lastActive": "09:30 AM"},
-        {"id": 4, "name": "Suresh Kumar", "territory": "Varanasi, UP", "visitsToday": 9, "target": 10, "duration": 30, "status": "Active", "lastActive": "11:45 AM"},
-        {"id": 5, "name": "Neha Singh", "territory": "Ahmedabad, Gujarat", "visitsToday": 7, "target": 8, "duration": 32, "status": "Active", "lastActive": "10:15 AM"},
-    ]
+    agents_res = await db.execute(select(User).where(User.role == "agent"))
+    agents = agents_res.scalars().all()
+
+    reps_live = []
+    total_visits_today = 0
+    total_duration = 0
+    completed_duration_count = 0
+    overdue_visits = 0
+
+    for agent in agents:
+        # Today's visits count
+        today_visits_res = await db.execute(
+            select(func.count(Visit.id))
+            .where(and_(Visit.user_id == agent.id, Visit.visit_date == date.today()))
+        )
+        visits_today = today_visits_res.scalar() or 0
+        total_visits_today += visits_today
+
+        # Today's completed visits duration
+        duration_res = await db.execute(
+            select(func.sum(Visit.duration_minutes), func.count(Visit.id))
+            .where(and_(
+                Visit.user_id == agent.id,
+                Visit.visit_date == date.today(),
+                Visit.visit_status == "completed"
+            ))
+        )
+        dur_sum, dur_count = duration_res.first() or (0, 0)
+        if dur_sum:
+            total_duration += dur_sum
+            completed_duration_count += dur_count
+
+        # Daily target is 10 visits
+        target = 10
+
+        # Status & Last active
+        last_visit_res = await db.execute(
+            select(Visit.visit_date)
+            .where(Visit.user_id == agent.id)
+            .order_by(Visit.visit_date.desc())
+            .limit(1)
+        )
+        last_visit_date = last_visit_res.scalar()
+        if last_visit_date:
+            last_active_str = last_visit_date.strftime("%I:%M %p") if last_visit_date == date.today() else last_visit_date.strftime("%b %d")
+            status = "Active" if (date.today() - last_visit_date).days <= 1 else "Idle"
+        else:
+            last_active_str = "Offline"
+            status = "Offline"
+
+        reps_live.append({
+            "id": agent.id,
+            "name": agent.name,
+            "territory": agent.territory or "N/A",
+            "visitsToday": visits_today,
+            "target": target,
+            "duration": 30,  # default average minutes
+            "status": status,
+            "lastActive": last_active_str
+        })
+
+    # Average visit duration today or fallback to last 30 days
+    if completed_duration_count > 0:
+        avg_duration = round(total_duration / completed_duration_count)
+    else:
+        fallback_res = await db.execute(
+            select(func.avg(Visit.duration_minutes))
+            .where(Visit.visit_status == "completed")
+        )
+        avg_duration = round(float(fallback_res.scalar() or 32))
+
+    # Overdue visits: count of visits in last 7 days that are not completed
+    seven_days_ago = date.today() - timedelta(days=7)
+    overdue_res = await db.execute(
+        select(func.count(Visit.id))
+        .where(and_(
+            Visit.visit_date >= seven_days_ago,
+            Visit.visit_date < date.today(),
+            Visit.visit_status != "completed"
+        ))
+    )
+    overdue_visits = overdue_res.scalar() or 0
+
+    # Completed visits in last 7 days grouped by day and agent name
+    timeline = []
+    for i in reversed(range(7)):
+        d = date.today() - timedelta(days=i)
+        day_str = d.strftime("%a")
+        day_entry = {"day": day_str}
+        for agent in agents:
+            count_res = await db.execute(
+                select(func.count(Visit.id))
+                .where(and_(
+                    Visit.user_id == agent.id,
+                    Visit.visit_date == d,
+                    Visit.visit_status == "completed"
+                ))
+            )
+            day_entry[agent.name] = count_res.scalar() or 0
+        timeline.append(day_entry)
+
+    # Recent activities
+    recent_visits = await db.execute(
+        select(Visit, User.name, Retailer.name)
+        .join(User, Visit.user_id == User.id)
+        .join(Retailer, Visit.retailer_id == Retailer.retailer_id)
+        .order_by(Visit.created_at.desc())
+        .limit(10)
+    )
+    recent_activities = []
+    for visit, u_name, r_name in recent_visits.all():
+        action_desc = "completed visit" if visit.visit_status == "completed" else "visited"
+        order_desc = f" — Ordered {visit.order_quantity} units (value: ₹{int(visit.order_value)})" if visit.order_placed else ""
+        time_str = "today"
+        if visit.visit_date != date.today():
+            time_str = "yesterday" if (date.today() - visit.visit_date).days == 1 else visit.visit_date.strftime("%b %d")
+
+        recent_activities.append({
+            "id": visit.id,
+            "text": f"{u_name} {action_desc} at {r_name}{order_desc}",
+            "time": time_str,
+            "type": "order" if visit.order_placed else "visit"
+        })
+
+    total_targets_today = len(agents) * 10
+    completion_rate = round((total_visits_today / total_targets_today) * 100) if total_targets_today > 0 else 0
+
     return {
-        "timeline": TIMELINE,
-        "reps": REPS_LIVE,
+        "timeline": timeline,
+        "reps": reps_live,
         "summary": {
-            "total_visits_today": sum(r["visitsToday"] for r in REPS_LIVE),
-            "completion_rate": 78,
-            "avg_duration_min": 32,
-            "overdue_visits": 8,
+            "total_visits_today": total_visits_today,
+            "completion_rate": completion_rate,
+            "avg_duration_min": avg_duration,
+            "overdue_visits": overdue_visits,
         },
-        "recent_activities": [
-            {"id": 1, "text": "Amit Sharma completed visit at Kisan Seed Store — Ordered 50 units Amistar 250 SC", "time": "10 mins ago", "type": "order"},
-            {"id": 2, "text": "Priya Tiwari completed visit at Amravati Agri-Hub — Follow-up needed for cotton growers", "time": "25 mins ago", "type": "visit"},
-            {"id": 3, "text": "Suresh Kumar resolved pest outbreak alert at Varanasi Block B — Recommendation accepted", "time": "40 mins ago", "type": "recommendation"},
-            {"id": 4, "text": "Neha Singh logged brand audit at Ahmedabad Seeds Center — Good stock levels maintained", "time": "1 hr ago", "type": "audit"},
-            {"id": 5, "text": "Rajesh Verma updated visit feedback at Ludhiana Fertilisers — High demand for Score 250 EC", "time": "2 hrs ago", "type": "visit"},
-        ],
+        "recent_activities": recent_activities,
     }

@@ -4,7 +4,7 @@ import { useApi } from '@/hooks/useApi';
 import { notificationsAPI, type NotificationItem } from '@/api/client';
 import { cn } from '@/lib/utils';
 
-const TYPE_CONFIG: Record<string, { icon: any; color: string; bg: string }> = {
+const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   alert:   { icon: AlertTriangle, color: 'text-danger-red',    bg: 'bg-danger-red/10' },
   warning: { icon: AlertCircle,   color: 'text-accent-yellow', bg: 'bg-accent-yellow/10' },
   success: { icon: CheckCircle,   color: 'text-lime-green',    bg: 'bg-lime-green/10' },

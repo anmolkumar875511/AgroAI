@@ -8,31 +8,11 @@ import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
 
-const MONTHLY_DEMAND = [
-  { month: 'Jan', 'Amistar 250 SC': 1200, 'Actara 25 WG': 900, 'Tilt 250 EC': 800, 'Movondo': 500, 'Score 250 EC': 700, 'Vibrance': 400 },
-  { month: 'Feb', 'Amistar 250 SC': 1400, 'Actara 25 WG': 1100, 'Tilt 250 EC': 850, 'Movondo': 480, 'Score 250 EC': 750, 'Vibrance': 450 },
-  { month: 'Mar', 'Amistar 250 SC': 1800, 'Actara 25 WG': 1400, 'Tilt 250 EC': 1100, 'Movondo': 600, 'Score 250 EC': 900, 'Vibrance': 500 },
-  { month: 'Apr', 'Amistar 250 SC': 2100, 'Actara 25 WG': 1600, 'Tilt 250 EC': 1300, 'Movondo': 750, 'Score 250 EC': 1050, 'Vibrance': 600 },
-  { month: 'May', 'Amistar 250 SC': 2400, 'Actara 25 WG': 1850, 'Tilt 250 EC': 1500, 'Movondo': 920, 'Score 250 EC': 1150, 'Vibrance': 700 },
-  { month: 'Jun', 'Amistar 250 SC': 2450, 'Actara 25 WG': 1890, 'Tilt 250 EC': 1650, 'Movondo': 980, 'Score 250 EC': 1200, 'Vibrance': 750 },
-];
+const MONTHLY_DEMAND: any[] = [];
 
-const PRODUCT_PERFORMANCE = [
-  { id: 1, name: 'Amistar 250 SC', category: 'Fungicide', sold: '2,450', revenue: '₹12.5L', growth: '+18%', isPositive: true, stockStatus: 'Good Stock', demandScore: 92, stock: 450, req: 380 },
-  { id: 2, name: 'Actara 25 WG', category: 'Insecticide', sold: '1,890', revenue: '₹9.8L', growth: '+34%', isPositive: true, stockStatus: 'Good Stock', demandScore: 88, stock: 380, req: 320 },
-  { id: 3, name: 'Tilt 250 EC', category: 'Fungicide', sold: '1,650', revenue: '₹8.2L', growth: '+12%', isPositive: true, stockStatus: 'Medium Stock', demandScore: 78, stock: 250, req: 280 },
-  { id: 4, name: 'Movondo', category: 'Fungicide', sold: '980', revenue: '₹5.1L', growth: '-5%', isPositive: false, stockStatus: 'Low Stock', demandScore: 65, stock: 120, req: 220 },
-  { id: 5, name: 'Score 250 EC', category: 'Fungicide', sold: '1,200', revenue: '₹6.3L', growth: '+8%', isPositive: true, stockStatus: 'Good Stock', demandScore: 72, stock: 290, req: 240 },
-  { id: 6, name: 'Vibrance Integral', category: 'Seed Treatment', sold: '750', revenue: '₹4.8L', growth: '+22%', isPositive: true, stockStatus: 'Good Stock', demandScore: 70, stock: 200, req: 160 },
-];
+const PRODUCT_PERFORMANCE: any[] = [];
 
-const TERRITORY_DEMAND = [
-  { territory: 'Bihar', 'Units Sold': 3500, color: '#8BC34A' },
-  { territory: 'Maharashtra', 'Units Sold': 2800, color: '#1E88E5' },
-  { territory: 'Punjab', 'Units Sold': 2400, color: '#FFC107' },
-  { territory: 'Uttar Pradesh', 'Units Sold': 1900, color: '#E53935' },
-  { territory: 'Gujarat', 'Units Sold': 1500, color: '#9C27B0' },
-];
+const TERRITORY_DEMAND: any[] = [];
 
 export default function ProductDemandTrendsPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -98,10 +78,10 @@ export default function ProductDemandTrendsPage() {
       {/* KPI Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Products Tracked', value: '6', icon: Leaf, desc: 'Active catalog listings', color: 'text-emerald-400 border-emerald-500/20' },
-          { label: 'Top Selling Brand', value: 'Amistar 250 SC', icon: ShoppingBag, desc: '₹12.5L Revenue generated (30d)', color: 'text-lime-green border-lime-green/20' },
-          { label: 'Highest Demand Growth', value: 'Actara (+34%)', icon: Sparkles, desc: 'Driven by cotton crop season', color: 'text-blue-400 border-blue-400/20' },
-          { label: 'Stock Alert Outlets', value: 'Movondo (Low)', icon: PackageOpen, desc: 'Immediate stock dispatch needed', color: 'text-rose-400 border-rose-500/20' },
+          { label: 'Total Products Tracked', value: '0', icon: Leaf, desc: 'Active catalog listings', color: 'text-emerald-400 border-emerald-500/20' },
+          { label: 'Top Selling Brand', value: 'N/A', icon: ShoppingBag, desc: '₹0 Revenue generated (30d)', color: 'text-lime-green border-lime-green/20' },
+          { label: 'Highest Demand Growth', value: 'N/A', icon: Sparkles, desc: 'No active data', color: 'text-blue-400 border-blue-400/20' },
+          { label: 'Stock Alert Outlets', value: 'N/A', icon: PackageOpen, desc: 'No active stock issues', color: 'text-rose-400 border-rose-500/20' },
         ].map((card, i) => (
           <div key={i} className="backdrop-blur-md bg-white/70 dark:bg-[#122315]/30 border border-white/20 dark:border-white/10 rounded-card p-5 shadow-card flex items-center justify-between">
             <div className="truncate pr-2">

@@ -7,30 +7,11 @@ import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
 
-const RISK_DISTRIBUTION = [
-  { name: 'Critical', value: 12, color: '#E53935' },
-  { name: 'High Priority', value: 25, color: '#FFC107' },
-  { name: 'Medium Priority', value: 45, color: '#1E88E5' },
-  { name: 'Low Priority', value: 60, color: '#8BC34A' },
-];
+const RISK_DISTRIBUTION: any[] = [];
 
-const HIGH_PRIORITY_AREAS = [
-  { id: 1, area: 'Patna Sadar', district: 'Patna', state: 'Bihar', priority: 'Critical', riskScore: 92, retailers: 15, revenueImpact: '₹2.1L' },
-  { id: 2, area: 'Muzaffarpur', district: 'Muzaffarpur', state: 'Bihar', priority: 'Critical', riskScore: 88, retailers: 12, revenueImpact: '₹1.8L' },
-  { id: 3, area: 'Amravati Sadar', district: 'Amravati', state: 'Maharashtra', priority: 'High', riskScore: 78, retailers: 8, revenueImpact: '₹1.2L' },
-  { id: 4, area: 'Ludhiana East', district: 'Ludhiana', state: 'Punjab', priority: 'High', riskScore: 75, retailers: 10, revenueImpact: '₹0.9L' },
-  { id: 5, area: 'Varanasi Sadar', district: 'Varanasi', state: 'UP', priority: 'Medium', riskScore: 62, retailers: 6, revenueImpact: '₹0.6L' },
-  { id: 6, area: 'Nashik Sadar', district: 'Nashik', state: 'Maharashtra', priority: 'Medium', riskScore: 58, retailers: 5, revenueImpact: '₹0.5L' },
-  { id: 7, area: 'Rajkot Sadar', district: 'Rajkot', state: 'Low', riskScore: 35, retailers: 3, revenueImpact: '₹0.3L' },
-];
+const HIGH_PRIORITY_AREAS: any[] = [];
 
-const RISK_FACTORS = [
-  { name: 'Stock Depletion', count: 28, impact: 'High Impact', percent: 85, color: 'bg-rose-500' },
-  { name: 'Visit Gap > 30 Days', count: 19, impact: 'Medium Impact', percent: 65, color: 'bg-amber-500' },
-  { name: 'Declining Sales Trend', count: 15, impact: 'High Impact', percent: 75, color: 'bg-rose-500' },
-  { name: 'Low Grower Engagement', count: 12, impact: 'Low Impact', percent: 40, color: 'bg-blue-500' },
-  { name: 'Pest Outbreak Risk', count: 8, impact: 'Critical Impact', percent: 90, color: 'bg-rose-500 font-bold' },
-];
+const RISK_FACTORS: any[] = [];
 
 export default function HighPriorityAreasPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -59,15 +40,15 @@ export default function HighPriorityAreasPage() {
 
   const totalRevenueAtRisk = missedOpportunities.length > 0
     ? `₹${(missedOpportunities.reduce((acc: number, mo: any) => acc + mo.value, 0) / 100000).toFixed(1)}L`
-    : '₹8.5L';
+    : '₹0';
 
   const criticalGapsCount = missedOpportunities.length > 0
     ? String(missedOpportunities.filter((mo: any) => mo.priority === 'High').length)
-    : '12';
+    : '0';
 
   const highRiskRetailersCount = missedOpportunities.length > 0
     ? String(missedOpportunities.length * 5) // Multiply by 5 for a realistic high-risk retailer count
-    : '45';
+    : '0';
 
   const filteredAreas = liveAreas.filter(area => {
     const matchesSearch = area.area.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -112,7 +93,7 @@ export default function HighPriorityAreasPage() {
           { label: 'Critical Area Gaps', value: criticalGapsCount, icon: AlertTriangle, desc: 'Immediate dispatch required', color: 'text-rose-400 border-rose-500/20' },
           { label: 'High Risk Retailers', value: highRiskRetailersCount, icon: ShieldAlert, desc: 'Low stock / high visit gap', color: 'text-amber-400 border-amber-500/20' },
           { label: 'Revenue at Risk', value: totalRevenueAtRisk, icon: TrendingUp, desc: 'Next 30 days projected sales', color: 'text-rose-400 border-rose-500/20' },
-          { label: 'Pending Actions', value: '23', icon: Sparkles, desc: 'Recommended planner tasks', color: 'text-blue-400 border-blue-500/20' },
+          { label: 'Pending Actions', value: '0', icon: Sparkles, desc: 'Recommended planner tasks', color: 'text-blue-400 border-blue-500/20' },
         ].map((card, i) => (
           <div key={i} className="backdrop-blur-md bg-white/70 dark:bg-[#122315]/30 border border-white/20 dark:border-white/10 rounded-card p-5 shadow-card flex items-center justify-between">
             <div>

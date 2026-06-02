@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Wheat, Sprout, X, Calculator, Coins, Percent, Sparkles } from 'lucide-react';
@@ -54,11 +54,6 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
   const [selectedPrice, setSelectedPrice] = useState<DisplayMandiPrice | null>(null);
   const [volume, setVolume] = useState<number>(50);
   const [costPercentage, setCostPercentage] = useState<number>(55);
-  const [mounted, setMounted] = useState<boolean>(false);
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   if (loading && !prices.length) {
     return (
@@ -130,7 +125,7 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
         </div>
       </div>
 
-      {mounted && createPortal(
+      {typeof document !== 'undefined' && createPortal(
         <AnimatePresence>
           {selectedPrice && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/65 backdrop-blur-sm overflow-y-auto">

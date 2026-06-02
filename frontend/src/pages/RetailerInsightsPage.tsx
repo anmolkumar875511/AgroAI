@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, RefreshCw, MapPin, Clock, Package, TrendingUp, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -32,8 +32,8 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
       await retailersAPI.rescore(retailer.retailer_id);
       toast.success(`ML priority score re-calculated for ${retailer.retailer_id}!`);
       onRescore(retailer.retailer_id);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to re-run ML score. Please try again.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to re-run ML score. Please try again.');
     } finally {
       setRescoring(false);
     }
@@ -53,8 +53,8 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
         },
       });
       setIsPlanned(true);
-    } catch (err: any) {
-      toast.error(err.message || 'Failed to plan visit. Please try again.');
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Failed to plan visit. Please try again.');
     } finally {
       setPlanning(false);
     }
@@ -166,23 +166,11 @@ export default function RetailerInsightsPage() {
   const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
   const [searchParams, setSearchParams] = useSearchParams();
 
-  const initialSearch = searchParams.get('search') || '';
-  const initialPriority = searchParams.get('priority') || 'all';
-  const initialStock = searchParams.get('stock') || 'all';
-
-  const [search, setSearch]   = useState(initialSearch);
-  const [priority, setPriority] = useState(initialPriority);
-  const [stock, setStock]     = useState(initialStock);
+  const search = searchParams.get('search') || '';
+  const priority = searchParams.get('priority') || 'all';
+  const stock = searchParams.get('stock') || 'all';
   const [page, setPage]       = useState(0);
   const limit = 12;
-
-  // Sync state with URL search params when they change
-  useEffect(() => {
-    setSearch(searchParams.get('search') || '');
-    setPriority(searchParams.get('priority') || 'all');
-    setStock(searchParams.get('stock') || 'all');
-    setPage(0);
-  }, [searchParams]);
 
   const updateParams = (newSearch: string, newPriority: string, newStock: string) => {
     const params: Record<string, string> = {};
@@ -193,19 +181,16 @@ export default function RetailerInsightsPage() {
   };
 
   const handleSearchChange = (val: string) => {
-    setSearch(val);
     setPage(0);
     updateParams(val, priority, stock);
   };
 
   const handlePriorityChange = (val: string) => {
-    setPriority(val);
     setPage(0);
     updateParams(search, val, stock);
   };
 
   const handleStockChange = (val: string) => {
-    setStock(val);
     setPage(0);
     updateParams(search, priority, val);
   };

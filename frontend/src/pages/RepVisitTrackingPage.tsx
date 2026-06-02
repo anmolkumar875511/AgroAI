@@ -8,34 +8,11 @@ import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
 
-const TIMELINE_DATA = [
-  { day: 'Mon', 'Amit Sharma': 5, 'Priya Tiwari': 4, 'Rajesh Verma': 3, 'Suresh Kumar': 6, 'Neha Singh': 5 },
-  { day: 'Tue', 'Amit Sharma': 7, 'Priya Tiwari': 5, 'Rajesh Verma': 4, 'Suresh Kumar': 7, 'Neha Singh': 6 },
-  { day: 'Wed', 'Amit Sharma': 6, 'Priya Tiwari': 6, 'Rajesh Verma': 5, 'Suresh Kumar': 8, 'Neha Singh': 7 },
-  { day: 'Thu', 'Amit Sharma': 8, 'Priya Tiwari': 7, 'Rajesh Verma': 3, 'Suresh Kumar': 9, 'Neha Singh': 6 },
-  { day: 'Fri', 'Amit Sharma': 9, 'Priya Tiwari': 8, 'Rajesh Verma': 6, 'Suresh Kumar': 8, 'Neha Singh': 8 },
-  { day: 'Sat', 'Amit Sharma': 4, 'Priya Tiwari': 5, 'Rajesh Verma': 4, 'Suresh Kumar': 5, 'Neha Singh': 4 },
-  { day: 'Sun', 'Amit Sharma': 2, 'Priya Tiwari': 3, 'Rajesh Verma': 2, 'Suresh Kumar': 3, 'Neha Singh': 3 },
-];
+const TIMELINE_DATA: any[] = [];
 
-const REPS_DATA = [
-  { id: 1, name: 'Amit Sharma', territory: 'Patna, Bihar', visitsToday: 8, target: 10, duration: 34, status: 'Active', lastActive: '10:45 AM' },
-  { id: 2, name: 'Priya Tiwari', territory: 'Amravati, Maharashtra', visitsToday: 6, target: 8, duration: 28, status: 'Active', lastActive: '11:20 AM' },
-  { id: 3, name: 'Rajesh Verma', territory: 'Ludhiana, Punjab', visitsToday: 5, target: 8, duration: 40, status: 'Idle', lastActive: '09:30 AM' },
-  { id: 4, name: 'Suresh Kumar', territory: 'Varanasi, UP', visitsToday: 9, target: 10, duration: 30, status: 'Active', lastActive: '11:45 AM' },
-  { id: 5, name: 'Neha Singh', territory: 'Ahmedabad, Gujarat', visitsToday: 7, target: 8, duration: 32, status: 'Active', lastActive: '10:15 AM' },
-];
+const REPS_DATA: any[] = [];
 
-const RECENT_ACTIVITIES = [
-  { id: 1, text: 'Amit Sharma completed visit at Kisan Seed Store, Patna Sadar — Ordered 50 units Amistar 250 SC', time: '10 mins ago', type: 'order' },
-  { id: 2, text: 'Priya Tiwari completed visit at Amravati Agri-Hub, Amravati Sadar — Follow-up needed for cotton growers', time: '25 mins ago', type: 'visit' },
-  { id: 3, text: 'Suresh Kumar resolved pest outbreak alert at Varanasi Block B — Recommendation accepted', time: '40 mins ago', type: 'recommendation' },
-  { id: 4, text: 'Neha Singh logged brand audit at Ahmedabad Seeds Center — Good stock levels maintained', time: '1 hr ago', type: 'audit' },
-  { id: 5, text: 'Amit Sharma started optimization route for Patna Sadar territory', time: '1.5 hrs ago', type: 'route' },
-  { id: 6, text: 'Rajesh Verma updated visit feedback at Ludhiana Fertilisers — High demand for Score 250 EC', time: '2 hrs ago', type: 'visit' },
-  { id: 7, text: 'Priya Tiwari visited grower Ramrao Patil — Logged red rust infection symptoms on cotton', time: '3 hrs ago', type: 'visit' },
-  { id: 8, text: 'Suresh Kumar checked in at Ganga Krishi Kendra — Placed bulk pesticide requirement', time: '4 hrs ago', type: 'order' },
-];
+const RECENT_ACTIVITIES: any[] = [];
 
 export default function RepVisitTrackingPage() {
   const [searchTerm, setSearchTerm] = useState('');
@@ -80,10 +57,10 @@ export default function RepVisitTrackingPage() {
       {/* Summary Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Visits Today', value: String((data as any)?.summary?.total_visits_today ?? 47), icon: CheckCircle2, desc: 'Across all territories', color: 'border-emerald-500/20 text-emerald-400' },
-          { label: 'Completion Rate', value: `${(data as any)?.summary?.completion_rate ?? 78}%`, icon: CheckCircle2, desc: 'Target vs Completed', color: 'border-lime-green/20 text-lime-green' },
-          { label: 'Avg Visit Duration', value: `${(data as any)?.summary?.avg_duration_min ?? 32} min`, icon: Clock, desc: 'Time spent per location', color: 'border-blue-400/20 text-blue-400' },
-          { label: 'Overdue Visits', value: String((data as any)?.summary?.overdue_visits ?? 8), icon: AlertCircle, desc: 'Require immediate attention', color: 'border-rose-400/20 text-rose-400' },
+          { label: 'Total Visits Today', value: String((data as any)?.summary?.total_visits_today ?? 0), icon: CheckCircle2, desc: 'Across all territories', color: 'border-emerald-500/20 text-emerald-400' },
+          { label: 'Completion Rate', value: `${(data as any)?.summary?.completion_rate ?? 0}%`, icon: CheckCircle2, desc: 'Target vs Completed', color: 'border-lime-green/20 text-lime-green' },
+          { label: 'Avg Visit Duration', value: `${(data as any)?.summary?.avg_duration_min ?? 0} min`, icon: Clock, desc: 'Time spent per location', color: 'border-blue-400/20 text-blue-400' },
+          { label: 'Overdue Visits', value: String((data as any)?.summary?.overdue_visits ?? 0), icon: AlertCircle, desc: 'Require immediate attention', color: 'border-rose-400/20 text-rose-400' },
         ].map((card, i) => (
           <div key={i} className="backdrop-blur-md bg-white/70 dark:bg-[#122315]/30 border border-white/20 dark:border-white/10 rounded-card p-5 shadow-card flex items-center justify-between">
             <div>

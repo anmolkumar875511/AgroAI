@@ -51,7 +51,9 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
         onDismiss?.(),
         new Promise(resolve => setTimeout(resolve, 600))
       ]);
-    } catch {}
+    } catch {
+      // Ignore errors during recommendation dismiss
+    }
     setActionState('dismissed');
   };
 

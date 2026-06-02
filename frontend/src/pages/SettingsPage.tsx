@@ -59,7 +59,7 @@ export default function SettingsPage() {
       });
 
       setLastSyncText('LAST SYNCED: JUST NOW');
-    } catch (err) {
+    } catch {
       toast.error('Sync failed. Please check your network connection.', {
         id: toastId
       });
@@ -77,8 +77,8 @@ export default function SettingsPage() {
       await settingsAPI.update({ theme, language, notifications, sync_enabled: syncEnabled });
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
-    } catch (err: any) {
-      setError(err.message || 'Failed to save settings');
+    } catch (err: unknown) {
+      setError(err instanceof Error ? err.message : 'Failed to save settings');
     } finally {
       setSaving(false);
     }
