@@ -96,14 +96,17 @@ AgroAI/
 │   ├── data/                      # Source master CSV file containing retailer insights
 │   ├── seed.py                    # Complete local database seeder
 │   └── requirements.txt           # Python backend dependencies
-├── src/                           # React + TypeScript Client Frontend
-│   ├── components/                # Reusable premium components (Cards, Modal Portals, Loaders)
-│   ├── pages/                     # Full page layouts (Dashboard, Retailers, Recommendations, Settings)
-│   ├── sections/                  # Feature-specific modules (Mandi widgets, interactive maps)
-│   ├── index.css                  # Core custom-themed style declarations & glowing animations
-│   └── main.tsx                   # React app bootstrap entry point
-├── package.json                   # Frontend dependencies & scripts
-├── vite.config.ts                 # Vite bundler options
+├── frontend/                      # React + TypeScript Client Frontend
+│   ├── src/                       # React source files
+│   │   ├── components/            # Reusable premium components
+│   │   ├── pages/                 # Full page layouts
+│   │   ├── sections/              # Feature-specific modules
+│   │   ├── index.css              # Theme-specific style declarations
+│   │   └── main.tsx               # Bootstrap entry point
+│   ├── package.json               # Frontend dependencies & scripts
+│   ├── vite.config.ts             # Vite bundler options
+│   └── tsconfig.json              # TypeScript compilation setup
+├── package.json                   # Root forwarder scripts
 └── README.md                      # Unified Hackathon Presentation Guide
 ```
 
