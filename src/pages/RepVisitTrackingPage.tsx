@@ -1,10 +1,12 @@
 import { useState } from 'react';
-import { Search, MapPin, Calendar, Clock, CheckCircle2, AlertCircle, Eye, Filter } from 'lucide-react';
+import { Search, MapPin, Clock, CheckCircle2, AlertCircle, Eye, Filter } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis,
   Tooltip, CartesianGrid
 } from 'recharts';
 import { toast } from 'sonner';
+import { useApi } from '@/hooks/useApi';
+import { managerAPI } from '@/api/client';
 
 const TIMELINE_DATA = [
   { day: 'Mon', 'Amit Sharma': 5, 'Priya Tiwari': 4, 'Rajesh Verma': 3, 'Suresh Kumar': 6, 'Neha Singh': 5 },
@@ -39,9 +41,16 @@ export default function RepVisitTrackingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState('Today');
   const [territoryFilter, setTerritoryFilter] = useState('All');
+
+  const { data, refetch } = useApi(
+    () => managerAPI.getTeamTracking(),
+    []
+  );
+
+  const liveReps = ((data as any)?.reps || REPS_DATA) as typeof REPS_DATA;
   const [selectedRep, setSelectedRep] = useState<typeof REPS_DATA[0] | null>(null);
 
-  const filteredReps = REPS_DATA.filter(rep => {
+  const filteredReps = liveReps.filter(rep => {
     const matchesSearch = rep.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       rep.territory.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesTerritory = territoryFilter === 'All' || rep.territory.includes(territoryFilter);
@@ -71,10 +80,10 @@ export default function RepVisitTrackingPage() {
       {/* Summary Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Total Visits Today', value: '47', icon: CheckCircle2, desc: 'Across all territories', color: 'border-emerald-500/20 text-emerald-400' },
-          { label: 'Completion Rate', value: '78%', icon: CheckCircle2, desc: 'Target vs Completed', color: 'border-lime-green/20 text-lime-green' },
-          { label: 'Avg Visit Duration', value: '32 min', icon: Clock, desc: 'Time spent per location', color: 'border-blue-400/20 text-blue-400' },
-          { label: 'Overdue Visits', value: '8', icon: AlertCircle, desc: 'Require immediate attention', color: 'border-rose-400/20 text-rose-400' },
+          { label: 'Total Visits Today', value: String((data as any)?.summary?.total_visits_today ?? 47), icon: CheckCircle2, desc: 'Across all territories', color: 'border-emerald-500/20 text-emerald-400' },
+          { label: 'Completion Rate', value: `${(data as any)?.summary?.completion_rate ?? 78}%`, icon: CheckCircle2, desc: 'Target vs Completed', color: 'border-lime-green/20 text-lime-green' },
+          { label: 'Avg Visit Duration', value: `${(data as any)?.summary?.avg_duration_min ?? 32} min`, icon: Clock, desc: 'Time spent per location', color: 'border-blue-400/20 text-blue-400' },
+          { label: 'Overdue Visits', value: String((data as any)?.summary?.overdue_visits ?? 8), icon: AlertCircle, desc: 'Require immediate attention', color: 'border-rose-400/20 text-rose-400' },
         ].map((card, i) => (
           <div key={i} className="backdrop-blur-md bg-white/70 dark:bg-[#122315]/30 border border-white/20 dark:border-white/10 rounded-card p-5 shadow-card flex items-center justify-between">
             <div>
@@ -203,7 +212,7 @@ export default function RepVisitTrackingPage() {
             Recent Visit Updates
           </h2>
           <div className="space-y-4 flex-1 overflow-y-auto max-h-[350px] pr-1">
-            {RECENT_ACTIVITIES.map((activity) => (
+            {((data as any)?.recent_activities || RECENT_ACTIVITIES).map((activity: any) => (
               <div key={activity.id} className="flex gap-3 text-xs leading-relaxed border-l-2 border-lime-green pl-3 hover:bg-white/5 p-1 rounded-r-md transition-colors">
                 <div className="flex-1">
                   <p className="text-text-primary dark:text-white/90">{activity.text}</p>
@@ -220,7 +229,11 @@ export default function RepVisitTrackingPage() {
             ))}
           </div>
           <button
-            onClick={() => toast.success('Syncing latest logs from all representatives...')}
+            onClick={async () => {
+              toast.info('Syncing latest logs from all representatives...');
+              await refetch();
+              toast.success('Logs synced successfully!');
+            }}
             className="w-full text-center text-xs font-bold text-lime-green mt-4 pt-3 border-t border-light-gray dark:border-white/5 hover:underline"
           >
             Refresh Activities
@@ -238,7 +251,7 @@ export default function RepVisitTrackingPage() {
         </div>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={TIMELINE_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+            <AreaChart data={(data as any)?.timeline || TIMELINE_DATA} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorAmit" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#8BC34A" stopOpacity={0.4}/>

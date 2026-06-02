@@ -1,17 +1,17 @@
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 
-interface DataPoint { month: string; rice: number; cotton: number; wheat: number; }
+interface DataPoint { month: string; high: number; medium: number; low: number; }
 interface Props { data?: DataPoint[]; loading?: boolean; }
 
 const FALLBACK: DataPoint[] = [
-  { month: 'Jan', rice: 12, cotton: 8,  wheat: 20 },
-  { month: 'Feb', rice: 18, cotton: 12, wheat: 15 },
-  { month: 'Mar', rice: 15, cotton: 10, wheat: 12 },
-  { month: 'Apr', rice: 22, cotton: 15, wheat: 8  },
-  { month: 'May', rice: 28, cotton: 20, wheat: 10 },
-  { month: 'Jun', rice: 35, cotton: 18, wheat: 12 },
-  { month: 'Jul', rice: 42, cotton: 25, wheat: 9  },
+  { month: 'Jan', high: 12, medium: 8,  low: 20 },
+  { month: 'Feb', high: 18, medium: 12, low: 15 },
+  { month: 'Mar', high: 15, medium: 10, low: 12 },
+  { month: 'Apr', high: 22, medium: 15, low: 8  },
+  { month: 'May', high: 28, medium: 20, low: 10 },
+  { month: 'Jun', high: 35, medium: 18, low: 12 },
+  { month: 'Jul', high: 42, medium: 25, low: 9  },
 ];
 
 function ChartSkeleton() {
@@ -34,12 +34,12 @@ export function CropRiskTrendsChart({ data, loading }: Props) {
         <AreaChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.gridStroke} />
           <XAxis dataKey="month" tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
-          <YAxis tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `${v}%`} />
+          <YAxis tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
           <Tooltip contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }} />
           <Legend wrapperStyle={{ fontSize: '11px', color: ct.legendColor }} />
-          <Area type="monotone" dataKey="rice"   name="Rice"   stackId="1" stroke="#8BC34A" fill="rgba(139,195,74,0.3)"  animationDuration={800} />
-          <Area type="monotone" dataKey="cotton" name="Cotton" stackId="1" stroke="#FFC107" fill="rgba(255,193,7,0.3)"   animationDuration={800} />
-          <Area type="monotone" dataKey="wheat"  name="Wheat"  stackId="1" stroke="#1E88E5" fill="rgba(30,136,229,0.3)"  animationDuration={800} />
+          <Area type="monotone" dataKey="high"   name="High Risk"   stackId="1" stroke="#E53935" fill="rgba(229,57,53,0.25)"  animationDuration={800} />
+          <Area type="monotone" dataKey="medium" name="Medium Risk" stackId="1" stroke="#FFC107" fill="rgba(255,193,7,0.25)"   animationDuration={800} />
+          <Area type="monotone" dataKey="low"    name="Low Risk"    stackId="1" stroke="#8BC34A" fill="rgba(139,195,74,0.25)"  animationDuration={800} />
         </AreaChart>
       </ResponsiveContainer>
     </div>

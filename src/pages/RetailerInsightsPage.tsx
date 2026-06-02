@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, RefreshCw, MapPin, Clock, Package, TrendingUp, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
+import { useRegion } from '@/contexts/RegionContext';
 import { retailersAPI, visitPlannerAPI, type RetailerCard } from '@/api/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -22,13 +23,20 @@ const STOCK_COLORS: Record<string, string> = {
 function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRescore: (id: string) => void }) {
   const [rescoring, setRescoring] = useState(false);
   const [planning, setPlanning] = useState(false);
-  const { user } = useAuth();
+  const [isPlanned, setIsPlanned] = useState(false);
   const navigate = useNavigate();
 
   const handleRescore = async () => {
     setRescoring(true);
-    try { await retailersAPI.rescore(retailer.retailer_id); onRescore(retailer.retailer_id); }
-    finally { setRescoring(false); }
+    try {
+      await retailersAPI.rescore(retailer.retailer_id);
+      toast.success(`ML priority score re-calculated for ${retailer.retailer_id}!`);
+      onRescore(retailer.retailer_id);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to re-run ML score. Please try again.');
+    } finally {
+      setRescoring(false);
+    }
   };
 
   const handlePlanVisit = async () => {
@@ -36,7 +44,7 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
     try {
       await visitPlannerAPI.recordAction(
         { retailer_id: retailer.retailer_id, action: 'start' },
-        user?.territory_id || 'TER_0001'
+        retailer.territory_id
       );
       toast.success(`Retailer ${retailer.retailer_id} added to today's route!`, {
         action: {
@@ -44,8 +52,9 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
           onClick: () => navigate('/visit-planner'),
         },
       });
-    } catch {
-      toast.error('Failed to plan visit. Please try again.');
+      setIsPlanned(true);
+    } catch (err: any) {
+      toast.error(err.message || 'Failed to plan visit. Please try again.');
     } finally {
       setPlanning(false);
     }
@@ -120,11 +129,20 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
       <div className="flex gap-2">
         <button
           onClick={handlePlanVisit}
-          disabled={planning}
-          className="flex-1 py-2.5 rounded-xl gradient-primary text-white text-xs font-bold hover:brightness-110 transition-all flex justify-center items-center gap-1 shadow-glow-green hover:scale-[1.01]"
+          disabled={planning || isPlanned || retailer.last_visit_days === 0}
+          className={cn(
+            "flex-1 py-2.5 rounded-xl text-xs font-bold transition-all flex justify-center items-center gap-1",
+            isPlanned || retailer.last_visit_days === 0
+              ? "bg-lime-green/20 text-lime-green border border-lime-green/30 cursor-not-allowed"
+              : "gradient-primary text-white hover:brightness-110 shadow-glow-green hover:scale-[1.01]"
+          )}
         >
           {planning ? (
             <Loader2 className="w-3.5 h-3.5 animate-spin" />
+          ) : retailer.last_visit_days === 0 ? (
+            'Visited Today'
+          ) : isPlanned ? (
+            'In Today\'s Route'
           ) : (
             'Plan Visit'
           )}
@@ -144,7 +162,8 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
 
 export default function RetailerInsightsPage() {
   const { user } = useAuth();
-  const territory_id = user?.territory_id || 'TER_0001';
+  const { activeRegion } = useRegion();
+  const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
   const [searchParams, setSearchParams] = useSearchParams();
 
   const initialSearch = searchParams.get('search') || '';

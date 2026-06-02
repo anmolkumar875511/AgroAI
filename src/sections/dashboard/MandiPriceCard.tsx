@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Wheat, Sprout, X, Calculator, Coins, Percent, Sparkles } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
-import { mandiAPI, type MandiResponse, type MandiPriceItem } from '@/api/client';
+import { mandiAPI } from '@/api/client';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = { Wheat, Sprout };
 
@@ -43,8 +43,8 @@ interface MandiPriceCardProps {
 
 export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) {
   // Only fetch independently if DashboardPage didn't inject prices
-  const { data: fetchedPrices, loading } = useApi(
-    () => injectedPrices ? Promise.resolve(injectedPrices) : mandiAPI.getPrices(),
+  const { data: fetchedPrices, loading } = useApi<any>(
+    () => (injectedPrices ? Promise.resolve(injectedPrices) : mandiAPI.getPrices()) as any,
     [injectedPrices],
   );
 
@@ -100,7 +100,7 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
           <span className="text-[10px] text-text-muted uppercase tracking-wider">Live · data.gov.in</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
-          {prices.slice(0, 4).map((item) => {
+          {prices.slice(0, 4).map((item: DisplayMandiPrice) => {
             const Icon = iconMap[item.icon] || Sprout;
             return (
               <div 

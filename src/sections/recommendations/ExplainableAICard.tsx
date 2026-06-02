@@ -33,7 +33,10 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
     e.stopPropagation();
     setActionState('loading');
     try {
-      await onApply?.();   // CHANGED: calls backend via prop
+      await Promise.all([
+        onApply?.(),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
     } catch {
       // ignore — parent already handles error
     }
@@ -42,8 +45,12 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
 
   const handleDismiss = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    setActionState('loading');
     try {
-      await onDismiss?.(); // CHANGED: calls backend via prop
+      await Promise.all([
+        onDismiss?.(),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
     } catch {}
     setActionState('dismissed');
   };

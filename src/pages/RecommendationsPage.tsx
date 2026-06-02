@@ -3,9 +3,12 @@ import { useApi } from '@/hooks/useApi';
 import { recommendationsAPI } from '@/api/client';
 import { ExplainableAICard } from '@/sections/recommendations/ExplainableAICard';
 
+import { useRegion } from '@/contexts/RegionContext';
+
 export default function RecommendationsPage() {
   const { user } = useAuth();
-  const territory_id = user?.territory_id || 'TER_0001';
+  const { activeRegion } = useRegion();
+  const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
 
   const { data: recs, loading } = useApi(
     () => recommendationsAPI.getRecommendations(territory_id, 20),
@@ -30,24 +33,24 @@ export default function RecommendationsPage() {
           ))}
         </div>
       ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 items-start">
           {(recs || []).map(rec => (
             <ExplainableAICard
               key={rec.id}
               recommendation={{
                 id: rec.id,
-                priority: rec.priority,
+                priority: (rec.priority.toLowerCase() === 'critical' ? 'high' : rec.priority.toLowerCase()) as 'high' | 'medium' | 'low',
                 crop: rec.crop,
                 cropIcon: 'Wheat',
                 message: rec.message,
-                weather: rec.weather,
-                product: rec.product,
-                village: rec.village,
+                weather: rec.weather || '',
+                product: rec.product || '',
+                village: rec.village || '',
                 farmer: rec.farmer,
                 pestRisk: rec.pest_risk,
                 recommendedProduct: rec.product,
                 nextAction: rec.next_action,
-                followUpTimeline: rec.follow_up_timeline,
+                followUpTimeline: rec.follow_up_timeline ? [rec.follow_up_timeline] : undefined,
                 explainableReasons: (rec.explainable_reasons || []).map(r => ({
                   id: r.id, title: r.title, description: r.description, icon: r.icon,
                 })),

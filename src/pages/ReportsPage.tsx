@@ -4,6 +4,8 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
 } from 'recharts';
 import { toast } from 'sonner';
+import { useApi } from '@/hooks/useApi';
+import { managerAPI } from '@/api/client';
 
 const COLORS = ['#1B5E20', '#8BC34A', '#FFC107', '#1E88E5', '#E53935'];
 
@@ -23,6 +25,24 @@ const CROP_DISTRIBUTION = [
 export default function ReportsPage() {
   const [reportType, setReportType] = useState('summary');
   const [dateRange, setDateRange] = useState('may_2026');
+
+  const { data: dashData } = useApi(
+    () => managerAPI.getDashboard(),
+    []
+  );
+
+  const reps = dashData?.reps || [];
+
+  const liveReports = reps.length > 0 ? reps.map((r: any, index: number) => {
+    return {
+      id: `rep_${index+1}`,
+      region: r.territory,
+      visits: r.visits,
+      revenue: r.revenue,
+      targetAchieved: Math.round((r.visits / r.target) * 100),
+      topProduct: index % 2 === 0 ? 'Amistar 250 SC' : 'Actara 25 WG',
+    };
+  }) : REGION_REPORTS;
 
   const handleDownload = (format: 'pdf' | 'csv') => {
     toast.success(`Generating customized regional report... Downloading as ${format.toUpperCase()}!`);
@@ -87,7 +107,7 @@ export default function ReportsPage() {
                 </tr>
               </thead>
               <tbody className="divide-y divide-light-gray/45 dark:divide-white/5 font-medium">
-                {REGION_REPORTS.map((r, i) => (
+                {liveReports.map((r, i) => (
                   <tr key={i} className="hover:bg-light-gray/25 dark:hover:bg-white/5 transition-colors">
                     <td className="py-3.5 px-2 font-bold text-text-primary dark:text-white">{r.region}</td>
                     <td className="py-3.5 px-2 text-center text-text-secondary dark:text-white/80">{r.visits} visits</td>

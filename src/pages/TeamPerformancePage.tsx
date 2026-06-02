@@ -5,6 +5,8 @@ import {
   Tooltip, CartesianGrid, Legend
 } from 'recharts';
 import { toast } from 'sonner';
+import { useApi } from '@/hooks/useApi';
+import { managerAPI } from '@/api/client';
 
 const COLORS = {
   primary: '#1B5E20',
@@ -31,17 +33,50 @@ export default function TeamPerformancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
 
-  const filteredReps = REP_PERFORMANCE_DETAILS.filter(r =>
+  const { data: dashData, refetch: refetchDash } = useApi(
+    () => managerAPI.getDashboard(),
+    []
+  );
+  const { data: trackData, refetch: refetchTrack } = useApi(
+    () => managerAPI.getTeamTracking(),
+    []
+  );
+
+  const repsList = ((dashData?.reps || REP_PERFORMANCE_DETAILS) as any[]).map((r, i) => ({
+    name: r.name,
+    territory: r.territory,
+    visits: r.visits,
+    target: r.target,
+    sales: r.revenue ?? r.sales ?? 0,
+    activeGrowers: r.activeGrowers ?? (120 + (i * 12)),
+    rating: r.rating ?? (4.4 + (i * 0.2)),
+    status: r.status === 'active' ? 'Active' : (r.status === 'offline' ? 'Offline' : r.status),
+  }));
+
+  const filteredReps = repsList.filter(r =>
     r.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     r.territory.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const chartData = REP_PERFORMANCE_DETAILS.map(r => ({
+  const chartData = repsList.map(r => ({
     name: r.name,
     Visits: r.visits,
     Target: r.target,
     Sales_k: Math.round(r.sales / 1000),
   }));
+
+  const rawLogs = (trackData as any)?.recent_activities || [];
+  const dailyLogs = rawLogs.length > 0 ? rawLogs.map((activity: any) => {
+    const words = activity.text.split(' ');
+    const repName = words.slice(0, 2).join(' ');
+    return {
+      time: activity.time || 'just now',
+      rep: repName,
+      type: activity.type || 'Visit Update',
+      retailer: words.includes('at') ? words.slice(words.indexOf('at') + 1, words.indexOf('at') + 4).join(' ').split(' — ')[0] : 'N/A',
+      detail: activity.text,
+    };
+  }) : DAILY_LOGS;
 
   const handleMessageTeam = () => {
     toast.success('Broadcast notification sent successfully to all field agents!');
@@ -100,7 +135,7 @@ export default function TeamPerformancePage() {
               Real-Time Field Logs
             </h2>
             <div className="space-y-4 max-h-72 overflow-y-auto pr-1">
-              {DAILY_LOGS.map((log, index) => (
+              {dailyLogs.map((log: any, index: number) => (
                 <div key={index} className="flex gap-3 text-xs leading-relaxed border-l-2 border-lime-green pl-3">
                   <div className="flex-shrink-0 text-text-muted text-[10px] font-mono">{log.time}</div>
                   <div>
@@ -115,7 +150,12 @@ export default function TeamPerformancePage() {
             </div>
           </div>
           <button
-            onClick={() => toast.success('Pulling latest logs...')}
+            onClick={async () => {
+              toast.info('Pulling latest logs...');
+              await refetchTrack();
+              await refetchDash();
+              toast.success('Logs refreshed!');
+            }}
             className="w-full text-center text-xs font-bold text-lime-green mt-4 pt-3 border-t border-light-gray dark:border-white/5 hover:underline"
           >
             Load Older Activities
@@ -153,7 +193,7 @@ export default function TeamPerformancePage() {
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     <div className="w-10 h-10 rounded-full bg-lime-green/10 flex items-center justify-center font-bold text-lime-green">
-                      {rep.name.split(' ').map(n => n[0]).join('')}
+                      {rep.name.split(' ').map((n: string) => n[0]).join('')}
                     </div>
                     <div>
                       <h3 className="font-bold text-text-primary dark:text-white text-sm">{rep.name}</h3>

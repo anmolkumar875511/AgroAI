@@ -73,7 +73,7 @@ export default function ManagerDashboard() {
   const [sendingAlert, setSendingAlert] = useState<string | null>(null);
 
   // Call the manager dashboard API endpoint dynamically
-  const { data, loading, error, refetch } = useApi(
+  const { data, loading, refetch } = useApi(
     () => managerAPI.getDashboard(),
     []
   );
@@ -175,7 +175,7 @@ export default function ManagerDashboard() {
         {/* Card 1: Total Revenue */}
         <motion.div
           whileHover={{ y: -4 }}
-          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-all"
+          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-colors duration-300"
         >
           <div className="flex justify-between items-start">
             <div className="w-9.5 h-9.5 rounded-xl bg-lime-green/10 flex items-center justify-center">
@@ -206,7 +206,7 @@ export default function ManagerDashboard() {
         {/* Card 2: Coverage Efficiency */}
         <motion.div
           whileHover={{ y: -4 }}
-          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-all"
+          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-colors duration-300"
         >
           <div className="flex justify-between items-start">
             <div className="w-9.5 h-9.5 rounded-xl bg-info-blue/10 flex items-center justify-center">
@@ -236,7 +236,7 @@ export default function ManagerDashboard() {
         {/* Card 3: Recommendation Acceptance Rate */}
         <motion.div
           whileHover={{ y: -4 }}
-          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-all"
+          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-colors duration-300"
         >
           <div className="flex justify-between items-start">
             <div className="w-9.5 h-9.5 rounded-xl bg-accent-yellow/10 flex items-center justify-center">
@@ -266,7 +266,7 @@ export default function ManagerDashboard() {
         {/* Card 4: High Priority Visits */}
         <motion.div
           whileHover={{ y: -4 }}
-          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-all"
+          className="relative overflow-hidden backdrop-blur-md bg-white/70 dark:bg-white/5 rounded-card p-4 border border-white/20 dark:border-white/10 shadow-card hover:shadow-card-hover transition-colors duration-300"
         >
           <div className="flex justify-between items-start">
             <div className="w-9.5 h-9.5 rounded-xl bg-danger-red/10 flex items-center justify-center">

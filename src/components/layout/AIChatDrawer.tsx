@@ -17,10 +17,6 @@ interface Message {
   timestamp: Date;
 }
 
-// Stable session ID per browser session (not per drawer open)
-const SESSION_ID = typeof crypto !== 'undefined' && crypto.randomUUID
-  ? crypto.randomUUID()
-  : `session-${Date.now()}`;
 
 export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
   const { activeRegion } = useRegion();
@@ -56,10 +52,14 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
     setIsTyping(true);
 
     try {
-      const res = await chatAPI.sendMessage(msg, SESSION_ID, activeRegion?.name || 'Bihar');
+      const payload = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: msg }
+      ];
+      const res = await chatAPI.send(payload, 'TER_0001');
       setMessages(prev => [
         ...prev,
-        { id: (Date.now() + 1).toString(), role: 'assistant', content: res.response, timestamp: new Date() },
+        { id: (Date.now() + 1).toString(), role: 'assistant', content: res.reply, timestamp: new Date() },
       ]);
     } catch {
       setMessages(prev => [
@@ -69,7 +69,7 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
     } finally {
       setIsTyping(false);
     }
-  }, [input, activeRegion]);
+  }, [input, messages]);
 
   // Camera: simulate disease detection via chat API
   const handleImageUpload = useCallback(async () => {
@@ -81,10 +81,14 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
     setMessages(prev => [...prev, userMsg]);
     setIsTyping(true);
     try {
-      const res = await chatAPI.sendMessage('photo identify disease leaf', SESSION_ID, activeRegion?.name || 'Bihar');
+      const payload = [
+        ...messages.map(m => ({ role: m.role, content: m.content })),
+        { role: 'user' as const, content: 'photo identify disease leaf' }
+      ];
+      const res = await chatAPI.send(payload, 'TER_0001');
       setMessages(prev => [
         ...prev,
-        { id: (Date.now() + 1).toString(), role: 'assistant', content: res.response, timestamp: new Date() },
+        { id: (Date.now() + 1).toString(), role: 'assistant', content: res.reply, timestamp: new Date() },
       ]);
     } catch {
       // fallback
@@ -96,7 +100,7 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
     } finally {
       setIsTyping(false);
     }
-  }, [activeRegion]);
+  }, [messages]);
 
   const quickPrompts = [
     '🐛 Pest risk analysis', "📋 Plan today's visits",

@@ -180,3 +180,78 @@
     display: none;
   }
 }
+
+/* Recharts Custom Styling and Theme Fixes */
+.recharts-default-tooltip .recharts-tooltip-item,
+.recharts-default-tooltip .recharts-tooltip-item * {
+  color: #333333 !important;
+}
+
+.dark .recharts-default-tooltip .recharts-tooltip-item,
+.dark .recharts-default-tooltip .recharts-tooltip-item * {
+  color: #ffffff !important;
+}
+
+/* Remove focus outline on all interactive Recharts elements */
+.recharts-wrapper:focus,
+.recharts-wrapper *:focus {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+/* Remove default white border (stroke) when clicking/hovering active elements in charts */
+.recharts-active-dot,
+.recharts-active-bar,
+.recharts-bar-rectangle path[stroke],
+.recharts-bar-rectangle rect[stroke],
+rect.recharts-active-bar {
+  stroke: none !important;
+  stroke-width: 0 !important;
+}
+
+/* Remove rectangular background highlight cursors in BarCharts */
+rect.recharts-tooltip-cursor {
+  fill: none !important;
+  opacity: 0 !important;
+}
+/* Custom Premium Theme Scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(27, 94, 32, 0.2); /* Deep green tint for light mode */
+  border-radius: 9999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(27, 94, 32, 0.35);
+}
+
+.dark ::-webkit-scrollbar-thumb {
+  background: rgba(139, 195, 74, 0.25); /* Lime green tint for dark mode */
+  border-radius: 9999px;
+}
+
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: rgba(139, 195, 74, 0.45);
+}
+
+/* Firefox compatibility */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(27, 94, 32, 0.2) transparent;
+}
+
+.dark * {
+  scrollbar-color: rgba(139, 195, 74, 0.25) transparent;
+}

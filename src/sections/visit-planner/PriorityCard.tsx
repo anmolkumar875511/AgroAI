@@ -33,10 +33,13 @@ export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardPro
         : visit.actions[0].includes('Plan') ? 'start'
         : 'complete';
 
-      await visitPlannerAPI.recordAction(
-        { retailer_id: retailerId, action },
-        territoryId,
-      );
+      await Promise.all([
+        visitPlannerAPI.recordAction(
+          { retailer_id: retailerId, action },
+          territoryId,
+        ),
+        new Promise(resolve => setTimeout(resolve, 600))
+      ]);
       setActionState('completed');
     } catch {
       setActionState('idle');

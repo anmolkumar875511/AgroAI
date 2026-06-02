@@ -18,6 +18,18 @@ export const sidebarItems: SidebarItem[] = [
   { id: 'settings',          label: 'Settings',            icon: 'Settings',        path: '/settings' },
 ];
 
+export const managerSidebarItems: SidebarItem[] = [
+  { id: 'dashboard',                 label: 'Dashboard',                  icon: 'LayoutDashboard', path: '/dashboard' },
+  { id: 'rep-visit-tracking',        label: 'Rep-wise Visit Tracking',    icon: 'MapPinned',       path: '/rep-visit-tracking' },
+  { id: 'team-performance',          label: 'Team Performance',           icon: 'Users',           path: '/team-performance' },
+  { id: 'product-demand-trends',     label: 'Product Demand Trends',      icon: 'Store',           path: '/product-demand-trends' },
+  { id: 'recommendation-acceptance', label: 'Recommendation Impact',      icon: 'Sparkles',        path: '/recommendation-acceptance' },
+  { id: 'high-priority-areas',       label: 'High Priority Areas',        icon: 'ShieldAlert',     path: '/high-priority-areas' },
+  { id: 'reports',                   label: 'Reports & Downloads',        icon: 'BarChart3',       path: '/reports' },
+  { id: 'notifications',             label: 'Notifications',              icon: 'Bell',            path: '/notifications' },
+  { id: 'settings',                  label: 'Settings',                   icon: 'Settings',        path: '/settings' },
+];
+
 // ─── Landing page data (unchanged — not from API) ────────────────────────────
 export const trustedByItems = [
   'Syngenta', 'BetterYield', 'CropGenius', 'KisanAI',

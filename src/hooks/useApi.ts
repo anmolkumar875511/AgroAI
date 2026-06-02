@@ -17,8 +17,13 @@ export function useApi<T>(
   const fetcherRef = useRef(fetcher);
   fetcherRef.current = fetcher;
 
+  const dataRef = useRef<T | null>(null);
+  dataRef.current = data;
+
   const fetch = useCallback(async () => {
-    setLoading(true);
+    // Only show full loading state on first load when no data exists.
+    // Keeps previous data visible during location changes to prevent layout flicker.
+    setLoading(dataRef.current === null);
     setError(null);
     try {
       const result = await fetcherRef.current();

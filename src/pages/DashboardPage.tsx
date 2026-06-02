@@ -3,6 +3,8 @@ import gsap from 'gsap';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
 import { dashboardAPI, type KPIItem } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
+
 
 import { DashboardGreeting } from '@/sections/dashboard/DashboardGreeting';
 import { KPICard } from '@/sections/dashboard/KPICard';
@@ -33,7 +35,8 @@ function KPISkeleton() {
 
 function FieldRepDashboard() {
   const { user } = useAuth();
-  const territory_id = user?.territory_id || 'TER_0001';
+  const { activeRegion } = useRegion();
+  const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
 
   const { data, loading, error } = useApi(
     () => dashboardAPI.getDashboard(territory_id),
@@ -41,9 +44,11 @@ function FieldRepDashboard() {
   );
 
   const pageRef = useRef<HTMLDivElement>(null);
+  const hasAnimatedRef = useRef(false);
 
   useEffect(() => {
-    if (loading || !data) return;
+    if (loading || !data || hasAnimatedRef.current) return;
+    hasAnimatedRef.current = true;
     const ctx = gsap.context(() => {
       gsap.fromTo(
         '.dashboard-card',
@@ -91,7 +96,7 @@ function FieldRepDashboard() {
       </div>
 
       {/* KPI Cards */}
-      {loading ? (
+      {loading && !data ? (
         <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
           {[0, 1, 2, 3].map(i => <KPISkeleton key={i} />)}
         </div>
@@ -127,10 +132,10 @@ function FieldRepDashboard() {
 
       {/* Middle: AI Recommendations + Map */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
-        <div className="dashboard-card">
+        <div className="dashboard-card h-[450px]">
           <AIRecommendationsFeed territoryId={territory_id} />
         </div>
-        <div className="dashboard-card">
+        <div className="dashboard-card h-[450px]">
           <MapWidget />
         </div>
       </div>

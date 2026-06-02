@@ -92,7 +92,7 @@ export function RouteVisualization({ territoryId }: RouteVisualizationProps) {
   );
 
   const stops = routeData?.stops || [];
-  const path = useMemo(() => stops.map(s => ({ lat: s.lat, lng: s.lng })), [stops]);
+  const path = useMemo(() => stops.map(s => ({ lat: s.lat || 0, lng: s.lng || 0 })), [stops]);
   const mapStyles = theme === 'dark' ? darkMapStyle : lightMapStyle;
 
   if (!isLoaded || loading) {
@@ -108,7 +108,7 @@ export function RouteVisualization({ territoryId }: RouteVisualizationProps) {
       <div className="flex items-center justify-between px-5 py-4 border-b border-light-gray dark:border-white/10">
         <h4 className="font-semibold text-text-primary dark:text-white">Optimized Route</h4>
         <span className="text-xs text-text-muted">
-          {routeData?.total_stops || 0} stops · {routeData?.total_distance_km || 0}km · {routeData?.estimated_hours || 0}hrs
+          {stops.length} stops · {routeData?.total_km || 0}km · {routeData ? Math.round(routeData.total_time_min / 60) : 0}hrs
         </span>
       </div>
 
@@ -125,16 +125,16 @@ export function RouteVisualization({ territoryId }: RouteVisualizationProps) {
         >
           {stops.length > 1 && <PolylineF path={path} options={polylineOptions} />}
           {stops.map((stop) => (
-            <MarkerF key={stop.id}
-              position={{ lat: stop.lat, lng: stop.lng }}
-              icon={getMarkerIcon(stop.status as any)}
-              label={{ text: String(stop.id), color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}
-              onClick={() => setActiveStop(stop.id)}
+            <MarkerF key={stop.order}
+              position={{ lat: stop.lat || 0, lng: stop.lng || 0 }}
+              icon={getMarkerIcon('pending')}
+              label={{ text: String(stop.order), color: '#ffffff', fontSize: '11px', fontWeight: 'bold' }}
+              onClick={() => setActiveStop(stop.order)}
             >
-              {activeStop === stop.id && (
-                <InfoWindowF position={{ lat: stop.lat, lng: stop.lng }} onCloseClick={() => setActiveStop(null)}>
+              {activeStop === stop.order && (
+                <InfoWindowF position={{ lat: stop.lat || 0, lng: stop.lng || 0 }} onCloseClick={() => setActiveStop(null)}>
                   <div className="text-xs font-medium text-gray-900 p-1">
-                    {stop.name}<br />{stop.time}
+                    {stop.name}<br />{stop.estimated_time}
                   </div>
                 </InfoWindowF>
               )}

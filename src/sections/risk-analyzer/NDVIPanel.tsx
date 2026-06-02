@@ -2,9 +2,9 @@ import { XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Area
 
 interface NDVIPoint {
   date: string;
-  healthy: number;
-  moderate: number;
-  stressed: number;
+  ndvi: number;
+  benchmark: number;
+  status: string;
 }
 
 interface NDVIPanelProps {
@@ -23,7 +23,7 @@ export function NDVIPanel({ data }: NDVIPanelProps) {
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
       <h3 className="font-semibold text-text-primary dark:text-white mb-6">
-        NDVI Health Indicators — Last 30 Days
+        NDVI Health Indicators — Last 12 Months
       </h3>
       <ResponsiveContainer width="100%" height={400}>
         <ComposedChart data={data}>
@@ -34,9 +34,8 @@ export function NDVIPanel({ data }: NDVIPanelProps) {
             contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '13px' }}
           />
           <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }} />
-          <Area type="monotone" dataKey="healthy"  name="Healthy"  stroke="#8BC34A" strokeWidth={2} fill="rgba(139,195,74,0.15)"  animationDuration={800} />
-          <Area type="monotone" dataKey="moderate" name="Moderate" stroke="#FFC107" strokeWidth={2} fill="rgba(255,193,7,0.15)"   animationDuration={800} />
-          <Area type="monotone" dataKey="stressed" name="Stressed" stroke="#E53935" strokeWidth={2} fill="rgba(229,57,53,0.15)"   animationDuration={800} />
+          <Area type="monotone" dataKey="ndvi" name="Actual NDVI" stroke="#8BC34A" strokeWidth={2} fill="rgba(139,195,74,0.15)" animationDuration={800} />
+          <Area type="monotone" dataKey="benchmark" name="Benchmark NDVI" stroke="#FFC107" strokeWidth={1.5} strokeDasharray="3 3" fill="rgba(255,193,7,0.05)" animationDuration={800} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

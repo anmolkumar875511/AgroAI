@@ -3,9 +3,10 @@ import {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
   Store, Users, BarChart3, Settings, Wifi, WifiOff, Bell,
 } from 'lucide-react';
-import { sidebarItems } from '@/data/mockData';
+import { sidebarItems, managerSidebarItems } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
+import { useAuth } from '@/contexts/AuthContext';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert, Store, Users, BarChart3, Settings, Bell,
@@ -19,11 +20,14 @@ export function Sidebar({ className }: SidebarProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
+  const { user } = useAuth();
+
+  const items = user?.role === 'manager' ? managerSidebarItems : sidebarItems;
 
   return (
     <aside className={cn('bg-deep-forest flex flex-col h-[calc(100vh-64px)] overflow-y-auto scrollbar-hide', className)}>
       <nav className="flex-1 px-3 py-4 space-y-1">
-        {sidebarItems.map((item) => {
+        {items.map((item) => {
           const Icon = iconMap[item.icon];
           const isActive = location.pathname === item.path;
 

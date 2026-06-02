@@ -6,10 +6,13 @@ import { VisitPlannerHeader } from '@/sections/visit-planner/VisitPlannerHeader'
 import { PriorityCard } from '@/sections/visit-planner/PriorityCard';
 import { RouteVisualization } from '@/sections/visit-planner/RouteVisualization';
 
+import { useRegion } from '@/contexts/RegionContext';
+
 export default function VisitPlannerPage() {
   const [filter, setFilter] = useState('all');
   const { user } = useAuth();
-  const territory_id = user?.territory_id || 'TER_0001';
+  const { activeRegion } = useRegion();
+  const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
 
   const { data: visits, loading } = useApi(
     () => visitPlannerAPI.getPriorityVisits(territory_id, filter),

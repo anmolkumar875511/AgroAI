@@ -1,10 +1,11 @@
 import { useState } from 'react';
-import { Sparkles, Calendar, TrendingUp, Filter, CheckCircle2, XCircle, Clock, AlertTriangle, ArrowUp, ArrowDown, Search } from 'lucide-react';
+import { Sparkles, Filter, CheckCircle2, XCircle, ArrowUp, ArrowDown, Search } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, XAxis, YAxis,
   Tooltip, CartesianGrid, PieChart, Pie, Cell, Legend
 } from 'recharts';
-import { toast } from 'sonner';
+import { useApi } from '@/hooks/useApi';
+import { managerAPI } from '@/api/client';
 
 const WEEKLY_TREND = [
   { week: 'Wk 1', rate: 65 },
@@ -47,7 +48,37 @@ export default function RecommendationAcceptancePage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedRep, setSelectedRep] = useState('All');
 
-  const filteredReps = REP_ACCEPTANCE.filter(rep => {
+  const { data: dashData } = useApi(
+    () => managerAPI.getDashboard(),
+    []
+  );
+
+  const reps = dashData?.reps || [];
+
+  const liveRepAcceptance = reps.length > 0 ? reps.map((r: any, index: number) => {
+    const sent = Math.round(r.visits * 1.3);
+    const accepted = Math.round(sent * (r.acceptance / 100));
+    const pending = Math.max(0, Math.round(sent * 0.08));
+    const rejected = Math.max(0, sent - accepted - pending);
+    return {
+      id: index + 1,
+      name: r.name,
+      territory: r.territory.split(',')[1]?.trim() || r.territory.split(' ')[0] || 'Bihar',
+      sent,
+      accepted,
+      rejected,
+      pending,
+      rate: Math.round(r.acceptance),
+      trend: r.acceptance >= 80 ? 'up' : (r.acceptance < 70 ? 'down' : 'neutral'),
+    };
+  }) : REP_ACCEPTANCE;
+
+  const totalSent = liveRepAcceptance.reduce((acc, r) => acc + r.sent, 0);
+  const totalAccepted = liveRepAcceptance.reduce((acc, r) => acc + r.accepted, 0);
+  const totalPendingRejected = totalSent - totalAccepted;
+  const overallRate = totalSent > 0 ? Math.round((totalAccepted / totalSent) * 100) : 73;
+
+  const filteredReps = liveRepAcceptance.filter(rep => {
     const matchesSearch = rep.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesRepFilter = selectedRep === 'All' || rep.name === selectedRep;
     return matchesSearch && matchesRepFilter;
@@ -79,20 +110,20 @@ export default function RecommendationAcceptancePage() {
         <div className="backdrop-blur-md bg-white/70 dark:bg-[#122315]/30 border border-white/20 dark:border-white/10 rounded-card p-5 shadow-card flex items-center justify-between">
           <div>
             <p className="text-xs text-text-muted">Overall Acceptance Rate</p>
-            <h3 className="text-2xl font-bold text-text-primary dark:text-white mt-1">73%</h3>
+            <h3 className="text-2xl font-bold text-text-primary dark:text-white mt-1">{overallRate}%</h3>
             <p className="text-[10px] text-emerald-400 font-bold flex items-center gap-0.5 mt-0.5">
               <ArrowUp className="w-3 h-3" /> +4.2% MoM growth
             </p>
           </div>
           <div className="relative w-14 h-14 flex items-center justify-center rounded-full border-[3.5px] border-white/10 border-t-lime-green">
-            <span className="text-xs font-bold text-lime-green">73%</span>
+            <span className="text-xs font-bold text-lime-green">{overallRate}%</span>
           </div>
         </div>
 
         {[
-          { label: 'Recommendations Sent', value: '156', icon: Sparkles, desc: 'Targeting high-pest risk zones', color: 'text-blue-400 border-blue-500/20' },
-          { label: 'Accepted Recommendations', value: '114', icon: CheckCircle2, desc: 'Converted to product sales', color: 'text-emerald-400 border-emerald-500/20' },
-          { label: 'Pending / Rejected', value: '42', icon: XCircle, desc: 'Follow-ups recommended', color: 'text-rose-400 border-rose-500/20' },
+          { label: 'Recommendations Sent', value: String(totalSent), icon: Sparkles, desc: 'Targeting high-pest risk zones', color: 'text-blue-400 border-blue-500/20' },
+          { label: 'Accepted Recommendations', value: String(totalAccepted), icon: CheckCircle2, desc: 'Converted to product sales', color: 'text-emerald-400 border-emerald-500/20' },
+          { label: 'Pending / Rejected', value: String(totalPendingRejected), icon: XCircle, desc: 'Follow-ups recommended', color: 'text-rose-400 border-rose-500/20' },
         ].map((card, i) => (
           <div key={i} className="backdrop-blur-md bg-white/70 dark:bg-[#122315]/30 border border-white/20 dark:border-white/10 rounded-card p-5 shadow-card flex items-center justify-between">
             <div>

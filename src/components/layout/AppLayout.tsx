@@ -1,4 +1,6 @@
 import { useState } from 'react';
+import { useLocation } from 'react-router-dom';
+import { AnimatePresence, motion } from 'framer-motion';
 import { cn } from '@/lib/utils';
 import { TopNavbar } from './TopNavbar';
 import { Sidebar } from './Sidebar';
@@ -18,6 +20,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const [aiChatOpen, setAiChatOpen] = useState(false);
   const { isMobile, isDesktop } = useBreakpoint();
   const { theme } = useTheme();
+  const location = useLocation();
 
   const handleMenuClick = () => {
     if (isDesktop) {
@@ -48,12 +51,24 @@ export function AppLayout({ children }: AppLayoutProps) {
       )}
 
       <main
-        className="pt-16 min-h-screen transition-all duration-300 ease-in-out"
+        className="pt-16 min-h-screen transition-[margin-left] duration-300 ease-in-out"
         style={{
           marginLeft: isMobile ? 0 : isDesktop ? (desktopSidebarOpen ? 220 : 0) : 64,
         }}
       >
-        <div className="p-4 lg:p-5">{children}</div>
+        <div className="p-4 lg:p-5 overflow-x-hidden">
+          <AnimatePresence mode="wait" initial={false}>
+            <motion.div
+              key={location.pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </div>
       </main>
 
       <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />

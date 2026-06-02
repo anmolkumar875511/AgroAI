@@ -90,49 +90,91 @@ export default function RiskAnalyzerPage() {
 
       {loading || !data ? (
         <RiskAnalyzerSkeleton />
-      ) : (
-        <>
-          {activeTab === 'heatmap' && (
-            <div className="space-y-4">
-              <HeatmapGrid
-                cells={data.heatmap || []}
+      ) : (() => {
+        const mappedHeatmapCells = data.heatmap?.map((cell, index) => {
+          const riskMapped = (cell.risk_level.toLowerCase() === 'critical' ? 'critical' : cell.risk_level.toLowerCase()) as 'low' | 'medium' | 'high' | 'critical';
+          const y = (cell.lat - activeRegion.lat) / 0.15 + 3;
+          const x = (cell.lng - activeRegion.lng) / 0.15 + 4;
+          return {
+            id: index,
+            x,
+            y,
+            risk: riskMapped,
+            village: cell.village,
+            risk_percent: Math.round(cell.risk_score),
+          };
+        }) || [];
+
+        const mappedWeatherAnomalies = data.weather_anomalies?.map((w, index) => {
+          const wType = w.type.toLowerCase();
+          const typeMapped = wType.includes('rain') ? 'rain' : wType.includes('wind') ? 'wind' : 'drought';
+          return {
+            id: index,
+            lat: w.lat,
+            lng: w.lng,
+            type: typeMapped,
+            label: w.type,
+            temp: w.severity === 'High' ? '38°C' : w.severity === 'Medium' ? '32°C' : '26°C',
+            condition: w.description,
+          };
+        }) || [];
+
+        const mappedPestOutbreaks = data.pest_outbreaks?.map((o, index) => {
+          return {
+            id: index,
+            lat: o.lat,
+            lng: o.lng,
+            pest: o.pest_name,
+            severity: o.severity,
+            crop: o.crop,
+            village: `Cluster ${index + 1}`,
+          };
+        }) || [];
+
+        return (
+          <>
+            {activeTab === 'heatmap' && (
+              <div className="space-y-4">
+                <HeatmapGrid
+                  cells={mappedHeatmapCells}
+                  regionLat={activeRegion.lat}
+                  regionLng={activeRegion.lng}
+                  regionZoom={activeRegion.zoom}
+                />
+                <AIInsightsPanel
+                  insights={data.ai_insights || []}
+                  overallRisk={data.overall_risk_level || 'Low'}
+                  territoryId={territory_id}
+                />
+              </div>
+            )}
+
+            {activeTab === 'ndvi' && (
+              <NDVIPanel
+                data={data.ndvi_data || []}
+              />
+            )}
+
+            {activeTab === 'weather' && (
+              <WeatherMap
+                anomalies={mappedWeatherAnomalies}
                 regionLat={activeRegion.lat}
                 regionLng={activeRegion.lng}
                 regionZoom={activeRegion.zoom}
               />
-              <AIInsightsPanel
-                insights={data.ai_insights || []}
-                overallRisk={data.overall_risk_level || 'Low'}
-                territoryId={territory_id}
+            )}
+
+            {activeTab === 'pest' && (
+              <PestMap
+                outbreaks={mappedPestOutbreaks}
+                regionLat={activeRegion.lat}
+                regionLng={activeRegion.lng}
+                regionZoom={activeRegion.zoom}
               />
-            </div>
-          )}
-
-          {activeTab === 'ndvi' && (
-            <NDVIPanel
-              data={data.ndvi_data || []}
-            />
-          )}
-
-          {activeTab === 'weather' && (
-            <WeatherMap
-              anomalies={data.weather_anomalies || []}
-              regionLat={activeRegion.lat}
-              regionLng={activeRegion.lng}
-              regionZoom={activeRegion.zoom}
-            />
-          )}
-
-          {activeTab === 'pest' && (
-            <PestMap
-              outbreaks={data.pest_outbreaks || []}
-              regionLat={activeRegion.lat}
-              regionLng={activeRegion.lng}
-              regionZoom={activeRegion.zoom}
-            />
-          )}
-        </>
-      )}
+            )}
+          </>
+        );
+      })()}
     </div>
   );
 }

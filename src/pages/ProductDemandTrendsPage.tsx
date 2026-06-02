@@ -5,6 +5,8 @@ import {
   Tooltip, CartesianGrid, Legend
 } from 'recharts';
 import { toast } from 'sonner';
+import { useApi } from '@/hooks/useApi';
+import { managerAPI } from '@/api/client';
 
 const MONTHLY_DEMAND = [
   { month: 'Jan', 'Amistar 250 SC': 1200, 'Actara 25 WG': 900, 'Tilt 250 EC': 800, 'Movondo': 500, 'Score 250 EC': 700, 'Vibrance': 400 },
@@ -37,7 +39,32 @@ export default function ProductDemandTrendsPage() {
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [timeRange, setTimeRange] = useState('6m');
 
-  const filteredProducts = PRODUCT_PERFORMANCE.filter(prod => {
+  const { data } = useApi(
+    () => managerAPI.getDashboard(),
+    []
+  );
+
+  const productDemand = data?.product_demand || [];
+
+  const liveProducts = productDemand.length > 0 ? productDemand.map((pd: any, index: number) => {
+    const category = pd.product.includes('Fungicide') ? 'Fungicide' : (pd.product.includes('Insecticide') ? 'Insecticide' : 'Seed Treatment');
+    const status = pd.stock > 100 ? 'Good Stock' : (pd.stock > 30 ? 'Medium Stock' : 'Low Stock');
+    return {
+      id: index + 1,
+      name: pd.product,
+      category: category,
+      sold: pd.sales.toLocaleString(),
+      revenue: `₹${(pd.sales * 0.05).toFixed(1)}L`,
+      growth: `${pd.growth > 0 ? '+' : ''}${pd.growth}%`,
+      isPositive: pd.growth >= 0,
+      stockStatus: status,
+      demandScore: 70 + index * 5,
+      stock: pd.stock,
+      req: pd.stock + 50,
+    };
+  }) : PRODUCT_PERFORMANCE;
+
+  const filteredProducts = liveProducts.filter(prod => {
     const matchesSearch = prod.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       prod.category.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = categoryFilter === 'All' || prod.category === categoryFilter;

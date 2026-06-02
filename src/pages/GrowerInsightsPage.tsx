@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Users, Leaf, AlertTriangle, BarChart3, Sprout, MessageSquare } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useApi } from '@/hooks/useApi';
+import { useRegion } from '@/contexts/RegionContext';
 import { growersAPI, type GrowerCluster, type GrowerSummary } from '@/api/client';
 import { cn } from '@/lib/utils';
 
@@ -94,7 +95,8 @@ function ClusterCard({ cluster }: { cluster: GrowerCluster }) {
 
 export default function GrowerInsightsPage() {
   const { user } = useAuth();
-  const territory_id = user?.territory_id || 'TER_0001';
+  const { activeRegion } = useRegion();
+  const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
   const [crop, setCrop]     = useState('all');
   const [urgency, setUrgency] = useState('all');
 

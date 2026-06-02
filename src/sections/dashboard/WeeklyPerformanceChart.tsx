@@ -31,7 +31,7 @@ export function WeeklyPerformanceChart({ data, loading }: WeeklyPerformanceChart
   const ct = useChartTheme();
   const chartData = data || FALLBACK;
 
-  if (loading) {
+  if (loading && !data) {
     return (
       <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
         <div className="flex items-center justify-between mb-6">
