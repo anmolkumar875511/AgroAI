@@ -208,7 +208,7 @@ export interface VisitPlannerItem {
   actions: string[];
   retailer_id: string;
 }
-export interface RouteStop { retailer_id: string; name: string; location: string; lat?: number; lng?: number; order: number; estimated_time: string }
+export interface RouteStop {retailer_id: string; name: string; location: string; lat: number; lng: number; order: number; estimated_time: string;}
 export interface RouteVisualizationData { stops: RouteStop[]; total_km: number; total_time_min: number }
 
 export interface NotificationItem { id: number; title: string; message: string; type: string; read: boolean; time: string }
@@ -310,7 +310,7 @@ export const visitPlannerAPI = {
   getPriorityVisits: (territory_id: string, filter = "all") =>
     request<VisitPlannerItem[]>(`/visit-planner/priority/${territory_id}?filter=${filter}`),
   recordAction: (payload: { retailer_id: string; action: string }, territory_id: string) =>
-    request<{ status: string }>(`/visit-planner/action/${territory_id}`, {
+    request<any>(`/visit-planner/action/${territory_id}`, {
       method: "POST",
       body: JSON.stringify(payload),
     }),
