@@ -1,5 +1,5 @@
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
-import { useEffect } from 'react';
+import { Component, useEffect } from 'react';
 import { AppLayout } from '@/components/layout/AppLayout';
 import { RegionProvider } from '@/contexts/RegionContext';
 import { ThemeProvider } from '@/contexts/ThemeContext';
@@ -27,6 +27,31 @@ import RepVisitTrackingPage from '@/pages/RepVisitTrackingPage';
 import HighPriorityAreasPage from '@/pages/HighPriorityAreasPage';
 import ProductDemandTrendsPage from '@/pages/ProductDemandTrendsPage';
 import RecommendationAcceptancePage from '@/pages/RecommendationAcceptancePage';
+
+class ErrorBoundary extends Component<{ children: React.ReactNode }, { error: Error | null }> {
+  state = { error: null };
+
+  static getDerivedStateFromError(error: Error) {
+    return { error };
+  }
+
+  componentDidCatch(error: Error) {
+    console.error(error);
+  }
+
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="min-h-screen bg-off-white p-6 text-danger-red">
+          <h1 className="text-lg font-semibold">App render error</h1>
+          <pre className="mt-3 whitespace-pre-wrap text-sm">{this.state.error.message}</pre>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
 
 function ScrollToTop() {
   const { pathname } = useLocation();
@@ -63,30 +88,32 @@ function AppContent() {
           path="*"
           element={
             <ProtectedRoute>
-              <AppLayout>
-                <Routes>
-                  <Route path="/dashboard"          element={<DashboardPage />} />
-                  <Route path="/visit-planner"       element={<VisitPlannerPage />} />
-                  <Route path="/recommendations"     element={<RecommendationsPage />} />
-                  <Route path="/risk-analyzer"       element={<RiskAnalyzerPage />} />
-                  <Route path="/analytics"           element={<AnalyticsPage />} />
-                  <Route path="/retailer-insights"   element={<RetailerInsightsPage />} />
-                  <Route path="/grower-insights"     element={<GrowerInsightsPage />} />
-                  <Route path="/visit-feedback"      element={<VisitFeedbackPage />} />
-                  <Route path="/notifications"       element={<NotificationsPage />} />
-                  <Route path="/settings"            element={<SettingsPage />} />
+              <ErrorBoundary>
+                <AppLayout>
+                  <Routes>
+                    <Route path="/dashboard"          element={<DashboardPage />} />
+                    <Route path="/visit-planner"       element={<VisitPlannerPage />} />
+                    <Route path="/recommendations"     element={<RecommendationsPage />} />
+                    <Route path="/risk-analyzer"       element={<RiskAnalyzerPage />} />
+                    <Route path="/analytics"           element={<AnalyticsPage />} />
+                    <Route path="/retailer-insights"   element={<RetailerInsightsPage />} />
+                    <Route path="/grower-insights"     element={<GrowerInsightsPage />} />
+                    <Route path="/visit-feedback"      element={<VisitFeedbackPage />} />
+                    <Route path="/notifications"       element={<NotificationsPage />} />
+                    <Route path="/settings"            element={<SettingsPage />} />
 
-                  {/* Manager specific routes */}
-                  <Route path="/team-performance"    element={<TeamPerformancePage />} />
-                  <Route path="/reports"             element={<ReportsPage />} />
-                  <Route path="/rep-visit-tracking"  element={<RepVisitTrackingPage />} />
-                  <Route path="/high-priority-areas" element={<HighPriorityAreasPage />} />
-                  <Route path="/product-demand-trends" element={<ProductDemandTrendsPage />} />
-                  <Route path="/recommendation-acceptance" element={<RecommendationAcceptancePage />} />
+                    {/* Manager specific routes */}
+                    <Route path="/team-performance"    element={<TeamPerformancePage />} />
+                    <Route path="/reports"             element={<ReportsPage />} />
+                    <Route path="/rep-visit-tracking"  element={<RepVisitTrackingPage />} />
+                    <Route path="/high-priority-areas" element={<HighPriorityAreasPage />} />
+                    <Route path="/product-demand-trends" element={<ProductDemandTrendsPage />} />
+                    <Route path="/recommendation-acceptance" element={<RecommendationAcceptancePage />} />
 
-                  <Route path="*"                    element={<DashboardPage />} />
-                </Routes>
-              </AppLayout>
+                    <Route path="*"                    element={<DashboardPage />} />
+                  </Routes>
+                </AppLayout>
+              </ErrorBoundary>
             </ProtectedRoute>
           }
         />

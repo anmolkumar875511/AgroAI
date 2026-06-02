@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { AlertTriangle, TrendingUp, CheckCircle, BellRing, CalendarPlus, Loader2 } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { visitPlannerAPI } from '@/api/client';
+import { visitPlannerAPI, type AIInsight } from '@/api/client';
 
 const ICON_MAP = [AlertTriangle, TrendingUp, CheckCircle];
 const COLOR_MAP = [
@@ -11,7 +11,7 @@ const COLOR_MAP = [
 ];
 
 interface AIInsightsPanelProps {
-  insights: string[];
+  insights: (string | AIInsight)[];
   overallRisk: string;
   territoryId: string;
 }
@@ -53,15 +53,26 @@ export function AIInsightsPanel({ insights, overallRisk, territoryId }: AIInsigh
           '3 villages show critical risk spike in the last 7 days',
           'Stem Borer outbreak probability: 78% based on humidity',
           'Recommend immediate field visits to affected zones',
-        ]).map((text, i) => {
+        ]).map((item, i) => {
           const Icon = ICON_MAP[i % 3];
           const { color, bg } = COLOR_MAP[i % 3];
+          const isObject = typeof item === 'object' && item !== null;
+          const title = isObject ? (item as any).title : undefined;
+          const text = isObject ? (item as any).description : (item as string);
+          const action = isObject ? (item as any).action : undefined;
+
           return (
             <div key={i} className="flex items-start gap-3">
               <div className={cn('w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', bg)}>
                 <Icon className={cn('w-4 h-4', color)} />
               </div>
-              <p className="text-sm text-text-secondary dark:text-white/70 pt-1">{text}</p>
+              <div className="pt-1">
+                {title && <span className="font-semibold text-text-primary dark:text-white block text-sm mb-0.5">{title}</span>}
+                <p className="text-sm text-text-secondary dark:text-white/70">{text}</p>
+                {action && (
+                  <p className="text-xs text-lime-green mt-1 font-medium">⚡ Action: {action}</p>
+                )}
+              </div>
             </div>
           );
         })}

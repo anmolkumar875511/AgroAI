@@ -29,9 +29,43 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
   const notifications = notifData?.notifications || [];
   const unreadCount = notifData?.unread_count || 0;
 
-  const handleMarkRead = async (id: string) => {
-    await notificationsAPI.markRead(id);
-    refetchNotifs();
+  const handleNotificationClick = async (notif: any) => {
+    if (!notif.read) {
+      await notificationsAPI.markRead(notif.id);
+      refetchNotifs();
+    }
+    
+    const title = notif.title || '';
+    const message = notif.message || '';
+    const combined = `${title} ${message}`.toLowerCase();
+
+    let path = '/visit-planner';
+    
+    if (combined.includes('follow-up') || combined.includes('feedback') || combined.includes('reminder')) {
+      const match = combined.match(/(rtl[-_]?\d+|r\d+)/i);
+      const retailerId = match ? match[0].toUpperCase() : '';
+      path = `/visit-feedback${retailerId ? `?retailer_id=${retailerId}` : ''}`;
+    } else if (combined.includes('stock') || combined.includes('inventory') || combined.includes('shortage')) {
+      const match = combined.match(/(rtl[-_]?\d+|r\d+)/i);
+      const retailerId = match ? match[0].toUpperCase() : '';
+      path = `/retailer-insights${retailerId ? `?search=${retailerId}` : ''}`;
+    } else if (combined.includes('pest') || combined.includes('disease') || combined.includes('outbreak') || 
+               combined.includes('stress') || combined.includes('ndvi') || combined.includes('risk') || 
+               combined.includes('anomaly') || combined.includes('weather')) {
+      path = '/risk-analyzer';
+    } else if (combined.includes('report') || combined.includes('analytics') || combined.includes('performance') || 
+               combined.includes('kpi') || combined.includes('sales') || combined.includes('target')) {
+      path = '/analytics';
+    } else if (combined.includes('gap') || combined.includes('route') || combined.includes('schedule') || 
+               combined.includes('planner') || combined.includes('visit')) {
+      path = '/visit-planner';
+    } else if (combined.includes('recommendation') || combined.includes('advisory') || combined.includes('forecast') || 
+               combined.includes('demand') || combined.includes('ml')) {
+      path = '/recommendations';
+    }
+
+    setNotifOpen(false);
+    navigate(path);
   };
 
   const handleMarkAllRead = async () => {
@@ -128,7 +162,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
                     {notifications.map(notif => (
                       <div
                         key={notif.id}
-                        onClick={() => handleMarkRead(notif.id)}
+                        onClick={() => handleNotificationClick(notif)}
                         className={`px-4 py-3 border-b border-light-gray/50 dark:border-white/5 hover:bg-light-gray/50 dark:hover:bg-white/5 transition-colors cursor-pointer ${!notif.read ? 'bg-lime-green/5' : ''}`}
                       >
                         <div className="flex items-start gap-3">

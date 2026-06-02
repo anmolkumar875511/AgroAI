@@ -26,7 +26,8 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
   const [showExplain, setShowExplain] = useState(false);
   const [actionState, setActionState] = useState<'idle' | 'loading' | 'applied' | 'dismissed'>('idle');
 
-  const score = rec.priority === 'high' ? 92 : rec.priority === 'medium' ? 75 : 58;
+  const priority = rec.priority?.toLowerCase();
+  const score = priority === 'critical' || priority === 'high' ? 92 : priority === 'medium' ? 75 : 58;
 
   const handleApply = async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -94,13 +95,13 @@ export function ExplainableAICard({ recommendation: rec, onApply, onDismiss }: E
         <PriorityBadge priority={rec.priority} showLabel />
         <div className="w-12 h-12 flex-shrink-0">
           <ProgressRing progress={score} size={48} strokeWidth={4}
-            color={rec.priority === 'high' ? '#E53935' : rec.priority === 'medium' ? '#FFC107' : '#8BC34A'}>
+            color={priority === 'critical' || priority === 'high' ? '#E53935' : priority === 'medium' ? '#FFC107' : '#8BC34A'}>
             <span className="text-xs font-bold text-text-primary dark:text-white">{score}</span>
           </ProgressRing>
         </div>
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-text-primary dark:text-white">
-            {rec.crop} — {rec.priority === 'high' ? 'Pest Risk Alert' : rec.priority === 'medium' ? 'Nutrient Advisory' : 'General Advisory'}
+            {rec.crop} — {priority === 'critical' || priority === 'high' ? 'Pest Risk Alert' : priority === 'medium' ? 'Nutrient Advisory' : 'General Advisory'}
           </h4>
           <p className="text-xs text-text-muted mt-0.5">
             {rec.village} {rec.farmer ? `| Farmer: ${rec.farmer}` : ''}

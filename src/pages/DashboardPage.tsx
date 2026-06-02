@@ -60,14 +60,21 @@ function FieldRepDashboard() {
     title: k.title,
     value: k.value,
     trend: k.trend,
-    trendDirection: k.trend_direction,
+    trendDirection: k.trend_direction === 'down' ? 'down' as const : 'up' as const,
     icon: k.icon,
     iconColor: k.icon_color,
     iconBg: k.icon_bg,
-    chartData: k.chart_data,
+    chartData: k.chart_data.map((point) => point.value),
     chartColor: k.chart_color,
     chartFill: k.chart_color + '22',
   });
+
+  const weeklyPerformance = data?.weekly_performance?.map((point) => ({
+    name: point.day,
+    value: point.visits,
+    value2: point.recommendations,
+    value3: point.revenue / 100000,
+  }));
 
   if (error) {
     return (
@@ -78,14 +85,14 @@ function FieldRepDashboard() {
   }
 
   return (
-    <div ref={pageRef} className="space-y-6 lg:space-y-8 pb-8">
+    <div ref={pageRef} className="space-y-5 lg:space-y-6 pb-6">
       <div className="dashboard-card">
         <DashboardGreeting />
       </div>
 
       {/* KPI Cards */}
       {loading ? (
-        <div className="grid grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
+        <div className="grid grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
           {[0, 1, 2, 3].map(i => <KPISkeleton key={i} />)}
         </div>
       ) : (
@@ -103,7 +110,7 @@ function FieldRepDashboard() {
             </div>
           </div>
           {/* Desktop: grid */}
-          <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-5 lg:gap-6">
+          <div className="hidden sm:grid grid-cols-2 xl:grid-cols-4 gap-4 lg:gap-5">
             {(data?.kpis || []).map(kpi => (
               <div key={kpi.id} className="dashboard-card">
                 <KPICard data={toKpiData(kpi)} />
@@ -119,7 +126,7 @@ function FieldRepDashboard() {
       </div>
 
       {/* Middle: AI Recommendations + Map */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 lg:gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-5">
         <div className="dashboard-card">
           <AIRecommendationsFeed territoryId={territory_id} />
         </div>
@@ -131,7 +138,7 @@ function FieldRepDashboard() {
       {/* Weekly Performance */}
       <div className="dashboard-card">
         <WeeklyPerformanceChart
-          data={data?.weekly_performance}
+          data={weeklyPerformance}
           loading={loading}
         />
       </div>

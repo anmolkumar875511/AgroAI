@@ -71,13 +71,13 @@ def main():
     model_path = os.path.join(OUT_DIR, "agroai_visit_priority_regressor.pkl")
     with open(model_path, "wb") as f:
         pickle.dump(model, f)
-    print(f"✓ Model saved → {model_path}")
+    print(f"[OK] Model saved: {model_path}")
 
     # Save feature names
     feat_path = os.path.join(OUT_DIR, "agroai_model_features.pkl")
     with open(feat_path, "wb") as f:
         pickle.dump(FEATURE_NAMES, f)
-    print(f"✓ Feature list saved → {feat_path}")
+    print(f"[OK] Feature list saved: {feat_path}")
 
     # Save a simple classifier for priority level
     from sklearn.ensemble import RandomForestClassifier
@@ -87,12 +87,12 @@ def main():
     clf_path = os.path.join(OUT_DIR, "agroai_priority_classifier.pkl")
     with open(clf_path, "wb") as f:
         pickle.dump(clf, f)
-    print(f"✓ Classifier saved → {clf_path}")
+    print(f"[OK] Classifier saved: {clf_path}")
 
     # Quick accuracy check
     from sklearn.metrics import r2_score, mean_absolute_error
     y_pred = model.predict(X)
-    print(f"\nRegressor — R²: {r2_score(y, y_pred):.3f}  MAE: {mean_absolute_error(y, y_pred):.2f}")
+    print(f"\nRegressor - R2: {r2_score(y, y_pred):.3f}  MAE: {mean_absolute_error(y, y_pred):.2f}")
     print("Training complete.\n")
 
 

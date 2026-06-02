@@ -3,12 +3,42 @@ import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TrendingUp, TrendingDown, Wheat, Sprout, X, Calculator, Coins, Percent, Sparkles } from 'lucide-react';
 import { useApi } from '@/hooks/useApi';
-import { mandiAPI, type MandiPrice } from '@/api/client';
+import { mandiAPI, type MandiResponse, type MandiPriceItem } from '@/api/client';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = { Wheat, Sprout };
 
+type DisplayMandiPrice = {
+  crop: string;
+  market: string;
+  price: string;
+  unit: string;
+  change: string;
+  icon: string;
+  up: boolean;
+};
+
+function normalizePrice(item: any): DisplayMandiPrice {
+  if (!item) return { crop: '', market: '', price: '', unit: '', change: '', icon: 'Sprout', up: true };
+  const change = item.change_pct ?? item.change ?? 0;
+  return {
+    crop: item.commodity || item.crop || '',
+    market: item.mandi || item.market || '',
+    price: typeof item.price === 'number' 
+      ? new Intl.NumberFormat('en-IN', {
+          style: 'currency',
+          currency: 'INR',
+          maximumFractionDigits: 0,
+        }).format(item.price)
+      : String(item.price || ''),
+    unit: item.unit ? (item.unit.startsWith('/') ? item.unit : `/${item.unit}`) : '/quintal',
+    change: typeof change === 'number' ? `${change > 0 ? '+' : ''}${change}%` : String(change),
+    icon: (item.commodity || item.crop || '')?.toLowerCase().includes('wheat') ? 'Wheat' : 'Sprout',
+    up: change >= 0,
+  };
+}
+
 interface MandiPriceCardProps {
-  prices?: MandiPrice[];  // injected from DashboardPage when available
+  prices?: any[];
 }
 
 export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) {
@@ -18,9 +48,10 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
     [injectedPrices],
   );
 
-  const prices = injectedPrices || fetchedPrices || [];
+  const rawPrices = injectedPrices || (fetchedPrices && 'prices' in (fetchedPrices as any) ? (fetchedPrices as any).prices : fetchedPrices) || [];
+  const prices = rawPrices.map(normalizePrice);
   
-  const [selectedPrice, setSelectedPrice] = useState<MandiPrice | null>(null);
+  const [selectedPrice, setSelectedPrice] = useState<DisplayMandiPrice | null>(null);
   const [volume, setVolume] = useState<number>(50);
   const [costPercentage, setCostPercentage] = useState<number>(55);
   const [mounted, setMounted] = useState<boolean>(false);
@@ -60,37 +91,37 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
 
   return (
     <>
-      <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
-        <div className="flex items-center justify-between mb-5">
+      <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-4">
+        <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-semibold text-text-primary dark:text-white">Today's Mandi Prices</h3>
-            <p className="text-xs text-text-muted mt-0.5">Click any crop card to open AI Revenue Calculator & crop advisory</p>
+            <h3 className="font-semibold text-text-primary dark:text-white text-sm">Today's Mandi Prices</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">Click any crop card to open AI Revenue Calculator & crop advisory</p>
           </div>
-          <span className="text-[11px] text-text-muted uppercase tracking-wider">Live · data.gov.in</span>
+          <span className="text-[10px] text-text-muted uppercase tracking-wider">Live · data.gov.in</span>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {prices.slice(0, 4).map((item) => {
             const Icon = iconMap[item.icon] || Sprout;
             return (
               <div 
                 key={item.crop} 
                 onClick={() => setSelectedPrice(item)}
-                className="flex items-center gap-3 p-3 rounded-xl bg-light-gray/50 dark:bg-white/5 border border-transparent dark:border-white/5 hover:border-lime-green/30 dark:hover:border-lime-green/30 hover:scale-[1.02] cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
+                className="flex items-center gap-2.5 p-2.5 rounded-xl bg-light-gray/50 dark:bg-white/5 border border-transparent dark:border-white/5 hover:border-lime-green/30 dark:hover:border-lime-green/30 hover:scale-[1.02] cursor-pointer transition-all duration-200 shadow-sm hover:shadow-md"
               >
-                <div className="w-10 h-10 rounded-xl bg-lime-green/10 flex items-center justify-center flex-shrink-0">
-                  <Icon className="w-5 h-5 text-lime-green" />
+                <div className="w-9 h-9 rounded-xl bg-lime-green/10 flex items-center justify-center flex-shrink-0">
+                  <Icon className="w-4.5 h-4.5 text-lime-green" />
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-text-primary dark:text-white truncate">{item.crop}</p>
-                  <p className="text-[11px] text-text-muted truncate">{item.market}</p>
+                  <p className="text-[13px] font-semibold text-text-primary dark:text-white truncate">{item.crop}</p>
+                  <p className="text-[10px] text-text-muted truncate">{item.market}</p>
                 </div>
                 <div className="text-right">
-                  <p className="text-sm font-bold text-text-primary dark:text-white">
-                    {item.price}<span className="text-[10px] text-text-muted font-normal">{item.unit}</span>
+                  <p className="text-[13px] font-bold text-text-primary dark:text-white">
+                    {item.price}<span className="text-[9px] text-text-muted font-normal">{item.unit}</span>
                   </p>
                   <div className={`flex items-center gap-0.5 justify-end ${item.up ? 'text-lime-green' : 'text-danger-red'}`}>
                     {item.up ? <TrendingUp className="w-3.5 h-3.5" /> : <TrendingDown className="w-3.5 h-3.5" />}
-                    <span className="text-[11px] font-medium">{item.change}</span>
+                    <span className="text-[10px] font-medium">{item.change}</span>
                   </div>
                 </div>
               </div>

@@ -44,21 +44,21 @@ export function WeeklyPerformanceChart({ data, loading }: WeeklyPerformanceChart
   }
 
   return (
-    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 p-6 transition-all duration-300 hover:shadow-lg">
-      <div className="flex items-center justify-between mb-6 gap-2">
-        <h3 className="font-semibold text-text-primary dark:text-white text-base">Weekly Performance</h3>
+    <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 p-5 transition-all duration-300 hover:shadow-lg">
+      <div className="flex items-center justify-between mb-4 gap-2">
+        <h3 className="font-semibold text-text-primary dark:text-white text-sm">Weekly Performance</h3>
         <span className="px-3.5 py-1.5 rounded-xl bg-light-gray/60 dark:bg-white/5 text-[10px] font-bold text-text-primary dark:text-white uppercase tracking-wider shadow-sm hover:scale-[1.02] transition-transform duration-300 cursor-default">
           This Week
         </span>
       </div>
 
-      <ResponsiveContainer width="100%" height={280}>
+      <ResponsiveContainer width="100%" height={240}>
         <ComposedChart data={chartData}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.gridStroke} />
-          <XAxis dataKey="name" tick={{ fontSize: 12, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
-          <YAxis tick={{ fontSize: 12, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `Rs.${v}L`} />
-          <Tooltip contentStyle={{ backgroundColor: ct.tooltipBg, color: ct.tooltipColor, border: ct.tooltipBorder, borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '13px' }} />
-          <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '16px', color: ct.legendColor }} />
+          <XAxis dataKey="name" tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
+          <YAxis tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `Rs.${v}L`} />
+          <Tooltip contentStyle={{ backgroundColor: ct.tooltipBg, color: ct.tooltipColor, border: ct.tooltipBorder, borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '12px' }} />
+          <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '12px', color: ct.legendColor }} />
           <Bar dataKey="value" name="Visits Completed"
             fill={ct.isDark ? 'rgba(139,195,74,0.4)' : 'rgba(27,94,32,0.3)'}
             radius={[4, 4, 0, 0]} animationDuration={800} />

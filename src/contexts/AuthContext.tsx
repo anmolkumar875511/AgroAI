@@ -1,8 +1,8 @@
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
-import { authAPI, getToken, setToken, clearToken, type UserProfile } from '@/api/client';
+import { authAPI, getToken, setToken, clearToken, type UserOut } from '@/api/client';
 
 interface AuthContextType {
-  user: UserProfile | null;
+  user: UserOut | null;
   isLoading: boolean;
   isAuthenticated: boolean;
   login: (email: string, password: string) => Promise<void>;
@@ -12,7 +12,7 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<UserProfile | null>(null);
+  const [user, setUser] = useState<UserOut | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   // On mount: if a token exists, validate it and restore session

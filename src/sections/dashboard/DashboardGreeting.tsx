@@ -13,12 +13,12 @@ export function DashboardGreeting() {
   });
 
   return (
-    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-deep-green/5 via-lime-green/5 to-transparent dark:from-lime-green/10 dark:via-deep-green/5 dark:to-transparent p-6 sm:p-8 border border-deep-green/10 dark:border-lime-green/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-6 shadow-sm">
-      <div className="space-y-1.5 z-10">
-        <h1 className="text-3xl lg:text-4xl font-extrabold tracking-tight text-text-primary dark:text-white drop-shadow-sm">
+    <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-deep-green/5 via-lime-green/5 to-transparent dark:from-lime-green/10 dark:via-deep-green/5 dark:to-transparent p-5 sm:p-6.5 border border-deep-green/10 dark:border-lime-green/10 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-5 shadow-sm">
+      <div className="space-y-1 z-10">
+        <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-text-primary dark:text-white drop-shadow-sm">
           {greeting}, <span className="bg-gradient-to-r from-deep-green to-lime-green dark:from-lime-green dark:to-emerald-400 bg-clip-text text-transparent">{firstName}</span>
         </h1>
-        <p className="text-sm font-medium text-text-muted dark:text-white/60 tracking-wide">{dateStr}</p>
+        <p className="text-xs font-medium text-text-muted dark:text-white/60 tracking-wide">{dateStr}</p>
       </div>
       <div className="z-10 flex-shrink-0">
         <WeatherWidget />

@@ -8,7 +8,7 @@ interface MiniSparklineProps {
 }
 
 export function MiniSparkline({ data, color = '#1B5E20', height = 50 }: MiniSparklineProps) {
-  const chartData = data.map((value, index) => ({ index, value }));
+  const chartData = Array.isArray(data) ? data.map((value, index) => ({ index, value })) : [];
 
   return (
     <ResponsiveContainer width="100%" height={height}>

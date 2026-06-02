@@ -97,15 +97,15 @@ export function MapWidget() {
   return (
     <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 h-full flex flex-col overflow-hidden animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between px-5 py-4 border-b border-light-gray dark:border-white/5 gap-2 flex-wrap">
-        <h3 className="font-semibold text-text-primary dark:text-white text-base">Territory Overview</h3>
+      <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray dark:border-white/5 gap-2 flex-wrap">
+        <h3 className="font-semibold text-text-primary dark:text-white text-sm">Territory Overview</h3>
         <div className="flex gap-1.5 bg-light-gray/60 dark:bg-white/5 p-1 rounded-xl">
           {tabs.map(tab => (
             <button
               key={tab.id}
               onClick={() => { setActiveTab(tab.id); setActiveMarker(null); }}
               className={cn(
-                'px-3 py-1.5 text-xs font-bold rounded-lg transition-all duration-300',
+                'px-2.5 py-1 text-xs font-bold rounded-lg transition-all duration-300',
                 activeTab === tab.id
                   ? 'text-deep-green dark:text-lime-green bg-white dark:bg-[#18281a] shadow-sm'
                   : 'text-text-muted hover:text-text-primary dark:hover:text-white',
@@ -118,7 +118,7 @@ export function MapWidget() {
       </div>
 
       {/* Map */}
-      <div className="relative flex-1 min-h-[300px] bg-light-gray/60 dark:bg-[#0b150c]/40 m-4 rounded-2xl overflow-hidden z-0 border border-light-gray dark:border-white/5">
+      <div className="relative flex-1 min-h-[260px] bg-light-gray/60 dark:bg-[#0b150c]/40 m-3 rounded-2xl overflow-hidden z-0 border border-light-gray dark:border-white/5">
         <GoogleMap
           mapContainerStyle={containerStyle}
           center={{ lat: activeRegion.lat, lng: activeRegion.lng }}

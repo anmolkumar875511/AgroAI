@@ -34,7 +34,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {isDesktop && (
         <Sidebar
           className={cn(
-            "fixed left-0 top-16 h-[calc(100vh-64px)] w-[260px] z-40 transition-all duration-300 ease-in-out transform",
+            "fixed left-0 top-16 h-[calc(100vh-64px)] w-[220px] z-40 transition-all duration-300 ease-in-out transform",
             desktopSidebarOpen ? "translate-x-0 opacity-100" : "-translate-x-full opacity-0 pointer-events-none"
           )}
         />
@@ -50,10 +50,10 @@ export function AppLayout({ children }: AppLayoutProps) {
       <main
         className="pt-16 min-h-screen transition-all duration-300 ease-in-out"
         style={{
-          marginLeft: isMobile ? 0 : isDesktop ? (desktopSidebarOpen ? 260 : 0) : 64,
+          marginLeft: isMobile ? 0 : isDesktop ? (desktopSidebarOpen ? 220 : 0) : 64,
         }}
       >
-        <div className="p-4 lg:p-6">{children}</div>
+        <div className="p-4 lg:p-5">{children}</div>
       </main>
 
       <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
