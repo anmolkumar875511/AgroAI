@@ -6,6 +6,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const COLORS = ['#1B5E20', '#8BC34A', '#FFC107', '#1E88E5', '#E53935'];
 
@@ -16,10 +17,11 @@ const CROP_DISTRIBUTION: any[] = [];
 export default function ReportsPage() {
   const [reportType, setReportType] = useState('summary');
   const [dateRange, setDateRange] = useState('may_2026');
+  const { activeRegion } = useRegion();
 
   const { data: dashData } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   const reps = dashData?.reps || [];

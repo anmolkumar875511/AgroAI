@@ -6,6 +6,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const RISK_DISTRIBUTION: any[] = [];
 
@@ -17,10 +18,11 @@ export default function HighPriorityAreasPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [stateFilter, setStateFilter] = useState('All');
+  const { activeRegion } = useRegion();
 
   const { data: dashData } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   const missedOpportunities = dashData?.missed_opportunities || [];

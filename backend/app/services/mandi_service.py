@@ -6,7 +6,7 @@ from __future__ import annotations
 import httpx
 from datetime import datetime, timezone, date
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, and_
 from app.models.models import MandiPrice
 
 
@@ -49,7 +49,44 @@ async def fetch_live_prices() -> list[dict]:
 
 
 async def get_mandi_prices(state: str | None, limit: int, db: AsyncSession) -> list[MandiPrice]:
-    """Return prices from DB (seeded or refreshed from live)."""
+    """Try to update from live Agmarknet API, then return prices from DB."""
+    # Attempt to fetch live prices
+    live_records = await fetch_live_prices()
+    if live_records:
+        for item in live_records:
+            # Check if this commodity + mandi + state already exists
+            q = select(MandiPrice).where(
+                and_(
+                    MandiPrice.commodity == item["commodity"],
+                    MandiPrice.mandi == item["mandi"],
+                    MandiPrice.state == item["state"]
+                )
+            )
+            res = await db.execute(q)
+            existing = res.scalar_one_or_none()
+            if existing:
+                existing.price = item["price"]
+                existing.change = item["change"]
+                existing.change_pct = item["change_pct"]
+                existing.recorded_date = date.today()
+            else:
+                new_price = MandiPrice(
+                    commodity=item["commodity"],
+                    mandi=item["mandi"],
+                    state=item["state"],
+                    price=item["price"],
+                    change=item["change"],
+                    change_pct=item["change_pct"],
+                    unit=item["unit"],
+                    recorded_date=date.today()
+                )
+                db.add(new_price)
+        try:
+            await db.commit()
+        except Exception:
+            await db.rollback()
+
+    # Now select from DB
     q = select(MandiPrice)
     if state:
         q = q.where(MandiPrice.state == state)

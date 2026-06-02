@@ -16,7 +16,9 @@ async def list_retailers(
     limit: int,
     db: AsyncSession,
 ) -> RetailerListResponse:
-    conditions = [Retailer.territory_id == territory_id]
+    conditions = []
+    if territory_id not in ["ind", "all"]:
+        conditions.append(Retailer.territory_id == territory_id)
     if priority:
         conditions.append(Retailer.priority_level == priority)
     if stock:

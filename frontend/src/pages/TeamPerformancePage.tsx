@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const COLORS = {
   primary: '#1B5E20',
@@ -23,14 +24,15 @@ const DAILY_LOGS: any[] = [];
 export default function TeamPerformancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
+  const { activeRegion } = useRegion();
 
   const { data: dashData, refetch: refetchDash } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
   const { data: trackData, refetch: refetchTrack } = useApi(
-    () => managerAPI.getTeamTracking(),
-    []
+    () => managerAPI.getTeamTracking(activeRegion.id),
+    [activeRegion.id]
   );
 
   const repsList = ((dashData?.reps || REP_PERFORMANCE_DETAILS) as any[]).map((r, i) => ({

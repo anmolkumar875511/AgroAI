@@ -12,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 // Helper formatting function for Indian Rupees
 const formatCurrency = (val: number) => {
@@ -47,11 +48,12 @@ const MISSED_OPPORTUNITIES: any[] = [];
 export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('14d');
   const [sendingAlert, setSendingAlert] = useState<string | null>(null);
+  const { activeRegion } = useRegion();
 
   // Call the manager dashboard API endpoint dynamically
   const { data, loading, refetch } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   if (loading && !data) {

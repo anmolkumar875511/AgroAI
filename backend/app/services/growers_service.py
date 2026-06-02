@@ -12,19 +12,24 @@ async def get_summary(territory_id: str, db: AsyncSession) -> GrowerSummary:
         func.sum(Grower.product_scans),
         func.avg(Grower.engagement_rate),
         func.count(),
-    ).where(Grower.territory_id == territory_id)
+    )
+    if territory_id not in ["ind", "all"]:
+        q = q.where(Grower.territory_id == territory_id)
     row = (await db.execute(q)).one()
 
-    q2 = select(func.count()).select_from(Grower).where(
-        and_(Grower.territory_id == territory_id, Grower.pest_risk.in_(["Critical", "High"]))
-    )
+    q2 = select(func.count()).select_from(Grower).where(Grower.pest_risk.in_(["Critical", "High"]))
+    if territory_id not in ["ind", "all"]:
+        q2 = q2.where(Grower.territory_id == territory_id)
     high_urgency = (await db.execute(q2)).scalar() or 0
+
+    farm_size_hash = hash(territory_id) if territory_id not in ["ind", "all"] else 45
+    avg_farm = round(3.2 + (farm_size_hash % 30) / 10, 1)
 
     return GrowerSummary(
         total_growers=int(row[0] or 0),
         total_product_scans=int(row[1] or 0),
         campaign_attendance=int((row[0] or 0) * 0.35),
-        avg_farm_size_acres=round(3.2 + (hash(territory_id) % 30) / 10, 1),
+        avg_farm_size_acres=avg_farm,
         digital_engagement_rate=round(float(row[2] or 0.5), 2),
         high_urgency_clusters=high_urgency,
     )
@@ -36,7 +41,9 @@ async def get_clusters(
     urgency: Optional[str],
     db: AsyncSession,
 ) -> GrowerClustersResponse:
-    conditions = [Grower.territory_id == territory_id]
+    conditions = []
+    if territory_id not in ["ind", "all"]:
+        conditions.append(Grower.territory_id == territory_id)
     if crop:
         conditions.append(Grower.crop_type == crop)
     if urgency:

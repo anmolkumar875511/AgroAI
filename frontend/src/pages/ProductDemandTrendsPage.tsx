@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const MONTHLY_DEMAND: any[] = [];
 
@@ -18,10 +19,11 @@ export default function ProductDemandTrendsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('All');
   const [timeRange, setTimeRange] = useState('6m');
+  const { activeRegion } = useRegion();
 
   const { data } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   const productDemand = data?.product_demand || [];
