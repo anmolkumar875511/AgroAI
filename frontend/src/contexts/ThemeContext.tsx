@@ -4,16 +4,17 @@ import { useDarkMode } from '@/hooks/useDarkMode';
 type ThemeContextType = {
   theme: 'light' | 'dark';
   toggleTheme: () => void;
+  setTheme: (theme: 'light' | 'dark') => void;
   isDark: boolean;
 };
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined);
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const { theme, toggleTheme, isDark } = useDarkMode();
+  const { theme, toggleTheme, setTheme, isDark } = useDarkMode();
 
   return (
-    <ThemeContext.Provider value={{ theme, toggleTheme, isDark }}>
+    <ThemeContext.Provider value={{ theme, toggleTheme, setTheme, isDark }}>
       {children}
     </ThemeContext.Provider>
   );

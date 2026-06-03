@@ -123,7 +123,7 @@ export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardPro
                 ? getSuccessText(visit.actions[0])
                 : visit.actions[0]}
             </button>
-            {actionState === 'completed' && visit.actions[0].toLowerCase().includes('start') ? (
+            {actionState === 'completed' && (visit.actions[0].toLowerCase().includes('start') || visit.actions[0].toLowerCase().includes('plan')) ? (
               <button onClick={() => navigate(`/visit-feedback?retailer_id=${retailerId}&name=${encodeURIComponent(visit.name)}`)}
                 className="flex-1 lg:flex-none px-5 py-2.5 rounded-button bg-lime-green/20 text-lime-green dark:text-lime-green hover:bg-lime-green/30 text-sm font-bold transition-all animate-in slide-in-from-top-1 duration-200">
                 Log Feedback

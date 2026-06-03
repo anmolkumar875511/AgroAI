@@ -5,6 +5,7 @@ import { useApi } from '@/hooks/useApi';
 import { useRegion } from '@/contexts/RegionContext';
 import { growersAPI, type GrowerCluster, type GrowerSummary } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 const RISK_COLORS: Record<string, string> = {
   Critical: 'bg-danger-red/10 text-danger-red border-danger-red/20',
@@ -31,6 +32,17 @@ function SummaryCard({ icon: Icon, label, value, color }: { icon: React.Componen
 }
 
 function ClusterCard({ cluster }: { cluster: GrowerCluster }) {
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleSendAdvisory = async () => {
+    setSending(true);
+    await new Promise(resolve => setTimeout(resolve, 800));
+    setSending(false);
+    setSent(true);
+    toast.success(`Advisory broadcasted to ${cluster.grower_count} growers in ${cluster.tehsil}!`);
+  };
+
   return (
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5 hover:shadow-card-hover hover:-translate-y-0.5 transition-all duration-200">
       {/* Header */}
@@ -88,6 +100,23 @@ function ClusterCard({ cluster }: { cluster: GrowerCluster }) {
           <div className="h-full rounded-full bg-gradient-to-r from-lime-green to-deep-green" style={{ width: `${cluster.urgency_score}%` }} />
         </div>
         <span className="text-xs font-mono font-semibold text-text-primary dark:text-white">{cluster.urgency_score}</span>
+      </div>
+
+      {/* Dispatch Action */}
+      <div className="mt-4 pt-3 border-t border-light-gray dark:border-white/10 flex items-center justify-between gap-2">
+        <span className="text-xs text-text-muted">Advisory Feed:</span>
+        <button
+          onClick={handleSendAdvisory}
+          disabled={sending || sent}
+          className={cn(
+            "px-3 py-1.5 rounded-xl text-[10px] font-bold uppercase transition-all duration-300",
+            sent
+              ? "bg-lime-green/20 text-lime-green border border-lime-green/30 cursor-not-allowed"
+              : "gradient-primary text-white hover:scale-105 shadow-glow-green"
+          )}
+        >
+          {sending ? 'Sending...' : sent ? 'Broadcasted ✓' : 'Broadcast SMS'}
+        </button>
       </div>
     </div>
   );

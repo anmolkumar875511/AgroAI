@@ -12,7 +12,7 @@ import { toast } from 'sonner';
 
 export default function SettingsPage() {
   const { theme, toggleTheme } = useTheme();
-  const { user, logout } = useAuth();
+  const { user, logout, updateUser } = useAuth();
   const navigate = useNavigate();
 
   const [language, setLanguage] = useState(user?.language || 'English');
@@ -74,7 +74,8 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true); setError(''); setSaved(false);
     try {
-      await settingsAPI.update({ theme, language, notifications, sync_enabled: syncEnabled });
+      const updatedUser = await settingsAPI.update({ theme, language, notifications, sync_enabled: syncEnabled });
+      updateUser(updatedUser);
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
     } catch (err: unknown) {

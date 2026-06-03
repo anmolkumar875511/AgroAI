@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Search, RefreshCw, MapPin, Clock, Package, TrendingUp, Star, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
@@ -169,6 +169,9 @@ export default function RetailerInsightsPage() {
   const search = searchParams.get('search') || '';
   const priority = searchParams.get('priority') || 'all';
   const stock = searchParams.get('stock') || 'all';
+  
+  // Local search state for debouncing
+  const [localSearch, setLocalSearch] = useState(search);
   const [page, setPage]       = useState(0);
   const limit = 12;
 
@@ -180,19 +183,30 @@ export default function RetailerInsightsPage() {
     setSearchParams(params);
   };
 
-  const handleSearchChange = (val: string) => {
-    setPage(0);
-    updateParams(val, priority, stock);
-  };
+  // Sync local search input with URL search param changes
+  useEffect(() => {
+    setLocalSearch(search);
+  }, [search]);
+
+  // Debounce typing inputs by 350ms before updating search queries
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      if (localSearch !== search) {
+        setPage(0);
+        updateParams(localSearch, priority, stock);
+      }
+    }, 350);
+    return () => clearTimeout(handler);
+  }, [localSearch, priority, stock, search]);
 
   const handlePriorityChange = (val: string) => {
     setPage(0);
-    updateParams(search, val, stock);
+    updateParams(localSearch, val, stock);
   };
 
   const handleStockChange = (val: string) => {
     setPage(0);
-    updateParams(search, priority, val);
+    updateParams(localSearch, priority, val);
   };
 
   const { data, loading, refetch } = useApi(
@@ -219,8 +233,8 @@ export default function RetailerInsightsPage() {
         <div className="flex items-center gap-2.5 px-3.5 h-10 rounded-xl bg-white/80 dark:bg-[#121b14]/40 backdrop-blur-md border border-white/30 dark:border-white/5 flex-1 max-w-xs shadow-sm focus-within:border-deep-green dark:focus-within:border-lime-green transition-all duration-300">
           <Search className="w-4 h-4 text-text-muted flex-shrink-0" />
           <input
-            type="text" value={search}
-            onChange={e => handleSearchChange(e.target.value)}
+            type="text" value={localSearch}
+            onChange={e => setLocalSearch(e.target.value)}
             placeholder="Search retailer, tehsil, product..."
             className="flex-1 bg-transparent border-none outline-none text-sm text-text-primary dark:text-white placeholder:text-text-muted/60"
           />

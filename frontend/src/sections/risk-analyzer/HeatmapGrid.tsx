@@ -99,7 +99,14 @@ export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: Heatmap
   const { isLoaded } = useGoogleMaps();
   const { theme } = useTheme();
   const [crop, setCrop] = useState('Rice');
+  const [riskFilter, setRiskFilter] = useState('All');
   const [selectedCell, setSelectedCell] = useState<HeatmapCell | null>(null);
+
+  const filteredCells = cells.filter(cell => {
+    if (riskFilter === 'Critical') return cell.risk === 'critical';
+    if (riskFilter === 'High+') return cell.risk === 'critical' || cell.risk === 'high';
+    return true;
+  });
 
   const mapStyles = theme === 'dark' ? darkMapStyle : lightMapStyle;
 
@@ -109,18 +116,19 @@ export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: Heatmap
       <div className="flex flex-wrap items-center gap-4 px-5 py-4 border-b border-light-gray dark:border-white/10 shrink-0">
         <select value={crop} onChange={e => setCrop(e.target.value)}
           className="px-3 py-2 rounded-button bg-light-gray dark:bg-white/5 text-sm text-text-primary dark:text-white border-none outline-none cursor-pointer">
-          <option>Crop: Rice</option>
-          <option>Crop: Cotton</option>
-          <option>Crop: Wheat</option>
+          <option value="Rice">Crop: Rice</option>
+          <option value="Cotton">Crop: Cotton</option>
+          <option value="Wheat">Crop: Wheat</option>
         </select>
         <select className="px-3 py-2 rounded-button bg-light-gray dark:bg-white/5 text-sm text-text-primary dark:text-white border-none outline-none cursor-pointer">
-          <option>Date: Last 7 days</option>
-          <option>Date: Last 30 days</option>
+          <option value="7">Date: Last 7 days</option>
+          <option value="30">Date: Last 30 days</option>
         </select>
-        <select className="px-3 py-2 rounded-button bg-light-gray dark:bg-white/5 text-sm text-text-primary dark:text-white border-none outline-none cursor-pointer">
-          <option>Risk: All</option>
-          <option>Risk: High+</option>
-          <option>Risk: Critical</option>
+        <select value={riskFilter} onChange={e => setRiskFilter(e.target.value)}
+          className="px-3 py-2 rounded-button bg-light-gray dark:bg-white/5 text-sm text-text-primary dark:text-white border-none outline-none cursor-pointer">
+          <option value="All">Risk: All</option>
+          <option value="High+">Risk: High+</option>
+          <option value="Critical">Risk: Critical</option>
         </select>
         <div className="ml-auto hidden sm:flex items-center gap-3">
           <span className="text-xs text-text-muted">Risk Level:</span>
@@ -145,7 +153,7 @@ export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: Heatmap
               styles: mapStyles
             }}
           >
-            {cells.map(cell => {
+            {filteredCells.map(cell => {
               // Calculate center latitude and longitude offsets based on cell coords
               const lat = regionLat + (cell.y - 3) * 0.15;
               const lng = regionLng + (cell.x - 4) * 0.15;
@@ -203,9 +211,9 @@ export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: Heatmap
         )}
 
         {/* Fallback grid when cells exist but Maps not loaded */}
-        {!isLoaded && cells.length > 0 && (
+        {!isLoaded && filteredCells.length > 0 && (
           <div className="grid grid-cols-8 gap-1 p-2">
-            {cells.slice(0, 48).map(cell => (
+            {filteredCells.slice(0, 48).map(cell => (
               <div key={cell.id}
                 className={`h-8 rounded-sm ${RISK_COLORS[cell.risk]} transition-all duration-500 cursor-pointer`}
                 title={`${cell.village}: ${cell.risk_percent}%`}

@@ -57,7 +57,7 @@ export function WeeklyPerformanceChart({ data, loading }: WeeklyPerformanceChart
           <CartesianGrid strokeDasharray="3 3" stroke={ct.gridStroke} />
           <XAxis dataKey="name" tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
           <YAxis tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `Rs.${v}L`} />
-          <Tooltip contentStyle={{ backgroundColor: ct.tooltipBg, color: ct.tooltipColor, border: ct.tooltipBorder, borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '12px' }} />
+          <Tooltip cursor={false} contentStyle={{ backgroundColor: ct.tooltipBg, color: ct.tooltipColor, border: ct.tooltipBorder, borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '12px' }} />
           <Legend wrapperStyle={{ fontSize: '11px', paddingTop: '12px', color: ct.legendColor }} />
           <Bar dataKey="value" name="Visits Completed"
             fill={ct.isDark ? 'rgba(139,195,74,0.4)' : 'rgba(27,94,32,0.3)'}

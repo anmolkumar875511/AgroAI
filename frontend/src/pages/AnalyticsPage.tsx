@@ -1,6 +1,7 @@
 import { useState } from 'react';
-import { Download, Calendar } from 'lucide-react';
+import { Download, Calendar, Loader2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
+import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { analyticsAPI } from '@/api/client';
 import { FieldEfficiencyChart } from '@/sections/analytics/FieldEfficiencyChart';
@@ -22,6 +23,7 @@ const dateRanges = [
 export default function AnalyticsPage() {
   const [dateRange, setDateRange] = useState('14d');
   const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   const { user } = useAuth();
   const { activeRegion } = useRegion();
   const territory_id = activeRegion.territoryId || user?.territory_id || 'TER_0001';
@@ -30,8 +32,6 @@ export default function AnalyticsPage() {
     () => analyticsAPI.getAll(territory_id, dateRange),
     [territory_id, dateRange],
   );
-
-  console.log("AnalyticsPage state:", { data, loading, error });
 
   // Data transformation for charts
   const fieldEfficiencyData = data?.field_efficiency?.map(r => ({
@@ -86,18 +86,78 @@ export default function AnalyticsPage() {
   const selectedLabel = dateRanges.find(d => d.value === dateRange)?.label ?? 'Last 14 Days';
 
   const exportToCSV = () => {
-    if (!data) return;
-    const rows = (data.regional_performance || []).map(r => [
-      r.metric, r.your_territory.toString(), r.average.toString(),
-    ]);
-    const csv = [['Metric', 'Your Territory', 'Average'], ...rows].map(r => r.join(',')).join('\n');
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `AgroAI_Analytics_${new Date().toISOString().slice(0, 10)}.csv`;
-    link.click();
-    URL.revokeObjectURL(url);
+    if (!data) {
+      toast.error("No analytics data available to export.");
+      return;
+    }
+    setIsExporting(true);
+    
+    // Simulate compilation delay for premium UX feel
+    setTimeout(() => {
+      try {
+        let csvContent = "";
+
+        // 1. Regional Performance
+        csvContent += "--- REGIONAL PERFORMANCE ---\n";
+        csvContent += "Metric,Your Territory,Average\n";
+        (data.regional_performance || []).forEach(r => {
+          csvContent += `"${r.metric}",${r.your_territory},${r.average}\n`;
+        });
+        csvContent += "\n";
+
+        // 2. Field Efficiency
+        csvContent += "--- FIELD EFFICIENCY ---\n";
+        csvContent += "Week,Completed Visits,Total Visits,Efficiency %\n";
+        (data.field_efficiency || []).forEach(r => {
+          csvContent += `"${r.week}",${r.completed},${r.visits},${r.efficiency}\n`;
+        });
+        csvContent += "\n";
+
+        // 3. Revenue Per Visit
+        csvContent += "--- REVENUE PER VISIT ---\n";
+        csvContent += "Month,Total Revenue (₹),Total Visits,Revenue Per Visit (₹)\n";
+        (data.revenue_per_visit || []).forEach(r => {
+          csvContent += `"${r.month}",${r.revenue},${r.visits},${r.per_visit}\n`;
+        });
+        csvContent += "\n";
+
+        // 4. Recommendation Acceptance
+        csvContent += "--- RECOMMENDATION ACCEPTANCE ---\n";
+        csvContent += "Month,Sent,Accepted,Acceptance Rate %\n";
+        (data.recommendation_acceptance || []).forEach(r => {
+          csvContent += `"${r.month}",${r.sent},${r.accepted},${r.rate}\n`;
+        });
+        csvContent += "\n";
+
+        // 5. Crop Risk Trends
+        csvContent += "--- CROP RISK TRENDS ---\n";
+        csvContent += "Month,High Severity Risks,Medium Severity Risks,Low Severity Risks\n";
+        (data.crop_risk_trends || []).forEach(r => {
+          csvContent += `"${r.month}",${r.high},${r.medium},${r.low}\n`;
+        });
+        csvContent += "\n";
+
+        // 6. Stock Utilization
+        csvContent += "--- STOCK UTILIZATION ---\n";
+        csvContent += "Product,Utilization %,Stock Units,Status\n";
+        (data.stock_utilization || []).forEach(r => {
+          csvContent += `"${r.product}",${r.utilization},${r.stock},"${r.status}"\n`;
+        });
+
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        link.download = `AgroAI_Territory_Analytics_${new Date().toISOString().slice(0, 10)}.csv`;
+        link.click();
+        URL.revokeObjectURL(url);
+        toast.success("Territory analytics CSV report downloaded successfully!");
+      } catch (err: any) {
+        toast.error("Failed to generate CSV: " + (err.message || err));
+      } finally {
+        setIsExporting(false);
+      }
+    }, 1000);
   };
 
   return (
@@ -145,10 +205,20 @@ export default function AnalyticsPage() {
 
           <button
             onClick={exportToCSV}
-            className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-sm font-medium hover:bg-deep-green/90 transition-colors shadow-lg shadow-deep-green/20"
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-sm font-medium hover:bg-deep-green/90 transition-colors shadow-lg shadow-deep-green/20 disabled:opacity-85"
           >
-            <Download className="w-4 h-4" />
-            Export CSV
+            {isExporting ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                Exporting...
+              </>
+            ) : (
+              <>
+                <Download className="w-4 h-4" />
+                Export CSV
+              </>
+            )}
           </button>
         </div>
       </div>
