@@ -93,10 +93,15 @@ export function HeroSection() {
             >
               Launch Dashboard
             </button>
-            <button className="px-8 py-3.5 rounded-button bg-white/10 backdrop-blur-xl border border-white/25 text-white font-semibold text-base hover:bg-white/20 transition-all duration-300 flex items-center gap-2">
+            <a
+              href="https://www.youtube.com/watch?v=wE2jA9mDXHI"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-8 py-3.5 rounded-button bg-white/10 backdrop-blur-xl border border-white/25 text-white font-semibold text-base hover:bg-white/20 transition-all duration-300 flex items-center gap-2"
+            >
               <Play className="w-4 h-4" />
               View Demo
-            </button>
+            </a>
           </div>
 
           {/* Stats */}
