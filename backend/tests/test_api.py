@@ -443,6 +443,39 @@ async def test_visit_planner_filter_high(client, auth_headers):
 
 
 @pytest.mark.asyncio
+async def test_visit_planner_new_filters(client, auth_headers):
+    # Test high-risk filter
+    r = await client.get(
+        "/api/v1/visit-planner/priority/TER_0001?filter=high-risk", headers=auth_headers
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 2
+    retailer_ids = [item["retailer_id"] for item in data]
+    assert "RTL_00001" in retailer_ids
+    assert "RTL_00002" in retailer_ids
+
+    # Test revenue filter (all seeded have monthly_revenue=200000.0 >= 150000)
+    r = await client.get(
+        "/api/v1/visit-planner/priority/TER_0001?filter=revenue", headers=auth_headers
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 5
+
+    # Test follow-up filter (RTL_00004 has last_visit_days=21, RTL_00005 has last_visit_days=28)
+    r = await client.get(
+        "/api/v1/visit-planner/priority/TER_0001?filter=follow-up", headers=auth_headers
+    )
+    assert r.status_code == 200
+    data = r.json()
+    assert len(data) == 2
+    retailer_ids = [item["retailer_id"] for item in data]
+    assert "RTL_00004" in retailer_ids
+    assert "RTL_00005" in retailer_ids
+
+
+@pytest.mark.asyncio
 async def test_visit_planner_action(client, auth_headers):
     r = await client.post(
         "/api/v1/visit-planner/action/TER_0001",

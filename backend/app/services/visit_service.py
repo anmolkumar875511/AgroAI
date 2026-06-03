@@ -4,8 +4,8 @@ import math
 from datetime import date, timedelta
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from app.models.models import Retailer, Visit
+from sqlalchemy import select, or_
+from app.models.models import Retailer, Visit, VisitFeedback
 from app.schemas.schemas import VisitPlannerItem, VisitActionRequest, RouteStop, RouteVisualizationResponse
 
 TAG_POOL = [["Fungicide", "High Stock"], ["Pest Alert", "Follow-up"], ["New Season", "Low Stock"],
@@ -25,10 +25,22 @@ async def get_priority_visits(territory_id: str, filter_val: str, db: AsyncSessi
     q = select(Retailer)
     if territory_id not in ["ind", "all"]:
         q = q.where(Retailer.territory_id == territory_id)
-    if filter_val == "high":
+    
+    if filter_val in ["high", "high-risk"]:
         q = q.where(Retailer.priority_level == "High")
-    elif filter_val == "overdue":
-        q = q.where(Retailer.last_visit_days >= 21)
+    elif filter_val == "revenue":
+        # Target high monthly revenue potential (>= ₹150,000)
+        q = q.where(Retailer.monthly_revenue >= 150000)
+    elif filter_val in ["overdue", "follow-up"]:
+        # Retailer has follow_up_needed in feedback, or last_visit_days >= 21
+        feedback_sub = select(VisitFeedback.retailer_id).where(VisitFeedback.follow_up_needed == True)
+        q = q.where(
+            or_(
+                Retailer.retailer_id.in_(feedback_sub),
+                Retailer.last_visit_days >= 21
+            )
+        )
+        
     q = q.order_by(Retailer.visit_priority_score.desc()).limit(10)
 
     result = await db.execute(q)
