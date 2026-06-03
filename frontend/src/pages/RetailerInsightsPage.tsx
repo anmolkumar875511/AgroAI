@@ -29,7 +29,11 @@ function RetailerCardUI({ retailer, onRescore }: { retailer: RetailerCard; onRes
   const handleRescore = async () => {
     setRescoring(true);
     try {
-      await retailersAPI.rescore(retailer.retailer_id);
+      // Add minimum latency so the user sees the spin micro-animation
+      await Promise.all([
+        retailersAPI.rescore(retailer.retailer_id),
+        new Promise(resolve => setTimeout(resolve, 800))
+      ]);
       toast.success(`ML priority score re-calculated for ${retailer.retailer_id}!`);
       onRescore(retailer.retailer_id);
     } catch (err: unknown) {
