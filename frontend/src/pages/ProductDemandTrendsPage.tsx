@@ -268,6 +268,7 @@ export default function ProductDemandTrendsPage() {
                   <YAxis dataKey="territory" type="category" stroke="rgba(120,130,120,0.8)" tick={{ fontSize: 11 }} />
                   <Tooltip
                     contentStyle={{ backgroundColor: '#142818', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8 }}
+                    cursor={false}
                   />
                   <Bar dataKey="Units Sold" fill="#8BC34A" radius={[0, 4, 4, 0]} />
                 </BarChart>
