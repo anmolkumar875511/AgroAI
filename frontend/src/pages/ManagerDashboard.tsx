@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
+import { useRegion } from '@/contexts/RegionContext';
 import {
   Users, MapPin, TrendingUp, AlertTriangle, CheckCircle,
   ArrowUpRight, ArrowDownRight, RefreshCw, Send, ShieldAlert,
@@ -47,6 +48,7 @@ const MISSED_OPPORTUNITIES: any[] = [];
 export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('14d');
   const [sendingAlert, setSendingAlert] = useState<string | null>(null);
+  const { activeRegion } = useRegion();
 
   // Call the manager dashboard API endpoint dynamically
   const { data, loading, refetch } = useApi(
@@ -63,23 +65,35 @@ export default function ManagerDashboard() {
     );
   }
 
-  // Safely fallback to local static data
+  // Safely fallback to local static data and filter by the active state/region
   const rawReps = data?.reps ?? INITIAL_REPS;
-  const reps = rawReps.map(r => ({
-    ...r,
-    role: (r as any).role || 'Field Representative',
-    lastActive: (r as any).last_active || (r as any).lastActive || 'active now'
-  }));
+  const reps = rawReps
+    .map(r => ({
+      ...r,
+      role: (r as any).role || 'Field Representative',
+      lastActive: (r as any).last_active || (r as any).lastActive || 'active now'
+    }))
+    .filter(rep => {
+      if (activeRegion.id === 'ind') return true;
+      const stateName = activeRegion.name;
+      return rep.territory.includes(stateName) || (stateName === 'Uttar Pradesh' && rep.territory.includes('UP'));
+    });
 
-  const totalRevenue = data?.total_revenue ?? reps.reduce((acc, r) => acc + r.revenue, 0);
-  const totalVisits = data?.total_visits ?? reps.reduce((acc, r) => acc + r.visits, 0);
-  const totalTargets = data?.total_targets ?? reps.reduce((acc, r) => acc + r.target, 0);
-  const avgAcceptance = data?.avg_acceptance ?? (reps.length ? Math.round(reps.reduce((acc, r) => acc + r.acceptance, 0) / reps.length) : 0);
-  const avgEfficiency = data?.avg_efficiency ?? (reps.length ? Math.round(reps.reduce((acc, r) => acc + r.efficiency, 0) / reps.length) : 0);
+  const rawMissed = (data?.missed_opportunities || MISSED_OPPORTUNITIES) as typeof MISSED_OPPORTUNITIES;
+  const missedOpportunities = rawMissed.filter((mo: any) => {
+    if (activeRegion.id === 'ind') return true;
+    const stateName = activeRegion.name;
+    return mo.state === stateName || (stateName === 'Uttar Pradesh' && mo.state === 'UP');
+  });
+
+  const totalRevenue = reps.reduce((acc, r) => acc + r.revenue, 0);
+  const totalVisits = reps.reduce((acc, r) => acc + r.visits, 0);
+  const totalTargets = reps.reduce((acc, r) => acc + r.target, 0);
+  const avgAcceptance = reps.length ? Math.round(reps.reduce((acc, r) => acc + r.acceptance, 0) / reps.length) : 0;
+  const avgEfficiency = reps.length ? Math.round(reps.reduce((acc, r) => acc + r.efficiency, 0) / reps.length) : 0;
 
   const revenueTrend = (data?.revenue_trend || REVENUE_TREND) as typeof REVENUE_TREND;
   const productDemand = (data?.product_demand || PRODUCT_DEMAND) as typeof PRODUCT_DEMAND;
-  const missedOpportunities = (data?.missed_opportunities || MISSED_OPPORTUNITIES) as typeof MISSED_OPPORTUNITIES;
 
   const handleSendNudge = async (repId: string, repName: string) => {
     setSendingAlert(repId);
@@ -108,9 +122,14 @@ export default function ManagerDashboard() {
       {/* Upper Panel */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl lg:text-3.5xl font-bold text-text-primary dark:text-white tracking-tight">
-            Manager Analytics & Dashboard
-          </h1>
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="text-2xl lg:text-3.5xl font-bold text-text-primary dark:text-white tracking-tight">
+              Manager Analytics & Dashboard
+            </h1>
+            <span className="text-xs font-semibold text-lime-green bg-lime-green/10 px-2.5 py-1 rounded-full border border-lime-green/20">
+              {activeRegion.name}
+            </span>
+          </div>
           <p className="text-text-secondary dark:text-white/60 text-sm mt-1">
             Monitor team visits, coverage efficiency, regional opportunities and demand trends.
           </p>

@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, case
 from app.core.database import get_db
 from app.core.security import get_current_user, require_manager
-from app.models.models import Visit, User, Retailer, RetailerInventory
+from app.models.models import Visit, User, Retailer, RetailerInventory, Territory
 from app.schemas.schemas import (
     ManagerDashboardResponse, RepSummary, NudgeRequest,
 )
@@ -22,6 +22,11 @@ async def manager_dashboard(
     # Fetch all agents from db
     agents_res = await db.execute(select(User).where(User.role == "agent"))
     agents = agents_res.scalars().all()
+
+    # Fetch all territories to map id to state
+    terr_res = await db.execute(select(Territory))
+    territories = terr_res.scalars().all()
+    terr_map = {t.id: t for t in territories}
 
     reps = []
     for agent in agents:
@@ -76,11 +81,17 @@ async def manager_dashboard(
             last_active_str = "never active"
             status = "offline"
 
+        t_obj = terr_map.get(agent.territory_id)
+        if t_obj:
+            territory_str = f"{agent.territory}, {t_obj.state}"
+        else:
+            territory_str = agent.territory or "N/A"
+
         reps.append(
             RepSummary(
                 id=str(agent.id),
                 name=agent.name,
-                territory=agent.territory or "N/A",
+                territory=territory_str,
                 visits=visits_count,
                 target=target,
                 revenue=total_rev,
@@ -150,6 +161,7 @@ async def manager_dashboard(
             "id": r.retailer_id,
             "retailer": r.name,
             "area": r.location,
+            "state": r.state,
             "priority": "High" if r.priority_level == "High" else "Medium",
             "reason": r.explanation or f"Stock status is {r.stock_status}. Urgently requires visit to restock recommended product.",
             "value": float(r.monthly_revenue * 0.25) if r.monthly_revenue else 25000.0
@@ -181,6 +193,11 @@ async def team_tracking(
     """Rep-wise visit tracking data for RepVisitTrackingPage."""
     agents_res = await db.execute(select(User).where(User.role == "agent"))
     agents = agents_res.scalars().all()
+
+    # Fetch all territories to map id to state
+    terr_res = await db.execute(select(Territory))
+    territories = terr_res.scalars().all()
+    terr_map = {t.id: t for t in territories}
 
     reps_live = []
     total_visits_today = 0
@@ -229,10 +246,16 @@ async def team_tracking(
             last_active_str = "Offline"
             status = "Offline"
 
+        t_obj = terr_map.get(agent.territory_id)
+        if t_obj:
+            territory_str = f"{agent.territory}, {t_obj.state}"
+        else:
+            territory_str = agent.territory or "N/A"
+
         reps_live.append({
             "id": agent.id,
             "name": agent.name,
-            "territory": agent.territory or "N/A",
+            "territory": territory_str,
             "visitsToday": visits_today,
             "target": target,
             "duration": 30,  # default average minutes
