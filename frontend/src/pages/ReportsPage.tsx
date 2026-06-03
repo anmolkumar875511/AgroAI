@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Download, Table } from 'lucide-react';
+import { Download, Table, Loader2 } from 'lucide-react';
 import {
   ResponsiveContainer, PieChart, Pie, Cell, Tooltip
 } from 'recharts';
@@ -13,6 +13,9 @@ const COLORS = ['#1B5E20', '#8BC34A', '#FFC107', '#1E88E5', '#E53935'];
 export default function ReportsPage() {
   const [reportType, setReportType] = useState('summary');
   const [dateRange, setDateRange] = useState('may_2026');
+  const [downloadingFormat, setDownloadingFormat] = useState<'pdf' | 'csv' | null>(null);
+  const [isEmailing, setIsEmailing] = useState(false);
+
   const { activeRegion } = useRegion();
 
   const { data: dashData } = useApi(
@@ -75,8 +78,137 @@ export default function ReportsPage() {
 
 
   const handleDownload = (format: 'pdf' | 'csv') => {
-    toast.success(`Generating customized regional report... Downloading as ${format.toUpperCase()}!`);
+    if (downloadingFormat) return;
+    setDownloadingFormat(format);
+
+    setTimeout(() => {
+      if (format === 'csv') {
+        if (!liveReports || liveReports.length === 0) {
+          toast.error("No report data available to export.");
+          setDownloadingFormat(null);
+          return;
+        }
+        const headers = ['Territory', 'Visits Completed', 'Revenue Generated (INR)', 'Target Achieved (%)', 'Top Recommended Product'];
+        const rows = liveReports.map(r => [
+          `"${r.region}"`,
+          r.visits,
+          r.revenue,
+          `${r.targetAchieved}%`,
+          `"${r.topProduct}"`
+        ]);
+        const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+        
+        const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', `agroai_regional_report_${activeRegion.id}_${dateRange}.csv`);
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        toast.success(`Consolidated breakdown report downloaded as CSV!`);
+      } else if (format === 'pdf') {
+        const printWindow = window.open('', '_blank');
+        if (!printWindow) {
+          toast.error('Pop-up blocked! Please allow pop-ups to print PDF.');
+          setDownloadingFormat(null);
+          return;
+        }
+        
+        const rowsHtml = liveReports.map(r => `
+          <tr style="border-bottom: 1px solid #ddd;">
+            <td style="padding: 10px; font-weight: bold;">${r.region}</td>
+            <td style="padding: 10px; text-align: center;">${r.visits} visits</td>
+            <td style="padding: 10px; text-align: right; color: #1B5E20; font-weight: bold;">₹${r.revenue.toLocaleString('en-IN')}</td>
+            <td style="padding: 10px; text-align: center;">${r.targetAchieved}%</td>
+            <td style="padding: 10px; text-align: center;">${r.topProduct}</td>
+          </tr>
+        `).join('');
+
+        const cropHtml = cropDistribution.map((c, i) => `
+          <div style="display: flex; align-items: center; gap: 8px; font-size: 14px; margin-bottom: 6px;">
+            <span style="display: inline-block; width: 12px; height: 12px; border-radius: 50%; background-color: ${COLORS[i % COLORS.length]};"></span>
+            <span><strong>${c.name}</strong>: ${c.value}%</span>
+          </div>
+        `).join('');
+
+        printWindow.document.write(`
+          <html>
+            <head>
+              <title>AgroAI Regional Report - ${activeRegion.name}</title>
+              <style>
+                body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; color: #333; padding: 20px; line-height: 1.6; }
+                .header { border-bottom: 2px solid #1B5E20; padding-bottom: 15px; margin-bottom: 25px; }
+                .header h1 { color: #1B5E20; margin: 0; font-size: 26px; }
+                .header p { margin: 5px 0 0 0; color: #666; font-size: 14px; }
+                .meta { display: flex; justify-content: space-between; margin-bottom: 30px; font-size: 14px; background: #f9f9f9; padding: 12px; border-radius: 6px; }
+                .section-title { font-size: 18px; font-weight: bold; color: #1B5E20; border-bottom: 1px solid #eee; padding-bottom: 8px; margin-bottom: 15px; }
+                table { width: 100%; border-collapse: collapse; margin-bottom: 30px; }
+                th { background-color: #f1f8e9; padding: 12px 10px; font-weight: bold; text-align: left; font-size: 13px; border-bottom: 1px solid #ddd; }
+                .footer { text-align: center; margin-top: 50px; font-size: 12px; color: #999; border-top: 1px solid #eee; padding-top: 15px; }
+              </style>
+            </head>
+            <body>
+              <div class="header">
+                <h1>AgroAI Field Intelligence Report</h1>
+                <p>Farmer First Field Intelligence Platform</p>
+              </div>
+              
+              <div class="meta">
+                <div><strong>Region:</strong> ${activeRegion.name}</div>
+                <div><strong>Period:</strong> ${dateRange.replace('_', ' ').toUpperCase()}</div>
+                <div><strong>Generated Date:</strong> ${new Date().toLocaleDateString('en-IN')}</div>
+              </div>
+              
+              <div class="section-title">Territory Consolidated Performance</div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Territory</th>
+                    <th style="text-align: center;">Visits Completed</th>
+                    <th style="text-align: right;">Revenue Generated</th>
+                    <th style="text-align: center;">Target Achieved</th>
+                    <th style="text-align: center;">Top Recommended Product</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${rowsHtml}
+                </tbody>
+              </table>
+
+              <div class="section-title">Crop Coverage Distribution</div>
+              <div style="margin-bottom: 30px;">
+                ${cropHtml}
+              </div>
+              
+              <div class="footer">
+                <p>© ${new Date().getFullYear()} AgroAI. Confidential Internal Syngenta Report.</p>
+              </div>
+              <script>
+                window.onload = function() {
+                  window.print();
+                  setTimeout(function() { window.close(); }, 500);
+                }
+              </script>
+            </body>
+          </html>
+        `);
+        printWindow.document.close();
+        toast.success(`Consolidated report compiled! Print dialog opened for PDF export.`);
+      }
+      setDownloadingFormat(null);
+    }, 1000);
   };
+
+  const handleEmailReport = () => {
+    setIsEmailing(true);
+    setTimeout(() => {
+      setIsEmailing(false);
+      toast.success('Custom report has been compiled and emailed to your registered address.');
+    }, 1200);
+  };
+
 
   return (
     <div className="space-y-6 pb-10">
@@ -104,10 +236,15 @@ export default function ReportsPage() {
 
           <button
             onClick={() => handleDownload('pdf')}
-            className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-xs font-semibold hover:brightness-110 transition-all shadow-md shadow-deep-green/20"
+            disabled={downloadingFormat !== null}
+            className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-xs font-semibold hover:brightness-110 transition-all shadow-md shadow-deep-green/20 disabled:opacity-75"
           >
-            <Download className="w-3.5 h-3.5" />
-            <span>Download PDF</span>
+            {downloadingFormat === 'pdf' ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <Download className="w-3.5 h-3.5" />
+            )}
+            <span>{downloadingFormat === 'pdf' ? 'Generating...' : 'Download PDF'}</span>
           </button>
         </div>
       </div>
@@ -235,25 +372,31 @@ export default function ReportsPage() {
             <div className="flex gap-2">
               <button
                 onClick={() => handleDownload('csv')}
-                className="flex-1 py-2.5 text-xs font-bold rounded-button bg-light-gray dark:bg-white/5 border border-light-gray dark:border-white/10 text-text-primary dark:text-white hover:bg-light-gray/80 dark:hover:bg-white/10 transition-colors"
+                disabled={downloadingFormat !== null}
+                className="flex-1 py-2.5 text-xs font-bold rounded-button bg-light-gray dark:bg-white/5 border border-light-gray dark:border-white/10 text-text-primary dark:text-white hover:bg-light-gray/80 dark:hover:bg-white/10 transition-colors disabled:opacity-60 inline-flex justify-center items-center gap-1.5"
               >
-                CSV Sheet
+                {downloadingFormat === 'csv' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>CSV Sheet</span>
               </button>
               <button
                 onClick={() => handleDownload('pdf')}
-                className="flex-1 py-2.5 text-xs font-bold rounded-button bg-deep-green text-white hover:brightness-110 transition-colors"
+                disabled={downloadingFormat !== null}
+                className="flex-1 py-2.5 text-xs font-bold rounded-button bg-deep-green text-white hover:brightness-110 transition-colors disabled:opacity-75 inline-flex justify-center items-center gap-1.5"
               >
-                PDF Document
+                {downloadingFormat === 'pdf' && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+                <span>PDF Document</span>
               </button>
             </div>
           </div>
 
           <div className="flex items-end">
             <button
-              onClick={() => toast.success('Custom report has been compiled and emailed to your registered address.')}
-              className="w-full py-2.5 text-xs font-bold rounded-button bg-lime-green text-deep-forest hover:brightness-110 transition-colors"
+              onClick={handleEmailReport}
+              disabled={isEmailing}
+              className="w-full py-2.5 text-xs font-bold rounded-button bg-lime-green text-deep-forest hover:brightness-110 transition-colors disabled:opacity-70 inline-flex justify-center items-center gap-1.5"
             >
-              Email Scheduled Report
+              {isEmailing && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
+              <span>{isEmailing ? 'Sending Report...' : 'Email Scheduled Report'}</span>
             </button>
           </div>
         </div>

@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MapPin, TrendingUp, AlertTriangle, CheckCircle,
   ArrowUpRight, ArrowDownRight, RefreshCw, Send, ShieldAlert,
-  Download
+  Download, Loader2
 } from 'lucide-react';
 import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar,
@@ -49,6 +49,8 @@ export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('14d');
   const [sendingAlert, setSendingAlert] = useState<string | null>(null);
   const [assignedIds, setAssignedIds] = useState<string[]>([]);
+  const [isExporting, setIsExporting] = useState(false);
+  const [isSyncing, setIsSyncing] = useState(false);
   const { activeRegion } = useRegion();
 
   // Call the manager dashboard API endpoint dynamically
@@ -111,13 +113,58 @@ export default function ManagerDashboard() {
     });
   };
 
-  const handleSyncData = () => {
+  const handleSyncData = async () => {
+    setIsSyncing(true);
     const promise = refetch();
     toast.promise(promise, {
       loading: 'Syncing regional telemetry & team visit metrics...',
       success: 'Sync completed successfully!',
       error: (err) => `Sync failed: ${err.message || err}`,
     });
+    try {
+      await promise;
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsSyncing(false);
+    }
+  };
+
+  const handleExportCSV = () => {
+    if (!reps || reps.length === 0) {
+      toast.error("No representative data available to export.");
+      return;
+    }
+    setIsExporting(true);
+    
+    // Simulate compilation delay for premium UX feel
+    setTimeout(() => {
+      const headers = ['Representative', 'Territory', 'Visits Completed', 'Visit Target', 'Revenue Generated (INR)', 'Recommendation Acceptance (%)', 'Route Efficiency (%)', 'Status', 'Last Active'];
+      const rows = reps.map(r => [
+        `"${r.name}"`,
+        `"${r.territory}"`,
+        r.visits,
+        r.target,
+        r.revenue,
+        `${r.acceptance}%`,
+        `${r.efficiency}%`,
+        `"${r.status}"`,
+        `"${r.lastActive}"`
+      ]);
+      const csvContent = [headers.join(','), ...rows.map(e => e.join(','))].join('\n');
+      
+      const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.setAttribute('href', url);
+      link.setAttribute('download', `agroai_team_performance_${activeRegion.id}.csv`);
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      
+      setIsExporting(false);
+      toast.success(`Team performance data exported as CSV!`);
+    }, 1000);
   };
 
   const handleAssignOpportunity = (oppId: string, area: string) => {
@@ -158,19 +205,25 @@ export default function ManagerDashboard() {
           <motion.button
             whileTap={{ scale: 0.95 }}
             onClick={handleSyncData}
-            className="p-2 rounded-button bg-light-gray dark:bg-white/5 border border-transparent dark:border-white/10 hover:bg-light-gray/80 dark:hover:bg-white/10 transition-colors text-text-primary dark:text-white"
+            disabled={isSyncing}
+            className="p-2 rounded-button bg-light-gray dark:bg-white/5 border border-transparent dark:border-white/10 hover:bg-light-gray/80 dark:hover:bg-white/10 transition-colors text-text-primary dark:text-white disabled:opacity-60"
             title="Refresh Data"
           >
-            <RefreshCw className="w-4 h-4" />
+            <RefreshCw className={`w-4 h-4 ${isSyncing ? 'animate-spin' : ''}`} />
           </motion.button>
 
           <motion.button
             whileTap={{ scale: 0.95 }}
-            onClick={() => toast.success('CSV Report downloading...')}
-            className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-deep-green/20"
+            onClick={handleExportCSV}
+            disabled={isExporting}
+            className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-deep-green/20 disabled:opacity-75"
           >
-            <Download className="w-4 h-4" />
-            <span>Export</span>
+            {isExporting ? (
+              <Loader2 className="w-4 h-4 animate-spin" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+            <span>{isExporting ? 'Exporting...' : 'Export'}</span>
           </motion.button>
         </div>
       </div>
@@ -389,10 +442,14 @@ export default function ManagerDashboard() {
                       whileTap={{ scale: 0.95 }}
                       onClick={() => handleSendNudge(rep.id, rep.name)}
                       disabled={sendingAlert === rep.id}
-                      className="inline-flex items-center gap-1 text-[11px] font-bold text-lime-green hover:text-lime-green/80 bg-lime-green/10 hover:bg-lime-green/20 px-2.5 py-1 rounded-button transition-all disabled:opacity-60"
+                      className="inline-flex items-center gap-1.5 text-[11px] font-bold text-lime-green hover:text-lime-green/80 bg-lime-green/10 hover:bg-lime-green/20 px-2.5 py-1 rounded-button transition-all disabled:opacity-60"
                     >
-                      <Send className="w-3 h-3" />
-                      {sendingAlert === rep.id ? 'Nudging...' : 'Nudge'}
+                      {sendingAlert === rep.id ? (
+                        <Loader2 className="w-3 h-3 animate-spin" />
+                      ) : (
+                        <Send className="w-3 h-3" />
+                      )}
+                      <span>{sendingAlert === rep.id ? 'Nudging...' : 'Nudge'}</span>
                     </motion.button>
                   </td>
                 </tr>
