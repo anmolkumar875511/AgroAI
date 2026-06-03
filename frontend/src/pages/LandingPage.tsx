@@ -5,8 +5,7 @@ import { DashboardPreviewSection } from '@/components/landing/DashboardPreviewSe
 import { ImpactStatisticsSection } from '@/components/landing/ImpactStatisticsSection';
 import { HowItWorksSection } from '@/components/landing/HowItWorksSection';
 import { TestimonialsSection } from '@/components/landing/TestimonialsSection';
-import { CTASection } from '@/components/landing/CTASection';
-import { Footer } from '@/components/landing/Footer';
+
 
 export default function LandingPage() {
   return (
@@ -18,8 +17,7 @@ export default function LandingPage() {
       <ImpactStatisticsSection />
       <HowItWorksSection />
       <TestimonialsSection />
-      <CTASection />
-      <Footer />
+
     </div>
   );
 }
