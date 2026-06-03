@@ -76,7 +76,7 @@ export function AppLayout({ children }: AppLayoutProps) {
       {user?.role !== 'manager' && (
         <>
           <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
-          <AIFloatingButton onClick={() => setAiChatOpen(true)} />
+          {!aiChatOpen && <AIFloatingButton onClick={() => setAiChatOpen(true)} />}
         </>
       )}
     </div>
