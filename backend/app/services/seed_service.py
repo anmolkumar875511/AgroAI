@@ -9,7 +9,7 @@ from app.core.database import AsyncSessionLocal
 from app.core.security import hash_password
 from app.models.models import (
     User, Territory, Retailer, RetailerInventory,
-    Grower, Recommendation, Notification, MandiPrice, Visit, RiskEvent,
+    Grower, Recommendation, Notification, MandiPrice, Visit, RiskEvent, VisitFeedback,
 )
 
 TERRITORIES = [
@@ -18,6 +18,9 @@ TERRITORIES = [
     {"id": "TER_0003", "name": "Gaya West", "state": "Bihar", "district": "Gaya", "lat": 24.7955, "lng": 84.9994, "zoom": 11},
     {"id": "TER_0004", "name": "Ludhiana East", "state": "Punjab", "district": "Ludhiana", "lat": 30.9010, "lng": 75.8573, "zoom": 11},
     {"id": "TER_0005", "name": "Amravati Sadar", "state": "Maharashtra", "district": "Amravati", "lat": 20.9374, "lng": 77.7796, "zoom": 11},
+    {"id": "TER_0006", "name": "Lucknow East", "state": "Uttar Pradesh", "district": "Lucknow", "lat": 26.8467, "lng": 80.9462, "zoom": 11},
+    {"id": "TER_0007", "name": "Ahmedabad Central", "state": "Gujarat", "district": "Ahmedabad", "lat": 23.0225, "lng": 72.5714, "zoom": 11},
+    {"id": "TER_0008", "name": "Bengaluru North", "state": "Karnataka", "district": "Bengaluru", "lat": 12.9716, "lng": 77.5946, "zoom": 11},
 ]
 
 USERS = [
@@ -41,9 +44,27 @@ USERS = [
     },
     {
         "email": "rajesh@agroai.com", "password": "password123",
-        "name": "Rajesh Kumar", "role": "agent",
+        "name": "Rajesh Verma", "role": "agent",
         "territory_id": "TER_0004", "territory": "Ludhiana East",
         "employee_id": "EMP003", "phone": "+91 76543 21098",
+    },
+    {
+        "email": "suresh@agroai.com", "password": "password123",
+        "name": "Suresh Kumar", "role": "agent",
+        "territory_id": "TER_0006", "territory": "Lucknow East",
+        "employee_id": "EMP004", "phone": "+91 91122 33445",
+    },
+    {
+        "email": "neha@agroai.com", "password": "password123",
+        "name": "Neha Singh", "role": "agent",
+        "territory_id": "TER_0007", "territory": "Ahmedabad Central",
+        "employee_id": "EMP005", "phone": "+91 92233 44556",
+    },
+    {
+        "email": "kiran@agroai.com", "password": "password123",
+        "name": "Kiran Rao", "role": "agent",
+        "territory_id": "TER_0008", "territory": "Bengaluru North",
+        "employee_id": "EMP006", "phone": "+91 93344 55667",
     },
     {
         "email": "admin@agroai.com", "password": "admin123",
@@ -59,6 +80,15 @@ PRODUCTS = [
     "Ridomil Gold", "Axial 50 EC", "Custodia", "Pegasus 500 SC",
 ]
 
+RETAILER_NAMES_BY_STATE = {
+    "Bihar": ["Kisan Seed Store", "Mahavir Fertilizers", "Ganga Agri Kendra", "Patna Agro Center", "Ram Krishi Bhandar", "Dhan Lakshmi Agro", "Jai Kisan Seeds", "Mithila Krishi Kendra"],
+    "Punjab": ["Punjab Agri Hub", "Guru Nanak Fertilizers", "Satkar Agro Store", "Malwa Seeds Store", "Doaba Krishi Center", "Sikh Seeds", "Golden Agro Inputs", "Ludhiana Krishi"],
+    "Maharashtra": ["Maratha Agro Store", "Amravati Seeds Center", "Vidarbha Fertilizers", "Sahyadri Agri Hub", "Shetkari Seva Kendra", "Moreshwar Agro", "Shivaji Seeds", "Maharashtra Krishi"],
+    "Uttar Pradesh": ["Lucknow Agri Hub", "Avadh Seeds Bhandar", "Ganga Krishi Seva", "UP Crop Solution", "Shree Ram Agri", "Kisan Vikas Store", "Varanasi Agro Center", "Krishna Fertilizers"],
+    "Gujarat": ["Khedut Seva Kendra", "Gujarat Agro Input", "Kathiawar Seeds", "Ahmedabad Agri Care", "Sardar Patel Fertilizers", "Jai Jawan Agro Stores", "Vikas Krishi Kendra", "Gujarat Seeds"],
+    "Karnataka": ["Karnataka Agri Solutions", "Cauvery Seed Agency", "Bengaluru Agro Store", "Basaveshwara Fertilizers", "Kalyana Agri Inputs", "Krishna Seed Center", "Nandi Agro", "Basava Seeds"],
+}
+
 RETAILER_NAMES = [
     "Kisan Seed Store", "Mahavir Fertilizers", "Ganga Agri Kendra",
     "Shree Ram Seeds", "Patna Agro Center", "Mandi Fertilizers",
@@ -70,7 +100,7 @@ RETAILER_NAMES = [
 
 TEHSILS = ["Patna Sadar", "Danapur", "Phulwari", "Muzaffarpur Block A",
            "Muzaffarpur Block B", "Gaya Sadar", "Bodh Gaya", "Ludhiana East",
-           "Amravati Sadar", "Achalpur"]
+           "Amravati Sadar", "Achalpur", "Lucknow Sadar", "Ahmedabad Rural", "Bengaluru North"]
 
 CROPS = ["Rice", "Wheat", "Cotton", "Maize", "Mustard", "Soybean", "Sugarcane"]
 CROP_STAGES = ["Sowing", "Germination", "Vegetative", "Flowering", "Grain Fill", "Harvest"]
@@ -98,13 +128,13 @@ MANDI_PRICES_SEED = [
 
 NOTIFICATIONS_SEED = [
     {"title": "🚨 Critical Pest Alert — Patna Sadar", "message": "BPH infestation detected in 3 villages. Immediate Actara 25 WG dispatch required. 450 growers affected.", "type": "alert"},
-    {"title": "📦 Stock Alert — Amistar 250 SC", "message": "RTL_00001 Kisan Seed Store has only 12 units left. Reorder threshold breached. Sales risk: ₹45,000.", "type": "warning"},
+    {"title": "📦 Stock Alert — Amistar 250 SC", "message": "Kisan Seed Store has only 12 units left. Reorder threshold breached. Sales risk: ₹45,000.", "type": "warning"},
     {"title": "✅ Visit Target Achieved", "message": "Congratulations! You've completed 38/40 planned visits this week. Efficiency score: 95%.", "type": "success"},
     {"title": "🌦️ Weather Advisory — Bihar Zone", "message": "Heavy rainfall forecast (>50mm) in next 48 hours. Pre-position fungicides at key retailers.", "type": "alert"},
     {"title": "📊 Weekly Report Ready", "message": "Your territory performance report for May Week 3 is ready. Revenue: ₹3.2L (+14% MoM).", "type": "info"},
     {"title": "🌿 NDVI Anomaly Detected", "message": "Crop stress index elevated in Danapur Block. Possible nitrogen deficiency in 280 acres.", "type": "warning"},
-    {"title": "💡 AI Recommendation Accepted", "message": "Retailer RTL_00003 accepted Amistar recommendation. Order placed: 50 units (₹12,500).", "type": "success"},
-    {"title": "⏰ Follow-up Reminder", "message": "RTL_00007 Mahavir Fertilizers follow-up due today. Last visit: 8 days ago. Priority: High.", "type": "info"},
+    {"title": "💡 AI Recommendation Accepted", "message": "Retailer Kisan Seed Store accepted Amistar recommendation. Order placed: 50 units (₹12,500).", "type": "success"},
+    {"title": "⏰ Follow-up Reminder", "message": "Mahavir Fertilizers follow-up due today. Last visit: 8 days ago. Priority: High.", "type": "info"},
     {"title": "🌾 Mandi Price Alert", "message": "Paddy prices up 4.2% at Patna Mandi (₹2183/quintal). Recommend stocking fungicides now.", "type": "info"},
     {"title": "🎯 Territory Coverage Gap", "message": "Muzaffarpur Block B has no rep visit in 18 days. 12 retailers at risk. Schedule immediately.", "type": "warning"},
 ]
@@ -125,139 +155,6 @@ EXPLAINABLE_REASONS = [
         {"id": "r2", "title": "Demand Forecast", "description": "ML model predicts 35% demand surge in next 2 weeks based on crop calendar", "icon": "TrendingUp"},
         {"id": "r3", "title": "Revenue Opportunity", "description": "Potential ₹45,000 order value if visited within 3 days", "icon": "IndianRupee"},
     ],
-]
-
-RECOMMENDATIONS_SEED = [
-    {
-        "id": "REC_001", "territory_id": "TER_0001", "priority": "Critical",
-        "crop": "Rice", "message": "Immediate fungicide application needed — blast disease risk at Danapur block critical level",
-        "weather": "Humid (85%), Low wind", "product": "Amistar 250 SC",
-        "village": "Danapur Khurd", "farmer": "Ramesh Kumar (contact via RTL_00001)",
-        "retailer_id": "RTL_00001", "pest_risk": "Critical",
-        "next_action": "Visit RTL_00001 today, demo Amistar application technique",
-        "follow_up_timeline": "Within 24 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[0],
-    },
-    {
-        "id": "REC_002", "territory_id": "TER_0001", "priority": "High",
-        "crop": "Wheat", "message": "BPH pressure building — pre-emptive Actara application before economic threshold breach",
-        "weather": "Dry, Temperature 32°C", "product": "Actara 25 WG",
-        "village": "Phulwari Sharif", "farmer": "Suresh Prasad",
-        "retailer_id": "RTL_00003", "pest_risk": "High",
-        "next_action": "Present Actara 25 WG efficacy data to retailer",
-        "follow_up_timeline": "Within 48 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[1],
-    },
-    {
-        "id": "REC_003", "territory_id": "TER_0001", "priority": "Medium",
-        "crop": "Maize", "message": "Low inventory alert — Score 250 EC running low at Kisan Seed Store ahead of demand season",
-        "weather": "Partly cloudy", "product": "Score 250 EC",
-        "village": "Patna Sadar", "farmer": "Multiple farmers",
-        "retailer_id": "RTL_00005", "pest_risk": "Medium",
-        "next_action": "Confirm reorder of Score 250 EC — 100 unit minimum",
-        "follow_up_timeline": "Within 3 days",
-        "explainable_reasons": EXPLAINABLE_REASONS[2],
-    },
-    {
-        "id": "REC_004", "territory_id": "TER_0001", "priority": "High",
-        "crop": "Cotton", "message": "Downy mildew risk elevated — Ridomil Gold pre-positioning recommended at 2 retailers",
-        "weather": "Overcast, Rain expected", "product": "Ridomil Gold",
-        "village": "Bihta Block", "farmer": "Farmer cluster B-12",
-        "retailer_id": "RTL_00007", "pest_risk": "High",
-        "next_action": "Pre-stock Ridomil Gold at RTL_00007 before rainfall",
-        "follow_up_timeline": "Within 24 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[0],
-    },
-    {
-        "id": "REC_005", "territory_id": "TER_0001", "priority": "Low",
-        "crop": "Mustard", "message": "Routine advisory — apply Tilt 250 EC for rust prevention during flowering stage",
-        "weather": "Clear, 28°C", "product": "Tilt 250 EC",
-        "village": "Masaurhi Block", "farmer": "Rajiv Agro Group",
-        "retailer_id": "RTL_00009", "pest_risk": "Low",
-        "next_action": "Schedule demo visit for Tilt 250 EC application",
-        "follow_up_timeline": "Within 1 week",
-        "explainable_reasons": EXPLAINABLE_REASONS[2],
-    },
-    {
-        "id": "REC_006", "territory_id": "TER_0004", "priority": "High",
-        "crop": "Wheat", "message": "Yellow rust outbreak warning — temperature and humidity levels match epidemic risk criteria in Ludhiana East",
-        "weather": "Humid (80%), 24°C", "product": "Tilt 250 EC",
-        "village": "Samrala Block", "farmer": "Gurdip Singh (contact via RTL_00037)",
-        "retailer_id": "RTL_00037", "pest_risk": "High",
-        "next_action": "Deliver Tilt 250 EC stocks and issue local advisory pamphlet",
-        "follow_up_timeline": "Within 24 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[0],
-    },
-    {
-        "id": "REC_007", "territory_id": "TER_0005", "priority": "Critical",
-        "crop": "Cotton", "message": "Pink bollworm pressure high — pheromone trap counts exceed economic threshold (8 moths/trap/night) in Amravati",
-        "weather": "Dry, 36°C", "product": "Actara 25 WG",
-        "village": "Achalpur Block", "farmer": "Anil Deshmukh (contact via RTL_00049)",
-        "retailer_id": "RTL_00049", "pest_risk": "Critical",
-        "next_action": "Visit RTL_00049 to setup farmer awareness campaign and stock Actara",
-        "follow_up_timeline": "Immediate action",
-        "explainable_reasons": EXPLAINABLE_REASONS[1],
-    },
-    {
-        "id": "REC_008", "territory_id": "TER_0004", "priority": "Critical",
-        "crop": "Rice", "message": "Severe stem borer warning — early vegetative rice crop showing high pest pressure in Ludhiana West",
-        "weather": "Warm, Humid (78%)", "product": "Actara 25 WG",
-        "village": "Jagraon Block", "farmer": "Baldev Singh (via RTL_00038)",
-        "retailer_id": "RTL_00038", "pest_risk": "Critical",
-        "next_action": "Coordinate emergency supply of Actara 25 WG to Kisan Store",
-        "follow_up_timeline": "Within 12 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[0],
-    },
-    {
-        "id": "REC_009", "territory_id": "TER_0004", "priority": "Medium",
-        "crop": "Maize", "message": "Foliar disease risk elevated — weather conditions optimal for leaf blight in Samrala area",
-        "weather": "Cloudy, Intermittent rain", "product": "Amistar 250 SC",
-        "village": "Samrala Block", "farmer": "Harpreet Singh (via RTL_00039)",
-        "retailer_id": "RTL_00039", "pest_risk": "Medium",
-        "next_action": "Educate farmers on preventative spray schedules",
-        "follow_up_timeline": "Within 3 days",
-        "explainable_reasons": EXPLAINABLE_REASONS[1],
-    },
-    {
-        "id": "REC_010", "territory_id": "TER_0004", "priority": "High",
-        "crop": "Wheat", "message": "Loose smut alert — hot spots detected in Ludhiana rural clusters. Immediate fungicide stocking needed",
-        "weather": "Sunny, 28°C", "product": "Score 250 EC",
-        "village": "Ludhiana West", "farmer": "Jagtar Singh",
-        "retailer_id": "RTL_00040", "pest_risk": "High",
-        "next_action": "Set up demonstration camp at major retail hubs",
-        "follow_up_timeline": "Within 48 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[2],
-    },
-    {
-        "id": "REC_011", "territory_id": "TER_0005", "priority": "High",
-        "crop": "Soybean", "message": "Rust disease outbreak risk — leaf moisture levels elevated. Pre-position Amistar 250 SC immediately",
-        "weather": "Humid, Rain expected", "product": "Amistar 250 SC",
-        "village": "Morshi Block", "farmer": "Vijay Patil (via RTL_00050)",
-        "retailer_id": "RTL_00050", "pest_risk": "High",
-        "next_action": "Deliver fungicide stocks to central dealer points",
-        "follow_up_timeline": "Within 24 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[0],
-    },
-    {
-        "id": "REC_012", "territory_id": "TER_0005", "priority": "Medium",
-        "crop": "Maize", "message": "Fall armyworm warning — early detection in Achalpur corn fields. Monitor crop leaves carefully",
-        "weather": "Dry, Hot 38°C", "product": "Actara 25 WG",
-        "village": "Achalpur Block", "farmer": "Sanjay Deshmukh",
-        "retailer_id": "RTL_00051", "pest_risk": "Medium",
-        "next_action": "Distribute leaf symptom reference charts to dealers",
-        "follow_up_timeline": "Within 3 days",
-        "explainable_reasons": EXPLAINABLE_REASONS[1],
-    },
-    {
-        "id": "REC_013", "territory_id": "TER_0005", "priority": "High",
-        "crop": "Cotton", "message": "Sucking pest alert — whitefly and jassids counts rising above thresholds in Amravati East",
-        "weather": "Sunny, Wind speed 12km/h", "product": "Pegasus 500 SC",
-        "village": "Amravati East", "farmer": "Rahul Pawar (via RTL_00052)",
-        "retailer_id": "RTL_00052", "pest_risk": "High",
-        "next_action": "Organize dealer-grower meets for Pegasus spraying demo",
-        "follow_up_timeline": "Within 48 hours",
-        "explainable_reasons": EXPLAINABLE_REASONS[2],
-    },
 ]
 
 
@@ -289,44 +186,69 @@ async def seed_all():
 
         await db.flush()
 
-        # Get user IDs for notifications
+        # Retrieve seeded users for linking
         result = await db.execute(select(User))
-        users = result.scalars().all()
-        amit = next((u for u in users if u.email == "amit@agroai.com"), users[0])
+        all_users = result.scalars().all()
+        amit = next((u for u in all_users if u.email == "amit@agroai.com"), all_users[0])
+        priya = next((u for u in all_users if u.email == "priya@agroai.com"), all_users[0])
+        rajesh = next((u for u in all_users if u.email == "rajesh@agroai.com"), all_users[0])
+        suresh = next((u for u in all_users if u.email == "suresh@agroai.com"), all_users[0])
+        neha = next((u for u in all_users if u.email == "neha@agroai.com"), all_users[0])
+        kiran = next((u for u in all_users if u.email == "kiran@agroai.com"), all_users[0])
 
-        # Retailers (18 across territories)
+        def get_agent_for_territory(t_id: str):
+            if t_id in ["TER_0001", "TER_0002", "TER_0003"]:
+                return amit
+            if t_id == "TER_0004":
+                return rajesh
+            if t_id == "TER_0005":
+                return priya
+            if t_id == "TER_0006":
+                return suresh
+            if t_id == "TER_0007":
+                return neha
+            if t_id == "TER_0008":
+                return kiran
+            return amit
+
+        # Retailers (6 retailers per territory, total 48)
         retailers_created = []
-        for i, name in enumerate(RETAILER_NAMES):
-            ter = TERRITORIES[i % len(TERRITORIES)]
-            tehsil = TEHSILS[i % len(TEHSILS)]
-            priority = random.choice(["High", "High", "Medium", "Medium", "Low"])
-            score = round(random.uniform(45, 95), 1)
-            stock_status = random.choice(["Good Stock", "Good Stock", "Low Stock", "Out of Stock"])
-            stock_qty = {"Good Stock": random.randint(200, 500), "Low Stock": random.randint(30, 80), "Out of Stock": 0}[stock_status]
-            last_visit_days = random.randint(0, 45)
+        retailer_idx = 1
+        for ter in TERRITORIES:
+            state = ter["state"]
+            names_pool = RETAILER_NAMES_BY_STATE.get(state, RETAILER_NAMES)
+            for idx in range(6):
+                name = names_pool[idx % len(names_pool)] + f" ({ter['name'].split()[0]} #{idx+1})"
+                tehsil = f"{ter['name'].split()[0]} Tehsil {chr(65+idx)}"
+                priority = random.choice(["High", "High", "Medium", "Medium", "Low"])
+                score = round(random.uniform(45, 95), 1)
+                stock_status = random.choice(["Good Stock", "Good Stock", "Low Stock", "Out of Stock"])
+                stock_qty = {"Good Stock": random.randint(200, 500), "Low Stock": random.randint(30, 80), "Out of Stock": 0}[stock_status]
+                last_visit_days = random.randint(0, 45)
 
-            r = Retailer(
-                retailer_id=f"RTL_{i+1:05d}",
-                name=name,
-                territory_id=ter["id"],
-                location=f"{tehsil}, {ter['district']}",
-                tehsil=tehsil,
-                district=ter["district"],
-                state=ter["state"],
-                lat=ter["lat"] + random.uniform(-0.3, 0.3),
-                lng=ter["lng"] + random.uniform(-0.3, 0.3),
-                priority_level=priority,
-                visit_priority_score=score,
-                stock_status=stock_status,
-                total_stock_qty=stock_qty,
-                last_visit_days=last_visit_days,
-                last_visit_date=(date.today() - timedelta(days=last_visit_days)).isoformat() if last_visit_days > 0 else date.today().isoformat(),
-                recommended_product=random.choice(PRODUCTS),
-                explanation=f"High purchase frequency with {random.randint(2,8)} orders in last 90 days. {'Stock critically low — immediate restocking required.' if stock_status == 'Low Stock' else 'Good inventory maintained.'}",
-                monthly_revenue=round(random.uniform(50000, 350000), 0),
-            )
-            db.add(r)
-            retailers_created.append(r)
+                r = Retailer(
+                    retailer_id=f"RTL_{retailer_idx:05d}",
+                    name=name,
+                    territory_id=ter["id"],
+                    location=f"{tehsil}, {ter['district']}",
+                    tehsil=tehsil,
+                    district=ter["district"],
+                    state=ter["state"],
+                    lat=ter["lat"] + random.uniform(-0.15, 0.15),
+                    lng=ter["lng"] + random.uniform(-0.15, 0.15),
+                    priority_level=priority,
+                    visit_priority_score=score,
+                    stock_status=stock_status,
+                    total_stock_qty=stock_qty,
+                    last_visit_days=last_visit_days,
+                    last_visit_date=(date.today() - timedelta(days=last_visit_days)).isoformat() if last_visit_days > 0 else date.today().isoformat(),
+                    recommended_product=random.choice(PRODUCTS),
+                    explanation=f"High purchase frequency with {random.randint(2,8)} orders in last 90 days. {'Stock critically low — immediate restocking required.' if stock_status == 'Low Stock' else 'Good inventory maintained.'}",
+                    monthly_revenue=round(random.uniform(50000, 350000), 0),
+                )
+                db.add(r)
+                retailers_created.append(r)
+                retailer_idx += 1
 
         await db.flush()
 
@@ -343,13 +265,14 @@ async def seed_all():
                 ))
 
         # Grower clusters
-        for i in range(15):
+        for i in range(24):
             ter = TERRITORIES[i % len(TERRITORIES)]
             crop = random.choice(CROPS)
             pest_risk = random.choices(PEST_RISKS, weights=[1, 2, 4, 6])[0]
+            tehsil_idx = i % len(TEHSILS)
             db.add(Grower(
                 territory_id=ter["id"],
-                tehsil=TEHSILS[i % len(TEHSILS)],
+                tehsil=TEHSILS[tehsil_idx],
                 district=ter["district"],
                 state=ter["state"],
                 crop_type=crop,
@@ -363,12 +286,48 @@ async def seed_all():
                 recommended_advisory=random.choice(ADVISORIES),
             ))
 
-        # Recommendations
-        for rec in RECOMMENDATIONS_SEED:
-            db.add(Recommendation(**rec, status="pending"))
+        # Recommendations dynamically generated and correctly mapped
+        recommendations_seeded_count = 0
+        for r in retailers_created:
+            if hash(r.retailer_id) % 3 == 0:
+                rec_id = f"REC_{recommendations_seeded_count+1:03d}"
+                crop = random.choice(CROPS)
+                product = random.choice(PRODUCTS)
+                pest_risk = random.choice(PEST_RISKS)
+                priority = {"Critical": "Critical", "High": "High", "Medium": "Medium", "Low": "Low"}[pest_risk]
+                explain_idx = recommendations_seeded_count % len(EXPLAINABLE_REASONS)
 
-        # Notifications for amit
+                rec = Recommendation(
+                    id=rec_id,
+                    territory_id=r.territory_id,
+                    priority=priority,
+                    crop=crop,
+                    message=f"Pre-emptive application of {product} recommended at {r.name} to control {crop.lower()} disease risk.",
+                    weather="Humid (85%), Temperature 30°C" if priority in ["Critical", "High"] else "Sunny, 28°C",
+                    product=product,
+                    village=r.location.split(",")[0],
+                    farmer=f"Farmer cluster near {r.name}",
+                    retailer_id=r.retailer_id,
+                    pest_risk=pest_risk,
+                    next_action=f"Visit {r.name} to check inventory and recommend {product}",
+                    follow_up_timeline="Within 24 hours" if priority == "Critical" else "Within 3 days",
+                    status="pending" if random.random() > 0.3 else "applied",
+                    explainable_reasons=EXPLAINABLE_REASONS[explain_idx],
+                )
+                db.add(rec)
+                recommendations_seeded_count += 1
+
+        # Notifications for manager and amit
         for n in NOTIFICATIONS_SEED:
+            # Add for manager
+            db.add(Notification(
+                user_id=2,  # manager's ID
+                title=n["title"],
+                message=n["message"],
+                type=n["type"],
+                read=random.choice([True, False, False]),
+            ))
+            # Add for amit
             db.add(Notification(
                 user_id=amit.id,
                 title=n["title"],
@@ -381,33 +340,58 @@ async def seed_all():
         for mp in MANDI_PRICES_SEED:
             db.add(MandiPrice(**mp))
 
-        # Sample visits (past 30 days)
-        result = await db.execute(select(Retailer))
-        all_retailers = result.scalars().all()
-        for i in range(60):
+        # Seed 120 visits and matching VisitFeedback records (past 30 days)
+        for i in range(120):
             visit_date = date.today() - timedelta(days=random.randint(0, 29))
-            r = random.choice(all_retailers)
-            db.add(Visit(
-                user_id=amit.id,
-                retailer_id=r.retailer_id,
-                territory_id="TER_0001",
-                visit_date=visit_date,
-                visit_status=random.choice(["completed", "completed", "no_purchase", "follow_up_needed"]),
-                order_placed=random.choice([True, True, False]),
-                order_value=round(random.uniform(5000, 85000), 0) if random.random() > 0.3 else 0,
-                order_quantity=random.randint(10, 100),
-                duration_minutes=random.randint(20, 75),
-            ))
+            r = random.choice(retailers_created)
+            agent = get_agent_for_territory(r.territory_id)
 
-        # Risk events
-        for ter in TERRITORIES[:3]:
-            for _ in range(3):
+            status = random.choice(["completed", "completed", "no_purchase", "follow_up_needed"])
+            order_placed = random.choice([True, True, False]) if status == "completed" else False
+            order_val = round(random.uniform(5000, 85000), 0) if order_placed else 0.0
+            order_qty = random.randint(10, 100) if order_placed else 0
+            duration = random.randint(20, 75)
+
+            visit = Visit(
+                user_id=agent.id,
+                retailer_id=r.retailer_id,
+                territory_id=r.territory_id,
+                visit_date=visit_date,
+                visit_status=status,
+                order_placed=order_placed,
+                order_value=order_val,
+                order_quantity=order_qty,
+                duration_minutes=duration,
+            )
+            db.add(visit)
+
+            # Seed matching VisitFeedback record for non-progress visits
+            if status != "in_progress":
+                fb = VisitFeedback(
+                    territory_id=r.territory_id,
+                    retailer_id=r.retailer_id,
+                    visit_status=status,
+                    products_discussed=random.sample(PRODUCTS, k=random.randint(1, 3)),
+                    order_placed=order_placed,
+                    order_quantity=order_qty,
+                    order_value=order_val,
+                    farmer_response=random.choice(["positive", "positive", "neutral", "skeptical"]),
+                    follow_up_needed=(status == "follow_up_needed"),
+                    next_follow_up_date=(date.today() + timedelta(days=random.randint(3, 14))).isoformat() if status == "follow_up_needed" else None,
+                    notes=f"Discussed regional crop health. Retailer requested details on {random.choice(PRODUCTS)}.",
+                    created_at=datetime.combine(visit_date, datetime.min.time()) + timedelta(hours=random.randint(9, 17)),
+                )
+                db.add(fb)
+
+        # Risk events (across all 8 territories)
+        for ter in TERRITORIES:
+            for _ in range(2):
                 db.add(RiskEvent(
                     territory_id=ter["id"],
                     event_type=random.choice(["pest", "weather", "ndvi"]),
                     severity=random.choice(["High", "Medium", "Low"]),
-                    lat=ter["lat"] + random.uniform(-0.2, 0.2),
-                    lng=ter["lng"] + random.uniform(-0.2, 0.2),
+                    lat=ter["lat"] + random.uniform(-0.1, 0.1),
+                    lng=ter["lng"] + random.uniform(-0.1, 0.1),
                     description=random.choice([
                         "BPH infestation detected above economic threshold",
                         "Excessive rainfall causing waterlogging in fields",

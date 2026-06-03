@@ -9,6 +9,7 @@ import { AIChatDrawer } from './AIChatDrawer';
 import { AIFloatingButton } from './AIFloatingButton';
 import { useBreakpoint } from '@/hooks/useMediaQuery';
 import { useTheme } from '@/contexts/ThemeContext';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface AppLayoutProps {
   children: React.ReactNode;
@@ -21,6 +22,7 @@ export function AppLayout({ children }: AppLayoutProps) {
   const { isMobile, isDesktop } = useBreakpoint();
   const { theme } = useTheme();
   const location = useLocation();
+  const { user } = useAuth();
 
   const handleMenuClick = () => {
     if (isDesktop) {
@@ -56,14 +58,14 @@ export function AppLayout({ children }: AppLayoutProps) {
           marginLeft: isMobile ? 0 : isDesktop ? (desktopSidebarOpen ? 220 : 0) : 64,
         }}
       >
-        <div className="p-4 lg:p-5 overflow-x-hidden">
+        <div className="p-4 lg:p-5 min-h-[calc(100vh-64px)] overflow-x-hidden">
           <AnimatePresence mode="wait" initial={false}>
             <motion.div
               key={location.pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.2, ease: [0.25, 1, 0.5, 1] }}
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.15, ease: 'easeInOut' }}
             >
               {children}
             </motion.div>
@@ -71,8 +73,12 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </main>
 
-      <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
-      <AIFloatingButton onClick={() => setAiChatOpen(true)} />
+      {user?.role !== 'manager' && (
+        <>
+          <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
+          {!aiChatOpen && <AIFloatingButton onClick={() => setAiChatOpen(true)} />}
+        </>
+      )}
     </div>
   );
 }

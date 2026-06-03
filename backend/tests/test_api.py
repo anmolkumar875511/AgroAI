@@ -37,7 +37,7 @@ async def setup_db():
 
     # Seed minimal test data directly (bypass seed_service's hardcoded session)
     async with TestSession() as db:
-        from app.models.models import User, Retailer, Recommendation, Notification, MandiPrice, Grower
+        from app.models.models import User, Retailer, Recommendation, Notification, MandiPrice, Grower, RiskEvent
         from datetime import date
 
         # Users
@@ -123,6 +123,19 @@ async def setup_db():
                 message=f"Test notification {i + 1}",
                 type=ntype,
                 read=(i >= 2),
+            ))
+
+        # Risk Events
+        for i in range(12):
+            db.add(RiskEvent(
+                territory_id="TER_0001",
+                event_type="pest" if i % 2 == 0 else "weather",
+                severity="High" if i % 3 == 0 else "Medium",
+                lat=25.5941 + i * 0.01,
+                lng=85.1376 + i * 0.01,
+                description=f"Test risk event {i+1}",
+                crop="Rice",
+                affected_area_km2=10.0,
             ))
 
         # Mandi prices

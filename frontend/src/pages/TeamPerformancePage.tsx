@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const COLORS = {
   primary: '#1B5E20',
@@ -23,14 +24,15 @@ const DAILY_LOGS: any[] = [];
 export default function TeamPerformancePage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
+  const { activeRegion } = useRegion();
 
   const { data: dashData, refetch: refetchDash } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
   const { data: trackData, refetch: refetchTrack } = useApi(
-    () => managerAPI.getTeamTracking(),
-    []
+    () => managerAPI.getTeamTracking(activeRegion.id),
+    [activeRegion.id]
   );
 
   const repsList = ((dashData?.reps || REP_PERFORMANCE_DETAILS) as any[]).map((r, i) => ({
@@ -110,6 +112,7 @@ export default function TeamPerformancePage() {
                 <YAxis stroke="rgba(120,130,120,0.8)" tick={{ fontSize: 11 }} />
                 <Tooltip
                   contentStyle={{ backgroundColor: '#142818', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8 }}
+                  cursor={false}
                 />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 <Bar dataKey="Visits" fill={COLORS.secondary} radius={[4, 4, 0, 0]} />

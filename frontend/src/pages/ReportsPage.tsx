@@ -6,20 +6,18 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const COLORS = ['#1B5E20', '#8BC34A', '#FFC107', '#1E88E5', '#E53935'];
-
-const REGION_REPORTS: any[] = [];
-
-const CROP_DISTRIBUTION: any[] = [];
 
 export default function ReportsPage() {
   const [reportType, setReportType] = useState('summary');
   const [dateRange, setDateRange] = useState('may_2026');
+  const { activeRegion } = useRegion();
 
   const { data: dashData } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   const reps = dashData?.reps || [];
@@ -33,7 +31,48 @@ export default function ReportsPage() {
       targetAchieved: Math.round((r.visits / r.target) * 100),
       topProduct: index % 2 === 0 ? 'Amistar 250 SC' : 'Actara 25 WG',
     };
-  }) : REGION_REPORTS;
+  }) : [];
+
+  // Dynamic crop distribution based on activeRegion ID
+  let cropDistribution = [
+    { name: 'Rice', value: 35 },
+    { name: 'Wheat', value: 30 },
+    { name: 'Cotton', value: 20 },
+    { name: 'Maize', value: 15 },
+  ];
+
+  if (activeRegion.id === 'br') {
+    cropDistribution = [
+      { name: 'Rice', value: 45 },
+      { name: 'Wheat', value: 35 },
+      { name: 'Maize', value: 20 },
+    ];
+  } else if (activeRegion.id === 'pb') {
+    cropDistribution = [
+      { name: 'Wheat', value: 50 },
+      { name: 'Rice', value: 30 },
+      { name: 'Mustard', value: 20 },
+    ];
+  } else if (activeRegion.id === 'mh') {
+    cropDistribution = [
+      { name: 'Cotton', value: 40 },
+      { name: 'Soybean', value: 35 },
+      { name: 'Sugarcane', value: 25 },
+    ];
+  } else if (activeRegion.id === 'gj') {
+    cropDistribution = [
+      { name: 'Cotton', value: 50 },
+      { name: 'Mustard', value: 30 },
+      { name: 'Groundnut', value: 20 },
+    ];
+  } else if (activeRegion.id === 'ka') {
+    cropDistribution = [
+      { name: 'Rice', value: 40 },
+      { name: 'Sugarcane', value: 35 },
+      { name: 'Maize', value: 25 },
+    ];
+  }
+
 
   const handleDownload = (format: 'pdf' | 'csv') => {
     toast.success(`Generating customized regional report... Downloading as ${format.toUpperCase()}!`);
@@ -128,7 +167,7 @@ export default function ReportsPage() {
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={CROP_DISTRIBUTION}
+                    data={cropDistribution}
                     cx="50%"
                     cy="50%"
                     innerRadius={40}
@@ -136,7 +175,7 @@ export default function ReportsPage() {
                     paddingAngle={3}
                     dataKey="value"
                   >
-                    {CROP_DISTRIBUTION.map((_, index) => (
+                    {cropDistribution.map((_, index) => (
                       <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                   </Pie>
@@ -150,7 +189,7 @@ export default function ReportsPage() {
 
           {/* Color Indicators list */}
           <div className="grid grid-cols-2 gap-2 text-[10px] mt-4 pt-3 border-t border-light-gray dark:border-white/5">
-            {CROP_DISTRIBUTION.map((c, i) => (
+            {cropDistribution.map((c, i) => (
               <div key={i} className="flex items-center gap-1.5 font-semibold">
                 <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
                 <span className="text-text-secondary dark:text-white/60">{c.name} ({c.value}%)</span>

@@ -382,8 +382,14 @@ export const chatAPI = {
 };
 
 export const managerAPI = {
-  getDashboard: () => request<ManagerDashboardData>("/manager/dashboard"),
-  getTeamTracking: () => request<Record<string, unknown>>("/manager/team-tracking"),
+  getDashboard: (region_id?: string) => {
+    const q = region_id ? `?region_id=${region_id}` : '';
+    return request<ManagerDashboardData>(`/manager/dashboard${q}`);
+  },
+  getTeamTracking: (region_id?: string) => {
+    const q = region_id ? `?region_id=${region_id}` : '';
+    return request<Record<string, unknown>>(`/manager/team-tracking${q}`);
+  },
   nudgeRep: (rep_id: string, message?: string) =>
     request<{ status: string }>("/manager/nudge", {
       method: "POST",

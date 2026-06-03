@@ -1,11 +1,10 @@
 from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from app.core.database import get_db
 from app.core.security import get_current_user
-from app.models.models import MandiPrice
 from app.schemas.schemas import MandiResponse, MandiPriceItem
+from app.services.mandi_service import get_mandi_prices
 
 router = APIRouter()
 
@@ -17,13 +16,7 @@ async def mandi_prices(
     db: AsyncSession = Depends(get_db),
     _=Depends(get_current_user),
 ):
-    q = select(MandiPrice)
-    if state:
-        q = q.where(MandiPrice.state == state)
-    q = q.limit(limit)
-
-    result = await db.execute(q)
-    rows = result.scalars().all()
+    rows = await get_mandi_prices(state, limit, db)
 
     items = [
         MandiPriceItem(

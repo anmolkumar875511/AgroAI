@@ -1,7 +1,7 @@
-"""Risk Analyzer service — heatmap, NDVI, weather anomalies, pest outbreaks, AI insights."""
-import random
+"""Risk Analyzer service — heatmap, NDVI, weather anomalies, pest outbreaks, AI insights from DB."""
+from datetime import date, timedelta
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from app.models.models import Territory, RiskEvent
 from app.schemas.schemas import (
     HeatmapCell, NDVIPoint, WeatherAnomaly, PestOutbreak,
@@ -17,122 +17,138 @@ PRODUCTS_MAP = {
     "Powdery Mildew": "Score 250 EC",
     "Whitefly": "Pegasus 500 SC",
 }
-VILLAGES = [
-    "Danapur Khurd", "Phulwari Sharif", "Masaurhi", "Bihta Block",
-    "Naubatpur", "Paliganj", "Bikram", "Maner", "Shahpur",
-]
-
-RISK_LEVELS = ["Critical", "High", "Medium", "Low"]
-
-AI_INSIGHTS_POOL = [
-    {
-        "id": "ins_1", "severity": "Critical",
-        "title": "BPH Infestation at Economic Threshold",
-        "description": "Brown Plant Hopper population has reached 8.2/m² in Danapur block — exceeding the economic threshold of 5/m². Immediate insecticide intervention required.",
-        "action": "Dispatch Actara 25 WG to RTL_00001 and RTL_00003 within 24 hours.",
-    },
-    {
-        "id": "ins_2", "severity": "High",
-        "title": "Fungal Disease Risk Elevated",
-        "description": "Relative humidity sustained above 85% for 6 consecutive days. Blast disease progression probability: 78% in rice paddies at flowering stage.",
-        "action": "Pre-position Amistar 250 SC at all rice belt retailers. Advise immediate prophylactic application.",
-    },
-    {
-        "id": "ins_3", "severity": "Medium",
-        "title": "NDVI Stress Detected — Nitrogen Deficiency",
-        "description": "NDVI dropped from 0.72 to 0.58 over 14 days across 3 tehsils. Pattern consistent with nitrogen deficiency rather than pest damage.",
-        "action": "Advise growers on top-dressing urea application. Monitor for 7 days before pesticide intervention.",
-    },
-    {
-        "id": "ins_4", "severity": "Low",
-        "title": "Pre-season Inventory Optimization",
-        "description": "ML demand forecast predicts 35% sales surge in next 3 weeks based on crop calendar and historical patterns.",
-        "action": "Increase stock levels at High-priority retailers before the demand window opens.",
-    },
-]
 
 
 async def get_risk_data(territory_id: str, lat: float, lng: float, db: AsyncSession) -> RiskAnalyzerResponse:
+    # Query all risk events for this territory
+    q_events = select(RiskEvent)
+    if territory_id not in ["ind", "all"]:
+        q_events = q_events.where(RiskEvent.territory_id == territory_id)
+    res = await db.execute(q_events)
+    events = res.scalars().all()
+
     # ── Heatmap cells ─────────────────────────────────────────────────────
     heatmap = []
-    for i in range(12):
-        risk = random.choices(RISK_LEVELS, weights=[1, 2, 5, 8])[0]
+    for evt in events:
+        risk_score = {"Critical": 90.0, "High": 75.0, "Medium": 50.0, "Low": 20.0}.get(evt.severity, 15.0)
+        
+        # Determine crop & pest type from event description/properties
+        crop = evt.crop or "Rice"
+        pest_type = None
+        if evt.event_type == "pest":
+            for p in PESTS:
+                if p.lower() in evt.description.lower():
+                    pest_type = p
+                    break
+            if not pest_type:
+                pest_type = "Leaf Blast"
+
         heatmap.append(HeatmapCell(
-            id=f"cell_{i}",
-            lat=lat + random.uniform(-0.25, 0.25),
-            lng=lng + random.uniform(-0.25, 0.25),
-            risk_level=risk,
-            risk_score={"Critical": random.uniform(80, 100), "High": random.uniform(60, 79), "Medium": random.uniform(35, 59), "Low": random.uniform(5, 34)}[risk],
-            crop=random.choice(CROPS),
-            village=random.choice(VILLAGES),
-            pest_type=random.choice(PESTS) if risk in ["Critical", "High"] else None,
-            area_km2=round(random.uniform(2, 40), 1),
+            id=f"cell_{evt.id}",
+            lat=evt.lat,
+            lng=evt.lng,
+            risk_level=evt.severity,
+            risk_score=risk_score,
+            crop=crop,
+            village="Local Area",
+            pest_type=pest_type,
+            area_km2=evt.affected_area_km2 or 5.0,
         ))
 
-    # ── NDVI trend ───────────────────────────────────────────────────────
+    # Fallback default cell if database has no events
+    if not heatmap:
+        heatmap.append(HeatmapCell(
+            id="cell_default",
+            lat=lat,
+            lng=lng,
+            risk_level="Low",
+            risk_score=10.0,
+            crop="Rice",
+            village="Central Tehsil",
+            pest_type=None,
+            area_km2=5.0,
+        ))
+
+    # ── NDVI trend (Seasonal profile) ───────────────────────────────────────
     ndvi_data = []
-    base_ndvi = 0.72
+    benchmarks = [0.65, 0.68, 0.72, 0.75, 0.70, 0.55, 0.45, 0.50, 0.58, 0.62, 0.64, 0.63]
+    actuals = [0.66, 0.67, 0.73, 0.74, 0.68, 0.52, 0.44, 0.48, 0.59, 0.60, 0.63, 0.64]
+    months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
     for i in range(12):
-        month = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][i]
-        ndvi = round(base_ndvi + random.uniform(-0.08, 0.06), 3)
-        benchmark = round(0.70 + i * 0.005, 3)
-        status = "Good" if ndvi >= benchmark else ("Stressed" if ndvi >= benchmark - 0.08 else "Critical")
-        ndvi_data.append(NDVIPoint(date=month, ndvi=ndvi, benchmark=benchmark, status=status))
-        base_ndvi = ndvi
+        status = "Good" if actuals[i] >= benchmarks[i] else ("Stressed" if actuals[i] >= benchmarks[i] - 0.05 else "Critical")
+        ndvi_data.append(NDVIPoint(date=months[i], ndvi=actuals[i], benchmark=benchmarks[i], status=status))
 
     # ── Weather anomalies ─────────────────────────────────────────────────
+    weather_events = [evt for evt in events if evt.event_type == "weather"]
     weather_anomalies = []
-    weather_types = ["Heavy Rainfall", "Drought Stress", "Cold Wave", "Heatwave", "Hailstorm"]
-    for i in range(4):
+    for evt in weather_events:
         weather_anomalies.append(WeatherAnomaly(
-            id=f"wx_{i}",
-            lat=lat + random.uniform(-0.3, 0.3),
-            lng=lng + random.uniform(-0.3, 0.3),
-            type=random.choice(weather_types),
-            severity=random.choice(["High", "Medium", "Low"]),
-            description=f"Anomalous weather pattern affecting crop health in {random.choice(VILLAGES)}",
-            affected_area_km2=round(random.uniform(5, 80), 1),
+            id=f"wx_{evt.id}",
+            lat=evt.lat,
+            lng=evt.lng,
+            type="Weather Anomaly",
+            severity=evt.severity,
+            description=evt.description,
+            affected_area_km2=evt.affected_area_km2 or 10.0,
         ))
 
-    # ── Pest outbreaks (from DB + synthetic) ──────────────────────────────
-    result = await db.execute(
-        select(RiskEvent).where(
-            RiskEvent.territory_id == territory_id,
-            RiskEvent.event_type == "pest",
-        ).limit(4)
-    )
-    db_events = result.scalars().all()
-
+    # ── Pest outbreaks ───────────────────────────────────────────────────
+    pest_events = [evt for evt in events if evt.event_type == "pest"]
     pest_outbreaks = []
-    for evt in db_events:
-        pest = random.choice(PESTS)
+    for evt in pest_events:
+        pest_name = "Leaf Blast"
+        for p in PESTS:
+            if p.lower() in evt.description.lower():
+                pest_name = p
+                break
         pest_outbreaks.append(PestOutbreak(
             id=f"pest_{evt.id}",
-            lat=evt.lat, lng=evt.lng,
-            pest_name=pest,
+            lat=evt.lat,
+            lng=evt.lng,
+            pest_name=pest_name,
             crop=evt.crop or "Rice",
             severity=evt.severity,
-            affected_farmers=random.randint(15, 250),
-            recommended_product=PRODUCTS_MAP.get(pest, "Amistar 250 SC"),
-        ))
-    # Pad synthetic outbreaks
-    for i in range(max(0, 3 - len(pest_outbreaks))):
-        pest = random.choice(PESTS)
-        pest_outbreaks.append(PestOutbreak(
-            id=f"pest_syn_{i}",
-            lat=lat + random.uniform(-0.2, 0.2),
-            lng=lng + random.uniform(-0.2, 0.2),
-            pest_name=pest,
-            crop=random.choice(CROPS),
-            severity=random.choice(["High", "Medium"]),
-            affected_farmers=random.randint(20, 180),
-            recommended_product=PRODUCTS_MAP.get(pest, "Actara 25 WG"),
+            affected_farmers=int((evt.affected_area_km2 or 5.0) * 12),
+            recommended_product=PRODUCTS_MAP.get(pest_name, "Amistar 250 SC"),
         ))
 
     # ── AI insights ───────────────────────────────────────────────────────
-    ai_insights = [AIInsight(**i) for i in AI_INSIGHTS_POOL[:3]]
+    ai_insights = []
+    for evt in events:
+        if evt.severity in ["High", "Critical"]:
+            rec_prod = "Amistar 250 SC"
+            for k, prod in PRODUCTS_MAP.items():
+                if k.lower() in evt.description.lower():
+                    rec_prod = prod
+                    break
+            ai_insights.append(AIInsight(
+                id=f"ins_{evt.id}",
+                severity=evt.severity,
+                title=f"{evt.event_type.capitalize()} Alert in {evt.crop or 'Crop'}",
+                description=evt.description,
+                action=f"Dispatch {rec_prod} to key retail centers in the affected area.",
+            ))
 
-    overall = "High" if any(c.risk_level == "Critical" for c in heatmap) else "Medium"
+    # General fallback insights if no critical events exist
+    if not ai_insights:
+        ai_insights = [
+            AIInsight(
+                id="ins_general_1",
+                severity="Medium",
+                title="NDVI Stress Detected",
+                description="Vegetation index reports minor stress patterns matching nitrogen deficiency.",
+                action="Recommend crop nutrition checks during upcoming grower visits.",
+            ),
+            AIInsight(
+                id="ins_general_2",
+                severity="Low",
+                title="Pre-season Inventory Optimization",
+                description="Forecast indicates 35% higher fungicide requirement based on crop cycle calendar.",
+                action="Increase stock levels of Amistar 250 SC at High-priority retailers.",
+            ),
+        ]
+
+    overall = "High" if any(c.risk_level == "Critical" or c.risk_level == "High" for c in heatmap) else "Medium"
 
     return RiskAnalyzerResponse(
         overall_risk_level=overall,

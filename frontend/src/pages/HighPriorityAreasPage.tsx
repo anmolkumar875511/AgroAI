@@ -6,33 +6,43 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
-
-const HIGH_PRIORITY_AREAS: any[] = [];
+import { useRegion } from '@/contexts/RegionContext';
 
 export default function HighPriorityAreasPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [priorityFilter, setPriorityFilter] = useState('All');
   const [stateFilter, setStateFilter] = useState('All');
+  const { activeRegion } = useRegion();
 
   const { data: dashData } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   const missedOpportunities = dashData?.missed_opportunities || [];
 
   const liveAreas = missedOpportunities.length > 0 ? missedOpportunities.map((mo: any, index: number) => {
+    let state = 'Bihar';
+    if (mo.area.toLowerCase().includes('punjab') || mo.retailer.toLowerCase().includes('punjab') || mo.retailer.toLowerCase().includes('ludhiana')) state = 'Punjab';
+    else if (mo.area.toLowerCase().includes('maharashtra') || mo.retailer.toLowerCase().includes('maharashtra') || mo.retailer.toLowerCase().includes('amravati')) state = 'Maharashtra';
+    else if (mo.area.toLowerCase().includes('gujarat') || mo.retailer.toLowerCase().includes('gujarat') || mo.retailer.toLowerCase().includes('ahmedabad')) state = 'Gujarat';
+    else if (mo.area.toLowerCase().includes('karnataka') || mo.retailer.toLowerCase().includes('karnataka') || mo.retailer.toLowerCase().includes('bengaluru')) state = 'Karnataka';
+    else if (mo.area.toLowerCase().includes('uttar pradesh') || mo.area.toLowerCase().includes('up ') || mo.retailer.toLowerCase().includes('lucknow') || mo.retailer.toLowerCase().includes('up ')) state = 'UP';
+    
     return {
       id: index + 1,
       area: mo.retailer,
-      district: mo.area.split(' ')[0],
-      state: mo.state || 'Bihar',
+      district: mo.area.split(',')[1]?.trim() || mo.area.split(' ')[0],
+      state: mo.state || state,
       priority: mo.priority === 'High' ? 'Critical' : mo.priority,
       riskScore: mo.priority === 'High' ? 88 : 65,
       retailers: index + 2,
       revenueImpact: `₹${(mo.value / 100000).toFixed(1)}L`,
     };
-  }) : HIGH_PRIORITY_AREAS;
+  }) : [];
+
+
+
 
   const totalRevenueAtRisk = missedOpportunities.length > 0
     ? `₹${(missedOpportunities.reduce((acc: number, mo: any) => acc + mo.value, 0) / 100000).toFixed(1)}L`

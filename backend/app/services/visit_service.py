@@ -1,5 +1,6 @@
 """Visit Planner service — priority visit queue + route optimization."""
 import random
+import math
 from datetime import date, timedelta
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -21,7 +22,9 @@ AI_REASONS = [
 
 
 async def get_priority_visits(territory_id: str, filter_val: str, db: AsyncSession):
-    q = select(Retailer).where(Retailer.territory_id == territory_id)
+    q = select(Retailer)
+    if territory_id not in ["ind", "all"]:
+        q = q.where(Retailer.territory_id == territory_id)
     if filter_val == "high":
         q = q.where(Retailer.priority_level == "High")
     elif filter_val == "overdue":
@@ -61,10 +64,11 @@ async def record_action(req: VisitActionRequest, territory_id: str, db: AsyncSes
         result = await db.execute(select(Retailer).where(Retailer.retailer_id == req.retailer_id))
         retailer = result.scalar_one_or_none()
         if retailer:
+            db_territory_id = territory_id if territory_id not in ["ind", "all"] else retailer.territory_id
             visit = Visit(
                 user_id=1,  # will be overridden in real auth flow
                 retailer_id=req.retailer_id,
-                territory_id=territory_id,
+                territory_id=db_territory_id,
                 visit_date=date.today(),
                 visit_status="in_progress",
             )
@@ -74,10 +78,10 @@ async def record_action(req: VisitActionRequest, territory_id: str, db: AsyncSes
 
 
 async def get_route(territory_id: str, db: AsyncSession) -> RouteVisualizationResponse:
-    q = select(Retailer).where(
-        Retailer.territory_id == territory_id,
-        Retailer.priority_level.in_(["High", "Medium"]),
-    ).order_by(Retailer.visit_priority_score.desc()).limit(6)
+    q = select(Retailer).where(Retailer.priority_level.in_(["High", "Medium"]))
+    if territory_id not in ["ind", "all"]:
+        q = q.where(Retailer.territory_id == territory_id)
+    q = q.order_by(Retailer.visit_priority_score.desc()).limit(6)
 
     result = await db.execute(q)
     retailers = result.scalars().all()
@@ -94,8 +98,27 @@ async def get_route(territory_id: str, db: AsyncSession) -> RouteVisualizationRe
             estimated_time=f"{9 + i}:{'30' if i % 2 else '00'} AM",
         ))
 
+    # Calculate actual distance (Euclidean approximation converted to km)
+    total_km = 0.0
+    for idx in range(len(stops) - 1):
+        s1 = stops[idx]
+        s2 = stops[idx + 1]
+        if s1.lat is not None and s1.lng is not None and s2.lat is not None and s2.lng is not None:
+            dlat = s2.lat - s1.lat
+            dlng = s2.lng - s1.lng
+            dist = math.sqrt(dlat**2 + dlng**2) * 111.0  # Approx 111km per degree
+            total_km += dist
+
+    # Add detour factor and default if 0
+    total_km = round(max(total_km * 1.25, 12.5), 1)
+
+    # 40 km/h average speed + 45 minutes of visit duration per retailer stop
+    travel_time = (total_km / 40.0) * 60.0
+    visit_time = len(stops) * 45.0
+    total_time_min = int(travel_time + visit_time)
+
     return RouteVisualizationResponse(
         stops=stops,
-        total_km=round(random.uniform(28, 95), 1),
-        total_time_min=random.randint(180, 360),
+        total_km=total_km,
+        total_time_min=total_time_min,
     )

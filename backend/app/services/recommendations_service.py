@@ -6,10 +6,10 @@ from app.schemas.schemas import RecommendationItem, ExplainableReason, ApplyReco
 
 
 async def get_recommendations(territory_id: str, limit: int, db: AsyncSession):
-    q = select(Recommendation).where(
-        Recommendation.territory_id == territory_id,
-        Recommendation.status == "pending",
-    ).order_by(Recommendation.created_at.desc()).limit(limit)
+    q = select(Recommendation).where(Recommendation.status == "pending")
+    if territory_id not in ["ind", "all"]:
+        q = q.where(Recommendation.territory_id == territory_id)
+    q = q.order_by(Recommendation.created_at.desc()).limit(limit)
     result = await db.execute(q)
     recs = result.scalars().all()
 

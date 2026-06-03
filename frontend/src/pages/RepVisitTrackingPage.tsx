@@ -7,6 +7,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 const TIMELINE_DATA: any[] = [];
 
@@ -18,10 +19,11 @@ export default function RepVisitTrackingPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [timeFilter, setTimeFilter] = useState('Today');
   const [territoryFilter, setTerritoryFilter] = useState('All');
+  const { activeRegion } = useRegion();
 
   const { data, refetch } = useApi(
-    () => managerAPI.getTeamTracking(),
-    []
+    () => managerAPI.getTeamTracking(activeRegion.id),
+    [activeRegion.id]
   );
 
   const liveReps = ((data as any)?.reps || REPS_DATA) as typeof REPS_DATA;

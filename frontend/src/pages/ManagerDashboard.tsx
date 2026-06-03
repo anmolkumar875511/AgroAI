@@ -1,6 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { useRegion } from '@/contexts/RegionContext';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Users, MapPin, TrendingUp, AlertTriangle, CheckCircle,
   ArrowUpRight, ArrowDownRight, RefreshCw, Send, ShieldAlert,
@@ -13,6 +12,7 @@ import {
 import { toast } from 'sonner';
 import { useApi } from '@/hooks/useApi';
 import { managerAPI } from '@/api/client';
+import { useRegion } from '@/contexts/RegionContext';
 
 // Helper formatting function for Indian Rupees
 const formatCurrency = (val: number) => {
@@ -48,12 +48,13 @@ const MISSED_OPPORTUNITIES: any[] = [];
 export default function ManagerDashboard() {
   const [timeRange, setTimeRange] = useState('14d');
   const [sendingAlert, setSendingAlert] = useState<string | null>(null);
+  const [assignedIds, setAssignedIds] = useState<string[]>([]);
   const { activeRegion } = useRegion();
 
   // Call the manager dashboard API endpoint dynamically
   const { data, loading, refetch } = useApi(
-    () => managerAPI.getDashboard(),
-    []
+    () => managerAPI.getDashboard(activeRegion.id),
+    [activeRegion.id]
   );
 
   if (loading && !data) {
@@ -95,26 +96,33 @@ export default function ManagerDashboard() {
   const revenueTrend = (data?.revenue_trend || REVENUE_TREND) as typeof REVENUE_TREND;
   const productDemand = (data?.product_demand || PRODUCT_DEMAND) as typeof PRODUCT_DEMAND;
 
-  const handleSendNudge = async (repId: string, repName: string) => {
+  const visibleOpportunities = missedOpportunities.filter(opp => !assignedIds.includes(opp.id));
+
+  const handleSendNudge = (repId: string, repName: string) => {
     setSendingAlert(repId);
-    try {
-      await managerAPI.nudgeRep(repId);
-      toast.success(`Nudge & visit recommendation sync sent successfully to ${repName}!`);
-    } catch (err: any) {
-      toast.error(`Failed to send nudge: ${err.message || err}`);
-    } finally {
+    const promise = managerAPI.nudgeRep(repId);
+    toast.promise(promise, {
+      loading: `Sending visit nudge to ${repName}...`,
+      success: `Nudge & visit recommendation sync sent successfully to ${repName}!`,
+      error: `Failed to send nudge.`,
+    });
+    promise.finally(() => {
       setSendingAlert(null);
-    }
+    });
   };
 
-  const handleSyncData = async () => {
-    toast.info('Syncing regional telemetry & team visit metrics...');
-    try {
-      await refetch();
-      toast.success('Sync completed successfully!');
-    } catch (err: any) {
-      toast.error(`Sync failed: ${err.message || err}`);
-    }
+  const handleSyncData = () => {
+    const promise = refetch();
+    toast.promise(promise, {
+      loading: 'Syncing regional telemetry & team visit metrics...',
+      success: 'Sync completed successfully!',
+      error: (err) => `Sync failed: ${err.message || err}`,
+    });
+  };
+
+  const handleAssignOpportunity = (oppId: string, area: string) => {
+    setAssignedIds(prev => [...prev, oppId]);
+    toast.success(`Assigned ${area} high priority opportunity alert to Amit Sharma!`);
   };
 
   return (
@@ -147,21 +155,23 @@ export default function ManagerDashboard() {
             <option value="30d">Last 30 Days</option>
           </select>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={handleSyncData}
             className="p-2 rounded-button bg-light-gray dark:bg-white/5 border border-transparent dark:border-white/10 hover:bg-light-gray/80 dark:hover:bg-white/10 transition-colors text-text-primary dark:text-white"
             title="Refresh Data"
           >
             <RefreshCw className="w-4 h-4" />
-          </button>
+          </motion.button>
 
-          <button
+          <motion.button
+            whileTap={{ scale: 0.95 }}
             onClick={() => toast.success('CSV Report downloading...')}
             className="flex items-center gap-2 px-4 py-2 rounded-button bg-deep-green text-white text-sm font-semibold hover:brightness-110 transition-all shadow-lg shadow-deep-green/20"
           >
             <Download className="w-4 h-4" />
             <span>Export</span>
-          </button>
+          </motion.button>
         </div>
       </div>
 
@@ -276,7 +286,7 @@ export default function ManagerDashboard() {
             <p className="text-2xl lg:text-2.2xl font-bold text-text-primary dark:text-white mt-1">
               {totalVisits} <span className="text-sm font-normal text-text-muted">/ {totalTargets} Total</span>
             </p>
-            <p className="text-[11px] text-text-muted mt-1.5">{missedOpportunities.length} missed opportunities pending action</p>
+            <p className="text-[11px] text-text-muted mt-1.5">{visibleOpportunities.length} missed opportunities pending action</p>
           </div>
           <div className="absolute bottom-0 left-0 right-0 h-7 opacity-20">
             <ResponsiveContainer width="100%" height="100%">
@@ -375,14 +385,15 @@ export default function ManagerDashboard() {
                     </div>
                   </td>
                   <td className="py-3 px-3 text-center">
-                    <button
+                    <motion.button
+                      whileTap={{ scale: 0.95 }}
                       onClick={() => handleSendNudge(rep.id, rep.name)}
                       disabled={sendingAlert === rep.id}
                       className="inline-flex items-center gap-1 text-[11px] font-bold text-lime-green hover:text-lime-green/80 bg-lime-green/10 hover:bg-lime-green/20 px-2.5 py-1 rounded-button transition-all disabled:opacity-60"
                     >
                       <Send className="w-3 h-3" />
                       {sendingAlert === rep.id ? 'Nudging...' : 'Nudge'}
-                    </button>
+                    </motion.button>
                   </td>
                 </tr>
               ))}
@@ -413,6 +424,7 @@ export default function ManagerDashboard() {
                   <Tooltip
                     contentStyle={{ backgroundColor: '#142818', borderColor: 'rgba(255,255,255,0.1)', color: '#fff', borderRadius: 8 }}
                     formatter={(value) => [`${value} Bags`, 'Demand']}
+                    cursor={false}
                   />
                   <Bar dataKey="sales" radius={[0, 4, 4, 0]}>
                     {productDemand.map((entry, index) => (
@@ -477,54 +489,60 @@ export default function ManagerDashboard() {
           <div>
             <h2 className="text-lg font-bold text-text-primary dark:text-white">Missed Regional Opportunities</h2>
             <p className="text-xs text-text-secondary dark:text-white/50 mt-0.5">Critical AI alerts requiring direct manager intervention</p>
-          </div>
-          <span className="text-xs font-semibold text-danger-red bg-danger-red/10 px-2.5 py-1 rounded-full flex items-center gap-1">
+          </div>          <span className="text-xs font-semibold text-danger-red bg-danger-red/10 px-2.5 py-1 rounded-full flex items-center gap-1">
             <AlertTriangle className="w-3.5 h-3.5" />
-            {missedOpportunities.length} Alerts Pending
+            {visibleOpportunities.length} Alerts Pending
           </span>
         </div>
 
         <div className="space-y-3.5">
-          {missedOpportunities.map((opp) => (
-            <div
-              key={(opp as any).id}
-              className="p-3.5 rounded-xl border border-light-gray dark:border-white/5 bg-light-gray/20 dark:bg-white/5 hover:border-lime-green/30 transition-all flex flex-col md:flex-row md:items-center md:justify-between gap-4"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-8 h-8 rounded-lg bg-danger-red/10 flex items-center justify-center flex-shrink-0 mt-0.5">
-                  <ShieldAlert className="w-4.5 h-4.5 text-danger-red" />
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-bold text-text-primary dark:text-white text-xs lg:text-sm">{(opp as any).retailer}</span>
-                    <span className="text-[9px] font-semibold text-text-muted px-2 py-0.5 rounded-full bg-light-gray dark:bg-white/10">
-                      {(opp as any).area}
-                    </span>
-                    <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
-                      (opp as any).priority === 'High' ? 'bg-danger-red/10 text-danger-red' : 'bg-accent-yellow/10 text-accent-yellow'
-                    }`}>
-                      {(opp as any).priority} Priority
-                    </span>
+          <AnimatePresence initial={false}>
+            {visibleOpportunities.map((opp) => (
+              <motion.div
+                key={(opp as any).id}
+                initial={{ opacity: 0, y: 15 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, x: 50, scale: 0.95 }}
+                transition={{ duration: 0.25, ease: 'easeInOut' }}
+                className="p-3.5 rounded-xl border border-light-gray dark:border-white/5 bg-light-gray/20 dark:bg-white/5 hover:border-lime-green/30 transition-all flex flex-col md:flex-row md:items-center md:justify-between gap-4"
+              >
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-danger-red/10 flex items-center justify-center flex-shrink-0 mt-0.5">
+                    <ShieldAlert className="w-4.5 h-4.5 text-danger-red" />
                   </div>
-                  <p className="text-xs text-text-secondary dark:text-white/60 mt-1.5 leading-relaxed">{(opp as any).reason}</p>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-bold text-text-primary dark:text-white text-xs lg:text-sm">{(opp as any).retailer}</span>
+                      <span className="text-[9px] font-semibold text-text-muted px-2 py-0.5 rounded-full bg-light-gray dark:bg-white/10">
+                        {(opp as any).area}
+                      </span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full ${
+                        (opp as any).priority === 'High' ? 'bg-danger-red/10 text-danger-red' : 'bg-accent-yellow/10 text-accent-yellow'
+                      }`}>
+                        {(opp as any).priority} Priority
+                      </span>
+                    </div>
+                    <p className="text-xs text-text-secondary dark:text-white/60 mt-1.5 leading-relaxed">{(opp as any).reason}</p>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex items-center justify-between md:justify-end gap-6 self-stretch md:self-auto border-t md:border-t-0 border-light-gray dark:border-white/5 pt-3 md:pt-0">
-                <div className="text-left md:text-right">
-                  <div className="text-[9px] text-text-muted uppercase font-bold tracking-wider">Est. Opportunity</div>
-                  <div className="font-extrabold text-lime-green text-sm mt-0.5">{formatCurrency((opp as any).value)}</div>
+                <div className="flex items-center justify-between md:justify-end gap-6 self-stretch md:self-auto border-t md:border-t-0 border-light-gray dark:border-white/5 pt-3 md:pt-0">
+                  <div className="text-left md:text-right">
+                    <div className="text-[9px] text-text-muted uppercase font-bold tracking-wider">Est. Opportunity</div>
+                    <div className="font-extrabold text-lime-green text-sm mt-0.5">{formatCurrency((opp as any).value)}</div>
+                  </div>
+
+                  <motion.button
+                    whileTap={{ scale: 0.95 }}
+                    onClick={() => handleAssignOpportunity((opp as any).id, (opp as any).retailer)}
+                    className="px-3 py-1.5 text-xs font-bold text-white bg-deep-green rounded-button hover:brightness-110 transition-all shadow-md shadow-deep-green/20"
+                  >
+                    Assign to Rep
+                  </motion.button>
                 </div>
-
-                <button
-                  onClick={() => toast.success(`Assigned ${(opp as any).area} high priority opportunity alert to Amit Sharma!`)}
-                  className="px-3 py-1.5 text-xs font-bold text-white bg-deep-green rounded-button hover:brightness-110 transition-all shadow-md shadow-deep-green/20"
-                >
-                  Assign to Rep
-                </button>
-              </div>
-            </div>
-          ))}
+              </motion.div>
+            ))}
+          </AnimatePresence>
         </div>
       </div>
     </div>
