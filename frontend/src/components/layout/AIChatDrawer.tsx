@@ -15,6 +15,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  image?: string;
   timestamp: Date;
 }
 
@@ -25,6 +26,7 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
   const [input, setInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isListening, setIsListening] = useState(false);
   const recognitionRef = useRef<any>(null);
 
@@ -39,7 +41,7 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
 
       rec.onstart = () => {
         setIsListening(true);
-        toast.info("Listening... Bolein!");
+        toast.info("Listening... Please speak now!");
       };
 
       rec.onresult = (event: any) => {
@@ -80,7 +82,7 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
       {
         id: 'welcome',
         role: 'assistant',
-        content: `Namaste! 🌾 I'm your **AgroAI Assistant** for **${activeRegion?.name || 'your territory'}**.\n\nI can help you with:\n• 🐛 Pest & Disease identification\n• 🌤️ Weather insights\n• 📋 Visit planning\n• 📦 Stock management\n• 💰 Mandi prices\n• 📸 Photo-based disease detection\n\nKya jaanna chahte ho?`,
+        content: `Hello! 🌾 I'm your **AgroAI Assistant** for **${activeRegion?.name || 'your territory'}**.\n\nI can help you with:\n• 🐛 Pest & Disease identification\n• 🌤️ Weather insights\n• 📋 Visit planning\n• 📦 Stock management\n• 💰 Mandi prices\n• 📸 Photo-based disease detection\n\nWhat would you like to know today?`,
         timestamp: new Date(),
       },
     ]);
@@ -125,35 +127,47 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
     }
   }, [input, messages, activeRegion?.territoryId]);
 
-  // Camera: simulate disease detection via chat API
-  const handleImageUpload = useCallback(async () => {
-    const userMsg: Message = {
-      id: Date.now().toString(), role: 'user',
-      content: '📸 [Uploaded leaf photo for disease analysis]',
-      timestamp: new Date(),
-    };
-    setMessages(prev => [...prev, userMsg]);
-    setIsTyping(true);
-    try {
-      const payload = [
-        ...messages.map(m => ({ role: m.role, content: m.content })),
-        { role: 'user' as const, content: 'photo identify disease leaf' }
-      ];
-      const res = await chatAPI.send(payload, activeRegion?.territoryId || 'TER_0001');
-      setMessages(prev => [
-        ...prev,
-        { id: (Date.now() + 1).toString(), role: 'assistant', content: res.reply, timestamp: new Date() },
-      ]);
-    } catch {
-      // fallback
-      setMessages(prev => [...prev, {
-        id: (Date.now() + 1).toString(), role: 'assistant',
-        content: '🔬 **Disease Detection Result**\n\n**Identified:** Rice Blast (Magnaporthe oryzae)\n**Confidence:** 94.2%\n**Severity:** Moderate\n\n**Treatment:** Apply Tricyclazole 75% WP @ 0.6g/L\n\nShall I add this to your visit plan?',
+  const triggerImageUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  // Camera: simulate disease detection via chat API with actual file upload
+  const handleImageUpload = useCallback(async (file: File) => {
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      const dataUrl = e.target?.result as string;
+
+      const userMsg: Message = {
+        id: Date.now().toString(),
+        role: 'user',
+        content: `📸 [Uploaded leaf photo: ${file.name}]`,
+        image: dataUrl,
         timestamp: new Date(),
-      }]);
-    } finally {
-      setIsTyping(false);
-    }
+      };
+      setMessages(prev => [...prev, userMsg]);
+      setIsTyping(true);
+      try {
+        const payload = [
+          ...messages.map(m => ({ role: m.role, content: m.content })),
+          { role: 'user' as const, content: 'photo identify disease leaf' }
+        ];
+        const res = await chatAPI.send(payload, activeRegion?.territoryId || 'TER_0001');
+        setMessages(prev => [
+          ...prev,
+          { id: (Date.now() + 1).toString(), role: 'assistant', content: res.reply, timestamp: new Date() },
+        ]);
+      } catch {
+        // fallback
+        setMessages(prev => [...prev, {
+          id: (Date.now() + 1).toString(), role: 'assistant',
+          content: '🔬 **Disease Detection Result**\n\n**Identified:** Rice Blast (Magnaporthe oryzae)\n**Confidence:** 94.2%\n**Severity:** Moderate\n\n**Treatment:** To control fungal diseases, apply **Amistar 250 SC @ 1 ml/l** or **Score 250 EC @ 0.5 ml/l**. Ensure good leaf coverage. Repeat after 14 days if infection persists.\n\nWould you like me to add this to your visit planner?',
+          timestamp: new Date(),
+        }]);
+      } finally {
+        setIsTyping(false);
+      }
+    };
+    reader.readAsDataURL(file);
   }, [messages, activeRegion?.territoryId]);
 
   const quickPrompts = [
@@ -208,7 +222,10 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
                     msg.role === 'assistant'
                       ? 'bg-off-white dark:bg-white/5 text-text-primary dark:text-white rounded-tl-sm'
                       : 'bg-deep-green text-white rounded-tr-sm')}>
-                    {msg.content}
+                    {msg.image && (
+                      <img src={msg.image} alt="Uploaded crop" className="w-full max-h-48 object-cover rounded-lg mb-2" />
+                    )}
+                    <div>{msg.content}</div>
                   </div>
                 </div>
               ))}
@@ -243,6 +260,19 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
 
             {/* Input */}
             <div className="p-3 border-t border-light-gray dark:border-white/10">
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={e => {
+                  const file = e.target.files?.[0];
+                  if (file) {
+                    handleImageUpload(file);
+                  }
+                  e.target.value = '';
+                }}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
               <div className="flex items-center gap-2 bg-light-gray dark:bg-white/5 rounded-full px-3 py-1">
                 <button
                   onClick={handleVoiceClick}
@@ -254,7 +284,7 @@ export function AIChatDrawer({ open, onClose }: AIChatDrawerProps) {
                 >
                   <Mic className="w-4 h-4" />
                 </button>
-                <button onClick={handleImageUpload}
+                <button onClick={triggerImageUpload}
                   className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors flex-shrink-0"
                   title="Upload photo for disease detection">
                   <Camera className="w-4 h-4 text-text-muted" />

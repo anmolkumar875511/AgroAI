@@ -21,7 +21,7 @@ Your expertise covers:
 • Visit planning, retailer prioritization, grower engagement
 
 Language Rules:
-Always respond in friendly Hinglish (Hindi written in Roman script/English letters, e.g. "Aapke territory me..."), as the field representatives prefer Hindi-English mixed conversational tone. Keep it highly practical, farmer-first, and actionable. Respond concisely (2-4 sentences unless detail is requested). Quote specific dosages when recommending products. Use Indian units (bags, quintals, acres, bighas)."""
+Always respond in clean, professional English because the field representatives prefer English communication. Keep it practical, farmer-first, and actionable. Respond concisely (2-4 sentences unless detail is requested). Quote specific dosages when recommending products. Use Indian units (bags, quintals, acres, bighas)."""
 
 
 async def get_ai_response(
@@ -45,12 +45,12 @@ async def get_ai_response(
             system=SYSTEM_PROMPT,
             messages=api_messages,
         )
-        return response.content[0].text if response.content else "Response generate nahi ho payi. Please try again."
+        return response.content[0].text if response.content else "Unable to generate response. Please try again."
 
     except ImportError:
-        return "AI chat ke liye 'anthropic' package ki zaroorat hai. Run karein: pip install anthropic"
+        return "AI chat requires the 'anthropic' package. Run: pip install anthropic"
     except Exception as e:
-        return f"AI service temporary unavailable hai. ({str(e)[:80]})"
+        return f"AI service temporarily unavailable. ({str(e)[:80]})"
 
 
 async def _fallback_response(user_msg: str, territory_id: str | None, db: AsyncSession | None) -> str:
@@ -67,9 +67,9 @@ async def _fallback_response(user_msg: str, territory_id: str | None, db: AsyncS
             low_stock = res.scalars().all()
             if low_stock:
                 retailers_list = ", ".join([r.name for r in low_stock[:3]])
-                return f"Aapke territory me currently {len(low_stock)} retailers par stockout ka risk (Low Stock) hai: {retailers_list}. Hum recommend karte hain ki aap jald se jald in locations par visit plan karein."
+                return f"Currently, you have {len(low_stock)} retailers at risk of stockout (Low Stock) in your territory: {retailers_list}. We recommend planning visit stops at these locations as soon as possible."
             else:
-                return "Aapke territory ke sabhi retailers ke paas abhi Good Stock hai. Resolve karne ke liye koi low stock alert nahi hai!"
+                return "All retailers in your territory have Good Stock right now. No low stock alerts to resolve!"
 
         if any(w in msg for w in ["mandi", "price", "market"]):
             # Query latest Mandi prices from DB
@@ -78,9 +78,9 @@ async def _fallback_response(user_msg: str, territory_id: str | None, db: AsyncS
             prices = res.scalars().all()
             if prices:
                 lines = [f"🌾 {p.commodity} in {p.mandi} ({p.state}): ₹{p.price}/{p.unit} ({'+' if p.change >= 0 else ''}{p.change})" for p in prices]
-                return "Database se latest mandi prices ye hain:\n" + "\n".join(lines)
+                return "Here are the latest commodity mandi prices from our database:\n" + "\n".join(lines)
             else:
-                return "Database me abhi koi mandi prices logged nahi hain."
+                return "There are no mandi prices logged in the database currently."
 
         if any(w in msg for w in ["visit", "route", "planner"]):
             # Count visits in this territory
@@ -90,7 +90,7 @@ async def _fallback_response(user_msg: str, territory_id: str | None, db: AsyncS
             visits_count = (await db.execute(q_visits)).scalar() or 0
             q_retailers = select(func.count()).select_from(Retailer).where(Retailer.territory_id == territory_id)
             retailers_count = (await db.execute(q_retailers)).scalar() or 0
-            return f"Aapne is territory me registered {retailers_count} retailers me se {visits_count} completed visits log ki hain. Travel route ko optimize karne aur feedback log karne ke liye please Visit Planner page check karein."
+            return f"You have logged {visits_count} completed visits in this territory out of {retailers_count} total registered retailers. Please check the Visit Planner page to optimize your travel route and log feedback."
 
         if any(w in msg for w in ["grower", "cluster", "crops"]):
             # Get grower cluster summary
@@ -98,13 +98,13 @@ async def _fallback_response(user_msg: str, territory_id: str | None, db: AsyncS
             row = (await db.execute(q)).one()
             growers_sum = row[0] or 0
             clusters_count = row[1] or 0
-            return f"Aapke territory me {growers_sum} growers hain, jo {clusters_count} active clusters me divided hain. Aap in clusters ko risk aur crop stage ke basis par sorted dekhne ke liye Grower Clusters tab check kar sakte hain."
+            return f"Your territory contains {growers_sum} growers across {clusters_count} active clusters. You can view these clusters sorted by risk and crop stage on the Grower Clusters tab."
 
     # Traditional static fallbacks if db not available or no keyword matched
     if any(w in msg for w in ["photo", "identify", "leaf", "disease", "cam"]):
-        return "🔬 **Disease Detection Result**\n\n**Identified:** Rice Blast (Magnaporthe oryzae)\n**Confidence:** 94.2%\n**Severity:** Moderate\n\n**Treatment:** Fungal diseases control karne ke liye **Amistar 250 SC @ 1 ml/l** ya **Score 250 EC @ 0.5 ml/l** apply karein. Patto par spray acche se hona chahiye.\n\nKya main ise aapke visit planner me add kar doon?"
+        return "🔬 **Disease Detection Result**\n\n**Identified:** Rice Blast (Magnaporthe oryzae)\n**Confidence:** 94.2%\n**Severity:** Moderate\n\n**Treatment:** To control fungal diseases, apply **Amistar 250 SC @ 1 ml/l** or **Score 250 EC @ 0.5 ml/l**. Ensure good leaf coverage. Repeat after 14 days if infection persists.\n\nWould you like me to add this to your visit planner?"
     if any(w in msg for w in ["blast", "fungus", "fungal", "powdery", "rust"]):
-        return "Fungal diseases ke liye, Amistar 250 SC @ 1 ml/l ya Score 250 EC @ 0.5 ml/l apply karein. Patto par spray acche se hona chahiye. Agar infection bana rehta hai, to 14 days baad repeat karein."
+        return "For fungal diseases, apply Amistar 250 SC @ 1 ml/l or Score 250 EC @ 0.5 ml/l. Ensure good leaf coverage. Repeat after 14 days if infection persists."
     if any(w in msg for w in ["bph", "brown plant hopper", "insect", "pest"]):
-        return "BPH aur sucking pests ke liye, Actara 25 WG @ 0.5 g/l sabse effective hai. Best results ke liye ise subah jaldi apply karein. Economic threshold: 5 BPH/hill."
-    return "Main aapka AgroAI field assistant hoon. Aap mujhe crop diseases, pest control, product dosages, mandi prices, ya territory planning ke baare me pooch sakte hain. Full AI features ke liye .env me ANTHROPIC_API_KEY set karein."
+        return "For BPH and sucking pests, Actara 25 WG @ 0.5 g/l is highly effective. Apply early morning for best results. Economic threshold: 5 BPH/hill."
+    return "I'm your AgroAI field assistant. Ask me about crop diseases, pest control, product dosages, mandi prices, or territory planning. Set ANTHROPIC_API_KEY for full AI capability."
