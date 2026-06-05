@@ -160,8 +160,8 @@ export function AppLayout({ children }: AppLayoutProps) {
 
       const key = e.key.toLowerCase();
 
-      // Toggle Chat Drawer: 'c'
-      if (key === 'c') {
+      // Toggle Chat Drawer: 'c' (Disabled for managers)
+      if (key === 'c' && user?.role !== 'manager') {
         e.preventDefault();
         setAiChatOpen(prev => !prev);
         return;
@@ -252,7 +252,7 @@ export function AppLayout({ children }: AppLayoutProps) {
         </div>
       </main>
 
-      {user && (
+      {user && user.role !== 'manager' && (
         <>
           <AIChatDrawer open={aiChatOpen} onClose={() => setAiChatOpen(false)} />
           {!aiChatOpen && <AIFloatingButton onClick={() => setAiChatOpen(true)} />}
