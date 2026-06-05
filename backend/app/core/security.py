@@ -54,6 +54,12 @@ async def get_current_user(
     user = result.scalar_one_or_none()
     if user is None:
         raise credentials_exc
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User account is deactivated",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     return user
 
 
@@ -61,3 +67,19 @@ async def require_manager(current_user=Depends(get_current_user)):
     if current_user.role not in ("manager", "admin"):
         raise HTTPException(status_code=403, detail="Manager access required")
     return current_user
+
+
+async def require_admin(current_user=Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Admin access required")
+    return current_user
+
+
+def check_territory_access(user, territory_id: str):
+    if user.role not in ("manager", "admin"):
+        if user.territory_id != territory_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Access to this territory is forbidden."
+            )
+

@@ -30,27 +30,50 @@ async def get_ai_response(
     db: AsyncSession | None = None,
 ) -> str:
     """Returns plain text response from Anthropic or local database-aware fallback."""
+    import hashlib
+    try:
+        from app.core.redis import cache_get, cache_set
+        history_str = "".join([f"{m.role}:{m.content}" for m in messages])
+        hash_obj = hashlib.sha256(history_str.encode("utf-8"))
+        msg_hash = hash_obj.hexdigest()
+        cache_key = f"chat_cache:{msg_hash}:{territory_id or 'none'}"
+        
+        cached = await cache_get(cache_key)
+        if cached:
+            return cached
+    except Exception:
+        cache_key = None
+
+    res_text = None
     try:
         import anthropic
         api_key = os.getenv("ANTHROPIC_API_KEY", "")
         if not api_key:
-            return await _fallback_response(messages[-1].content if messages else "", territory_id, db)
+            res_text = await _fallback_response(messages[-1].content if messages else "", territory_id, db)
+        else:
+            client = anthropic.Anthropic(api_key=api_key)
+            api_messages = [{"role": m.role, "content": m.content} for m in messages]
 
-        client = anthropic.Anthropic(api_key=api_key)
-        api_messages = [{"role": m.role, "content": m.content} for m in messages]
-
-        response = client.messages.create(
-            model="claude-sonnet-4-20250514",
-            max_tokens=1024,
-            system=SYSTEM_PROMPT,
-            messages=api_messages,
-        )
-        return response.content[0].text if response.content else "Unable to generate response. Please try again."
+            response = client.messages.create(
+                model="claude-sonnet-4-20250514",
+                max_tokens=1024,
+                system=SYSTEM_PROMPT,
+                messages=api_messages,
+            )
+            res_text = response.content[0].text if response.content else "Unable to generate response. Please try again."
 
     except ImportError:
-        return "AI chat requires the 'anthropic' package. Run: pip install anthropic"
+        res_text = "AI chat requires the 'anthropic' package. Run: pip install anthropic"
     except Exception as e:
-        return f"AI service temporarily unavailable. ({str(e)[:80]})"
+        res_text = f"AI service temporarily unavailable. ({str(e)[:80]})"
+
+    if cache_key and res_text:
+        try:
+            await cache_set(cache_key, res_text, expire=3600)
+        except Exception:
+            pass
+
+    return res_text
 
 
 async def _fallback_response(user_msg: str, territory_id: str | None, db: AsyncSession | None) -> str:

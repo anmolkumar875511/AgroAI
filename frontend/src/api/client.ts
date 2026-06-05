@@ -31,9 +31,61 @@ async function request<T>(
   };
   if (token) headers["Authorization"] = `Bearer ${token}`;
 
-  const res = await fetch(`${BASE}${path}`, { ...options, headers });
+  const method = (options.method || "GET").toUpperCase();
+  const isModify = ["POST", "PUT", "PATCH", "DELETE"].includes(method);
+
+  // If browser is offline, queue modifying writes instantly
+  if (isModify && typeof navigator !== "undefined" && !navigator.onLine) {
+    const queue = JSON.parse(localStorage.getItem("agroai_offline_queue") || "[]");
+    const item = {
+      id: Math.random().toString(36).substring(2, 9),
+      path,
+      method,
+      body: options.body || null,
+      timestamp: new Date().toISOString(),
+    };
+    queue.push(item);
+    localStorage.setItem("agroai_offline_queue", JSON.stringify(queue));
+    
+    if (path.includes("/visit-feedback/submit")) {
+      return { id: Math.floor(Math.random() * 100000), status: "queued", queued: true } as unknown as T;
+    }
+    return { status: "queued", queued: true } as unknown as T;
+  }
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE}${path}`, { ...options, headers });
+  } catch (error) {
+    // If request failed because of server offline / network failure, save to queue
+    if (isModify) {
+      const queue = JSON.parse(localStorage.getItem("agroai_offline_queue") || "[]");
+      const item = {
+        id: Math.random().toString(36).substring(2, 9),
+        path,
+        method,
+        body: options.body || null,
+        timestamp: new Date().toISOString(),
+      };
+      queue.push(item);
+      localStorage.setItem("agroai_offline_queue", JSON.stringify(queue));
+      
+      if (path.includes("/visit-feedback/submit")) {
+        return { id: Math.floor(Math.random() * 100000), status: "queued", queued: true } as unknown as T;
+      }
+      return { status: "queued", queued: true } as unknown as T;
+    }
+    throw error;
+  }
 
   if (!res.ok) {
+    if (res.status === 401) {
+      clearToken();
+      localStorage.removeItem("agroai_user");
+      if (typeof window !== "undefined" && window.location.pathname !== "/login" && window.location.pathname !== "/") {
+        window.location.href = "/login?expired=true";
+      }
+    }
     let detail = `HTTP ${res.status}`;
     try {
       const body = await res.json();
@@ -64,6 +116,8 @@ export interface UserOut {
   sync_enabled: boolean;
   notifications: Record<string, boolean>;
   theme: string;
+  is_active?: boolean;
+  created_at?: string;
 }
 
 export interface KPIChartPoint { value: number }
@@ -361,8 +415,11 @@ export const settingsAPI = {
     sync_enabled?: boolean;
   }) =>
     request<UserOut>("/settings/", { method: "PATCH", body: JSON.stringify(payload) }),
-  syncOffline: () =>
-    request<{ status: string; synced_items: number }>("/settings/sync", { method: "POST" }),
+  syncOffline: (queue: any[]) =>
+    request<{ status: string; synced_items: number }>("/settings/sync", {
+      method: "POST",
+      body: JSON.stringify({ queue }),
+    }),
 };
 
 export const mandiAPI = {
@@ -396,8 +453,33 @@ export const managerAPI = {
       body: JSON.stringify({ rep_id, message }),
     }),
 };
+export const adminAPI = {
+  getUsers: () => request<UserOut[]>("/admin/users"),
+  createUser: (user: Record<string, any>) =>
+    request<UserOut>("/admin/users", {
+      method: "POST",
+      body: JSON.stringify(user),
+    }),
+  updateUser: (id: number, user: Record<string, any>) =>
+    request<UserOut>(`/admin/users/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(user),
+    }),
+  deleteUser: (id: number) =>
+    request<{ status: string; message: string }>(`/admin/users/${id}`, {
+      method: "DELETE",
+    }),
+};
 
 // ─── Offline queue (for SettingsPage sync) ────────────────────────────────────
 export async function syncOfflineQueue(): Promise<void> {
-  await settingsAPI.syncOffline();
+  const queue = JSON.parse(localStorage.getItem("agroai_offline_queue") || "[]");
+  if (queue.length === 0) return;
+
+  const res = await settingsAPI.syncOffline(queue);
+  if (res.status === "ok") {
+    localStorage.removeItem("agroai_offline_queue");
+  } else {
+    throw new Error("Offline synchronization failed.");
+  }
 }

@@ -288,34 +288,68 @@ async def seed_all():
 
         # Recommendations dynamically generated and correctly mapped
         recommendations_seeded_count = 0
+        retailers_by_territory = {}
         for r in retailers_created:
-            if hash(r.retailer_id) % 3 == 0:
-                rec_id = f"REC_{recommendations_seeded_count+1:03d}"
-                crop = random.choice(CROPS)
-                product = random.choice(PRODUCTS)
-                pest_risk = random.choice(PEST_RISKS)
-                priority = {"Critical": "Critical", "High": "High", "Medium": "Medium", "Low": "Low"}[pest_risk]
-                explain_idx = recommendations_seeded_count % len(EXPLAINABLE_REASONS)
+            if r.territory_id not in retailers_by_territory:
+                retailers_by_territory[r.territory_id] = []
+            retailers_by_territory[r.territory_id].append(r)
 
-                rec = Recommendation(
-                    id=rec_id,
-                    territory_id=r.territory_id,
-                    priority=priority,
-                    crop=crop,
-                    message=f"Pre-emptive application of {product} recommended at {r.name} to control {crop.lower()} disease risk.",
-                    weather="Humid (85%), Temperature 30°C" if priority in ["Critical", "High"] else "Sunny, 28°C",
-                    product=product,
-                    village=r.location.split(",")[0],
-                    farmer=f"Farmer cluster near {r.name}",
-                    retailer_id=r.retailer_id,
-                    pest_risk=pest_risk,
-                    next_action=f"Visit {r.name} to check inventory and recommend {product}",
-                    follow_up_timeline="Within 24 hours" if priority == "Critical" else "Within 3 days",
-                    status="pending" if random.random() > 0.3 else "applied",
-                    explainable_reasons=EXPLAINABLE_REASONS[explain_idx],
-                )
-                db.add(rec)
-                recommendations_seeded_count += 1
+        for territory_id, r_list in retailers_by_territory.items():
+            # Seed 2 recommendations per territory: one pending, one applied
+            # First recommendation (pending)
+            r = r_list[0]
+            rec_id = f"REC_{recommendations_seeded_count+1:03d}"
+            crop = random.choice(CROPS)
+            product = random.choice(PRODUCTS)
+            pest_risk = random.choice(PEST_RISKS)
+            priority = pest_risk
+            explain_idx = recommendations_seeded_count % len(EXPLAINABLE_REASONS)
+            db.add(Recommendation(
+                id=rec_id,
+                territory_id=territory_id,
+                priority=priority,
+                crop=crop,
+                message=f"Pre-emptive application of {product} recommended at {r.name} to control {crop.lower()} disease risk.",
+                weather="Humid (85%), Temperature 30°C" if priority in ["Critical", "High"] else "Sunny, 28°C",
+                product=product,
+                village=r.location.split(",")[0],
+                farmer=f"Farmer cluster near {r.name}",
+                retailer_id=r.retailer_id,
+                pest_risk=pest_risk,
+                next_action=f"Visit {r.name} to check inventory and recommend {product}",
+                follow_up_timeline="Within 24 hours" if priority == "Critical" else "Within 3 days",
+                status="pending",
+                explainable_reasons=EXPLAINABLE_REASONS[explain_idx],
+            ))
+            recommendations_seeded_count += 1
+
+            # Second recommendation (applied)
+            r = r_list[3 % len(r_list)]
+            rec_id = f"REC_{recommendations_seeded_count+1:03d}"
+            crop = random.choice(CROPS)
+            product = random.choice(PRODUCTS)
+            pest_risk = random.choice(PEST_RISKS)
+            priority = pest_risk
+            explain_idx = recommendations_seeded_count % len(EXPLAINABLE_REASONS)
+            db.add(Recommendation(
+                id=rec_id,
+                territory_id=territory_id,
+                priority=priority,
+                crop=crop,
+                message=f"Pre-emptive application of {product} recommended at {r.name} to control {crop.lower()} disease risk.",
+                weather="Humid (85%), Temperature 30°C" if priority in ["Critical", "High"] else "Sunny, 28°C",
+                product=product,
+                village=r.location.split(",")[0],
+                farmer=f"Farmer cluster near {r.name}",
+                retailer_id=r.retailer_id,
+                pest_risk=pest_risk,
+                next_action=f"Visit {r.name} to check inventory and recommend {product}",
+                follow_up_timeline="Within 24 hours" if priority == "Critical" else "Within 3 days",
+                status="applied",
+                explainable_reasons=EXPLAINABLE_REASONS[explain_idx],
+            ))
+            recommendations_seeded_count += 1
+
 
         # Notifications for manager and amit
         for n in NOTIFICATIONS_SEED:

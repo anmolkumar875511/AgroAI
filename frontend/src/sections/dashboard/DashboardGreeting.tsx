@@ -1,14 +1,25 @@
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
 import { WeatherWidget } from '@/components/shared/WeatherWidget';
+
+const localeMap: Record<string, string> = {
+  'English': 'en-US',
+  'Hindi (हिंदी)': 'hi-IN',
+  'Bengali (বাংলা)': 'bn-IN',
+  'Punjabi (ਪੰਜਾਬੀ)': 'pa-IN',
+};
 
 export function DashboardGreeting() {
   const { user } = useAuth();
+  const { t, language } = useTranslation();
 
   const now = new Date();
   const hours = now.getHours();
-  const greeting = hours < 12 ? 'Good Morning' : hours < 17 ? 'Good Afternoon' : 'Good Evening';
+  const greetingKey = hours < 12 ? 'Good Morning' : hours < 17 ? 'Good Afternoon' : 'Good Evening';
+  const greeting = t(greetingKey);
   const firstName = user?.name?.split(' ')[0] || 'Agent';
-  const dateStr = now.toLocaleDateString('en-US', {
+  const locale = localeMap[language || 'English'] || 'en-US';
+  const dateStr = now.toLocaleDateString(locale, {
     weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
   });
 

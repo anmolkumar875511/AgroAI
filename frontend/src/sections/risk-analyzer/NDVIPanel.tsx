@@ -31,7 +31,17 @@ export function NDVIPanel({ data }: NDVIPanelProps) {
           <XAxis dataKey="date" tick={{ fontSize: 11, fill: '#8B9686' }} axisLine={{ stroke: '#EDF1E8' }} />
           <YAxis domain={[0, 1]} tick={{ fontSize: 11, fill: '#8B9686' }} axisLine={{ stroke: '#EDF1E8' }} />
           <Tooltip
-            contentStyle={{ backgroundColor: '#fff', border: 'none', borderRadius: '12px', boxShadow: '0 12px 48px rgba(0,0,0,0.15)', fontSize: '13px' }}
+            contentStyle={{
+              backgroundColor: '#142818',
+              borderColor: 'rgba(255,255,255,0.1)',
+              color: '#fff',
+              borderRadius: '8px',
+              fontSize: '13px',
+              boxShadow: '0 12px 48px rgba(0,0,0,0.15)',
+              border: 'none',
+            }}
+            itemStyle={{ color: '#fff' }}
+            labelStyle={{ color: '#8BC34A', fontWeight: 'bold' }}
           />
           <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '16px' }} />
           <Area type="monotone" dataKey="ndvi" name="Actual NDVI" stroke="#8BC34A" strokeWidth={2} fill="rgba(139,195,74,0.15)" animationDuration={800} />

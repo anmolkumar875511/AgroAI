@@ -19,6 +19,7 @@ import RetailerInsightsPage from '@/pages/RetailerInsightsPage';
 import GrowerInsightsPage from '@/pages/GrowerInsightsPage';
 import VisitFeedbackPage from '@/pages/VisitFeedbackPage';
 import NotificationsPage from '@/pages/NotificationsPage';
+import AdminPanelPage from '@/pages/AdminPanelPage';
 
 // New Manager Pages
 import TeamPerformancePage from '@/pages/TeamPerformancePage';
@@ -73,6 +74,40 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
+/** Redirects non-managers/non-admins to dashboard */
+function ManagerRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-deep-forest">
+        <div className="w-8 h-8 border-2 border-lime-green border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'manager' && user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
+/** Redirects non-admins to dashboard */
+function AdminRoute({ children }: { children: React.ReactNode }) {
+  const { user, isAuthenticated, isLoading } = useAuth();
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-deep-forest">
+        <div className="w-8 h-8 border-2 border-lime-green border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
+  if (user?.role !== 'admin') {
+    return <Navigate to="/dashboard" replace />;
+  }
+  return <>{children}</>;
+}
+
 function AppContent() {
   return (
     <BrowserRouter>
@@ -102,13 +137,16 @@ function AppContent() {
                     <Route path="/notifications"       element={<NotificationsPage />} />
                     <Route path="/settings"            element={<SettingsPage />} />
 
+                    {/* Admin specific routes */}
+                    <Route path="/admin-panel"         element={<AdminRoute><AdminPanelPage /></AdminRoute>} />
+
                     {/* Manager specific routes */}
-                    <Route path="/team-performance"    element={<TeamPerformancePage />} />
-                    <Route path="/reports"             element={<ReportsPage />} />
-                    <Route path="/rep-visit-tracking"  element={<RepVisitTrackingPage />} />
-                    <Route path="/high-priority-areas" element={<HighPriorityAreasPage />} />
-                    <Route path="/product-demand-trends" element={<ProductDemandTrendsPage />} />
-                    <Route path="/recommendation-acceptance" element={<RecommendationAcceptancePage />} />
+                    <Route path="/team-performance"    element={<ManagerRoute><TeamPerformancePage /></ManagerRoute>} />
+                    <Route path="/reports"             element={<ManagerRoute><ReportsPage /></ManagerRoute>} />
+                    <Route path="/rep-visit-tracking"  element={<ManagerRoute><RepVisitTrackingPage /></ManagerRoute>} />
+                    <Route path="/high-priority-areas" element={<ManagerRoute><HighPriorityAreasPage /></ManagerRoute>} />
+                    <Route path="/product-demand-trends" element={<ManagerRoute><ProductDemandTrendsPage /></ManagerRoute>} />
+                    <Route path="/recommendation-acceptance" element={<ManagerRoute><RecommendationAcceptancePage /></ManagerRoute>} />
 
                     <Route path="*"                    element={<DashboardPage />} />
                   </Routes>

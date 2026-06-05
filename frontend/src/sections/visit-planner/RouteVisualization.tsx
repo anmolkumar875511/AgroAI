@@ -26,6 +26,7 @@ const polylineOptions = {
 
 interface RouteVisualizationProps {
   territoryId: string;
+  refreshKey?: number;
 }
 
 const getMarkerIcon = () => ({
@@ -52,6 +53,7 @@ const lightMapStyle = [
 
 export function RouteVisualization({
   territoryId,
+  refreshKey = 0,
 }: RouteVisualizationProps) {
   const [activeStop, setActiveStop] = useState<string | null>(null);
 
@@ -61,7 +63,7 @@ export function RouteVisualization({
 
   const { data: routeData, loading, refetch } = useApi(
     () => visitPlannerAPI.getRoute(territoryId),
-    [territoryId],
+    [territoryId, refreshKey],
   );
 
   const stops = routeData?.stops ?? [];

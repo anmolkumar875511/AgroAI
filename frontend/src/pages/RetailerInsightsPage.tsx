@@ -7,6 +7,7 @@ import { useRegion } from '@/contexts/RegionContext';
 import { retailersAPI, visitPlannerAPI, type RetailerCard } from '@/api/client';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 const PRIORITY_COLORS: Record<string, string> = {
   High:   'bg-danger-red/10 text-danger-red border-danger-red/20',
@@ -276,10 +277,11 @@ export default function RetailerInsightsPage() {
           ))}
         </div>
       ) : retailers.length === 0 ? (
-        <div className="text-center py-16 text-text-muted">
-          <TrendingUp className="w-12 h-12 mx-auto mb-3 opacity-30" />
-          <p className="text-sm">No retailers found. Try adjusting filters.</p>
-        </div>
+        <EmptyState
+          icon={<TrendingUp className="w-8 h-8" />}
+          title="No retailers found"
+          description="Try adjusting search parameters or filters to find retailers in this territory."
+        />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
           {retailers.map(r => (

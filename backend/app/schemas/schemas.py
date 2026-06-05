@@ -4,7 +4,7 @@ AgroAI — Pydantic v2 schemas (model_config style, no deprecation warnings).
 from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
-from pydantic import BaseModel, EmailStr, ConfigDict
+from pydantic import BaseModel, EmailStr, ConfigDict, Field
 
 
 # ─── Auth ────────────────────────────────────────────────────────────────────
@@ -29,12 +29,35 @@ class UserOut(BaseModel):
     sync_enabled: bool = True
     notifications: Dict[str, bool] = {}
     theme: str = "dark"
+    is_active: bool = True
+    created_at: Optional[datetime] = None
 
 
 class TokenResponse(BaseModel):
     access_token: str
     token_type: str = "bearer"
     user: UserOut
+
+
+class UserCreateRequest(BaseModel):
+    email: EmailStr
+    password: str
+    name: str
+    role: str = "agent"  # agent | manager | admin
+    territory_id: Optional[str] = None
+    employee_id: Optional[str] = None
+    phone: Optional[str] = None
+
+
+class UserUpdateRequest(BaseModel):
+    name: Optional[str] = None
+    email: Optional[EmailStr] = None
+    role: Optional[str] = None
+    territory_id: Optional[str] = None
+    employee_id: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: Optional[bool] = None
+    password: Optional[str] = None
 
 
 # ─── Dashboard ───────────────────────────────────────────────────────────────
@@ -336,13 +359,13 @@ class VisitFeedbackRequest(BaseModel):
     visit_status: str
     products_discussed: List[str] = []
     order_placed: bool = False
-    order_quantity: int = 0
-    order_value: float = 0.0
+    order_quantity: int = Field(default=0, ge=0)
+    order_value: float = Field(default=0.0, ge=0.0)
     farmer_response: str = "positive"
     follow_up_needed: bool = False
     next_follow_up_date: Optional[str] = None
-    competitor_issue: Optional[str] = None
-    notes: Optional[str] = None
+    competitor_issue: Optional[str] = Field(default=None, max_length=1000)
+    notes: Optional[str] = Field(default=None, max_length=1000)
 
 
 class VisitFeedbackResponse(BaseModel):

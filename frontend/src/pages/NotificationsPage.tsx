@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useApi } from '@/hooks/useApi';
 import { notificationsAPI, type NotificationItem } from '@/api/client';
 import { cn } from '@/lib/utils';
+import { EmptyState } from '@/components/shared/EmptyState';
 
 const TYPE_CONFIG: Record<string, { icon: React.ComponentType<{ className?: string }>; color: string; bg: string }> = {
   alert:   { icon: AlertTriangle, color: 'text-danger-red',    bg: 'bg-danger-red/10' },
@@ -124,10 +125,11 @@ export default function NotificationsPage() {
           ))}
         </div>
       ) : notifications.length === 0 ? (
-        <div className="text-center py-20">
-          <Bell className="w-16 h-16 text-text-muted/30 mx-auto mb-4" />
-          <p className="text-text-muted text-sm">No notifications yet.</p>
-        </div>
+        <EmptyState
+          icon={<Bell className="w-8 h-8" />}
+          title="All caught up!"
+          description="You have no unread or read alerts in your history."
+        />
       ) : (
         <>
           {/* Unread */}

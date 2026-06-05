@@ -5,6 +5,7 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.schemas.schemas import RetailerListResponse, RescoreResponse
 from app.services.retailers_service import list_retailers, rescore_retailer
+from app.core.limiter import rescore_limiter
 
 router = APIRouter()
 
@@ -23,7 +24,7 @@ async def get_retailers(
     return await list_retailers(territory_id, priority, stock, search, skip, limit, db)
 
 
-@router.post("/{retailer_id}/rescore", response_model=RescoreResponse)
+@router.post("/{retailer_id}/rescore", response_model=RescoreResponse, dependencies=[Depends(rescore_limiter)])
 async def rescore(
     retailer_id: str,
     db: AsyncSession = Depends(get_db),

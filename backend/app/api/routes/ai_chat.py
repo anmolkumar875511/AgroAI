@@ -5,11 +5,12 @@ from app.core.database import get_db
 from app.core.security import get_current_user
 from app.schemas.schemas import ChatRequest, ChatResponse
 from app.services.chat_service import get_ai_response
+from app.core.limiter import chat_limiter
 
 router = APIRouter()
 
 
-@router.post("/", response_model=ChatResponse)
+@router.post("/", response_model=ChatResponse, dependencies=[Depends(chat_limiter)])
 async def chat(
     req: ChatRequest,
     db: AsyncSession = Depends(get_db),

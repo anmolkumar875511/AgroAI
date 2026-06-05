@@ -4,7 +4,7 @@ import math
 from datetime import date, timedelta
 from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_
+from sqlalchemy import select, or_, and_
 from app.models.models import Retailer, Visit, VisitFeedback
 from app.schemas.schemas import VisitPlannerItem, VisitActionRequest, RouteStop, RouteVisualizationResponse
 
@@ -19,6 +19,30 @@ AI_REASONS = [
     "NDVI anomaly detected nearby — growers seeking fungicide recommendation.",
     "High WhatsApp engagement (85 scans) but no retail conversion yet — visit to close.",
 ]
+
+PLANNED_STATUSES = ["planned", "in_progress"]
+OUTCOME_STATUSES = ["completed", "no_purchase", "follow_up_needed"]
+
+
+def _retailer_ai_reason(retailer: Retailer, fallback: str) -> str:
+    if retailer.explanation:
+        return retailer.explanation
+    if retailer.stock_status in ["Low Stock", "Out of Stock"]:
+        return (
+            f"Stock status is {retailer.stock_status.lower()} and current "
+            f"monthly revenue exposure is about ₹{int(retailer.monthly_revenue * 0.15):,}."
+        )
+    if retailer.last_visit_days >= 21:
+        return (
+            f"Last visit was {retailer.last_visit_days} days ago, crossing the "
+            "21-day follow-up threshold for this territory."
+        )
+    if retailer.monthly_revenue >= 150000:
+        return (
+            f"High revenue retailer with ₹{int(retailer.monthly_revenue):,} monthly potential. "
+            "Relationship maintenance is recommended."
+        )
+    return fallback
 
 
 async def get_priority_visits(territory_id: str, filter_val: str, db: AsyncSession):
@@ -63,40 +87,89 @@ async def get_priority_visits(territory_id: str, filter_val: str, db: AsyncSessi
             last_visit=f"{r.last_visit_days} days ago" if r.last_visit_days > 0 else "Today",
             status=status,
             tags=random.choice(TAG_POOL),
-            ai_reason=AI_REASONS[i % len(AI_REASONS)],
+            ai_reason=_retailer_ai_reason(r, AI_REASONS[i % len(AI_REASONS)]),
             actions=["Plan Visit", "View Insights", "Log Feedback"],
             retailer_id=r.retailer_id,
         ))
 
     return visits
 
-
-async def record_action(req: VisitActionRequest, territory_id: str, db: AsyncSession):
-    if req.action == "start":
+async def record_action(req: VisitActionRequest, territory_id: str, user_id: int, db: AsyncSession):
+    if req.action in ["start", "plan"]:
         result = await db.execute(select(Retailer).where(Retailer.retailer_id == req.retailer_id))
         retailer = result.scalar_one_or_none()
         if retailer:
             db_territory_id = territory_id if territory_id not in ["ind", "all"] else retailer.territory_id
+            existing_res = await db.execute(
+                select(Visit).where(
+                    and_(
+                        Visit.user_id == user_id,
+                        Visit.retailer_id == req.retailer_id,
+                        Visit.visit_date == date.today(),
+                    )
+                ).order_by(Visit.created_at.desc())
+            )
+            existing = existing_res.scalars().first()
+            if existing:
+                if existing.visit_status not in OUTCOME_STATUSES and existing.visit_status != "skipped":
+                    existing.visit_status = "planned"
+                    existing.territory_id = db_territory_id
+                    await db.commit()
+                return {
+                    "status": "ok",
+                    "action": req.action,
+                    "retailer_id": req.retailer_id,
+                    "visit_id": existing.id,
+                    "deduped": True,
+                }
+
             visit = Visit(
-                user_id=1,  # will be overridden in real auth flow
+                user_id=user_id,
                 retailer_id=req.retailer_id,
                 territory_id=db_territory_id,
                 visit_date=date.today(),
-                visit_status="in_progress",
+                visit_status="planned",
             )
             db.add(visit)
             await db.commit()
+            await db.refresh(visit)
+            return {
+                "status": "ok",
+                "action": req.action,
+                "retailer_id": req.retailer_id,
+                "visit_id": visit.id,
+                "deduped": False,
+            }
     return {"status": "ok", "action": req.action, "retailer_id": req.retailer_id}
 
 
-async def get_route(territory_id: str, db: AsyncSession) -> RouteVisualizationResponse:
-    q = select(Retailer).where(Retailer.priority_level.in_(["High", "Medium"]))
+async def get_route(territory_id: str, user_id: int, db: AsyncSession) -> RouteVisualizationResponse:
+    planned_q = (
+        select(Retailer)
+        .join(Visit, Visit.retailer_id == Retailer.retailer_id)
+        .where(
+            and_(
+                Visit.user_id == user_id,
+                Visit.visit_date == date.today(),
+                Visit.visit_status.in_(PLANNED_STATUSES),
+            )
+        )
+    )
     if territory_id not in ["ind", "all"]:
-        q = q.where(Retailer.territory_id == territory_id)
-    q = q.order_by(Retailer.visit_priority_score.desc()).limit(6)
+        planned_q = planned_q.where(Retailer.territory_id == territory_id)
+    planned_q = planned_q.order_by(Retailer.visit_priority_score.desc()).limit(6)
 
-    result = await db.execute(q)
+    result = await db.execute(planned_q)
     retailers = result.scalars().all()
+
+    if not retailers:
+        q = select(Retailer).where(Retailer.priority_level.in_(["High", "Medium"]))
+        if territory_id not in ["ind", "all"]:
+            q = q.where(Retailer.territory_id == territory_id)
+        q = q.order_by(Retailer.visit_priority_score.desc()).limit(6)
+
+        result = await db.execute(q)
+        retailers = result.scalars().all()
 
     stops = []
     for i, r in enumerate(retailers):

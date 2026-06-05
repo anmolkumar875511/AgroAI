@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { GoogleMap, MarkerF, HeatmapLayerF, InfoWindowF } from '@react-google-maps/api';
+import { useState } from 'react';
+import { GoogleMap, MarkerF, CircleF, InfoWindowF } from '@react-google-maps/api';
 import { useGoogleMaps } from '@/hooks/useGoogleMaps';
 import { useTheme } from '@/contexts/ThemeContext';
 
@@ -74,30 +74,6 @@ export function PestMap({ outbreaks, regionLat, regionLng, regionZoom }: PestMap
 
   const mapStyles = theme === 'dark' ? darkMapStyle : lightMapStyle;
 
-  const heatmapData = useMemo(() => {
-    if (!isLoaded || typeof window === 'undefined' || !window.google) return [];
-    const points: google.maps.LatLng[] = [];
-    
-    // Seeded pseudo-random generator to remain pure/deterministic during render
-    const pseudoRandom = (seed: number) => {
-      const x = Math.sin(seed) * 10000;
-      return x - Math.floor(x);
-    };
-
-    outbreaks.forEach(o => {
-      const count = o.severity === 'Critical' ? 30 : o.severity === 'High' ? 15 : 5;
-      for (let i = 0; i < count; i++) {
-        const randLat = pseudoRandom(o.id * 100 + i) - 0.5;
-        const randLng = pseudoRandom(o.id * 200 + i) - 0.5;
-        points.push(new window.google.maps.LatLng(
-          o.lat + randLat * 0.1,
-          o.lng + randLng * 0.1,
-        ));
-      }
-    });
-    return points;
-  }, [isLoaded, outbreaks]);
-
   if (!isLoaded) {
     return (
       <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 h-[500px] flex items-center justify-center">
@@ -127,18 +103,26 @@ export function PestMap({ outbreaks, regionLat, regionLng, regionZoom }: PestMap
             styles: mapStyles
           }}
         >
-          {heatmapData.length > 0 && (
-            <HeatmapLayerF
-              data={heatmapData}
-              options={{
-                radius: 20, opacity: 0.6,
-                gradient: [
-                  'rgba(0,0,0,0)', 'rgba(255,165,0,1)',
-                  'rgba(255,0,0,1)', 'rgba(128,0,128,1)',
-                ],
-              }}
-            />
-          )}
+          {outbreaks.map(o => {
+            const color = o.severity === 'Critical' ? '#ef4444' : o.severity === 'High' ? '#f97316' : '#eab308';
+            const radius = o.severity === 'Critical' ? 6000 : o.severity === 'High' ? 3500 : 1800;
+            return (
+              <CircleF
+                key={`circle-${o.id}`}
+                center={{ lat: o.lat, lng: o.lng }}
+                radius={radius}
+                options={{
+                  fillColor: color,
+                  fillOpacity: 0.15,
+                  strokeColor: color,
+                  strokeOpacity: 0.4,
+                  strokeWeight: 1,
+                  clickable: false,
+                }}
+              />
+            );
+          })}
+
           {outbreaks.map(o => (
             <MarkerF key={o.id} position={{ lat: o.lat, lng: o.lng }}
               icon={getIcon(o.severity)} onClick={() => setActiveMarker(o.id)}>
@@ -159,3 +143,4 @@ export function PestMap({ outbreaks, regionLat, regionLng, regionZoom }: PestMap
     </div>
   );
 }
+

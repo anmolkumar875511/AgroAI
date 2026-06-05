@@ -9,13 +9,17 @@ from app.schemas.schemas import (
     WeeklyPoint, DashboardResponse,
 )
 
+COUNTED_VISIT_STATUSES = ["completed", "no_purchase", "follow_up_needed"]
+
 
 async def _get_visits_sparkline(territory_id: str, db: AsyncSession) -> list[KPIChartPoint]:
     spark = []
     today = date.today()
     for i in range(6, -1, -1):
         d = today - timedelta(days=i)
-        q = select(func.count()).select_from(Visit).where(Visit.visit_date == d)
+        q = select(func.count()).select_from(Visit).where(
+            and_(Visit.visit_date == d, Visit.visit_status.in_(COUNTED_VISIT_STATUSES))
+        )
         if territory_id not in ["ind", "all"]:
             q = q.where(Visit.territory_id == territory_id)
         count = (await db.execute(q)).scalar() or 0
@@ -80,13 +84,19 @@ async def get_dashboard(territory_id: str, db: AsyncSession) -> DashboardRespons
     prev_month_start = (month_start - timedelta(days=1)).replace(day=1)
 
     # Visits this month
-    q = select(func.count()).select_from(Visit).where(Visit.visit_date >= month_start)
+    q = select(func.count()).select_from(Visit).where(
+        and_(Visit.visit_date >= month_start, Visit.visit_status.in_(COUNTED_VISIT_STATUSES))
+    )
     if territory_id not in ["ind", "all"]:
         q = q.where(Visit.territory_id == territory_id)
     visits_this_month = (await db.execute(q)).scalar() or 0
 
     q = select(func.count()).select_from(Visit).where(
-        and_(Visit.visit_date >= prev_month_start, Visit.visit_date < month_start)
+        and_(
+            Visit.visit_date >= prev_month_start,
+            Visit.visit_date < month_start,
+            Visit.visit_status.in_(COUNTED_VISIT_STATUSES),
+        )
     )
     if territory_id not in ["ind", "all"]:
         q = q.where(Visit.territory_id == territory_id)
@@ -175,7 +185,9 @@ async def get_dashboard(territory_id: str, db: AsyncSession) -> DashboardRespons
     weekly = []
     for i, day in enumerate(days):
         d = today - timedelta(days=(today.weekday() - i) % 7)
-        q = select(func.count(), func.coalesce(func.sum(Visit.order_value), 0)).where(Visit.visit_date == d)
+        q = select(func.count(), func.coalesce(func.sum(Visit.order_value), 0)).where(
+            and_(Visit.visit_date == d, Visit.visit_status.in_(COUNTED_VISIT_STATUSES))
+        )
         if territory_id not in ["ind", "all"]:
             q = q.where(Visit.territory_id == territory_id)
         row = (await db.execute(q)).one()

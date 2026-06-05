@@ -1,4 +1,5 @@
-import { createContext, useContext, useState, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, type ReactNode } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 
 export type Region = {
   id: string;
@@ -28,7 +29,17 @@ interface RegionContextType {
 const RegionContext = createContext<RegionContextType | undefined>(undefined);
 
 export function RegionProvider({ children }: { children: ReactNode }) {
+  const { user } = useAuth();
   const [activeRegionId, setActiveRegionId] = useState('br'); // Default to Bihar
+
+  useEffect(() => {
+    if (user) {
+      const matched = regions.find((r) => r.territoryId === user.territory_id);
+      if (matched) {
+        setActiveRegionId(matched.id);
+      }
+    }
+  }, [user]);
 
   const activeRegion = regions.find((r) => r.id === activeRegionId) || regions[0];
 

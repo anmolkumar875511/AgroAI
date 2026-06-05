@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { CheckCircle2, Loader2, MapPin, Package, MessageSquare, CalendarDays } from 'lucide-react';
+import { CheckCircle2, Loader2, MapPin, Package, MessageSquare, CalendarDays, Camera, Trash2 } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { visitFeedbackAPI } from '@/api/client';
 import { cn } from '@/lib/utils';
@@ -41,15 +41,81 @@ export default function VisitFeedbackPage() {
     notes: '',
   });
 
-  useEffect(() => {
-    if (initialRetailerId) {
-      setForm(f => ({ ...f, retailer_id: initialRetailerId }));
-    }
-  }, [initialRetailerId]);
-
   const [submitting, setSubmitting] = useState(false);
   const [submitted, setSubmitted] = useState(false);
   const [error, setError] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [imageUrl, setImageUrl] = useState('');
+
+  // 1. Rehydrate draft from localStorage on mount
+  useEffect(() => {
+    const draftKey = `agroai_feedback_draft_${user?.email || 'guest'}`;
+    const savedDraft = localStorage.getItem(draftKey);
+    if (savedDraft) {
+      try {
+        const parsed = JSON.parse(savedDraft);
+        setForm(f => ({
+          ...f,
+          ...parsed,
+          retailer_id: initialRetailerId || parsed.retailer_id || '',
+        }));
+      } catch (e) {
+        console.error('Failed to parse feedback form draft', e);
+      }
+    }
+  }, [user?.email, initialRetailerId]);
+
+  // 2. Save draft as form changes
+  useEffect(() => {
+    const draftKey = `agroai_feedback_draft_${user?.email || 'guest'}`;
+    const isDefault =
+      form.retailer_id === initialRetailerId &&
+      form.visit_status === 'completed' &&
+      form.products_discussed.length === 0 &&
+      !form.order_placed &&
+      form.order_quantity === 0 &&
+      form.order_value === 0 &&
+      form.farmer_response === 'positive' &&
+      !form.follow_up_needed &&
+      form.next_follow_up_date === '' &&
+      form.competitor_issue === '' &&
+      form.notes === '';
+    
+    if (isDefault) {
+      localStorage.removeItem(draftKey);
+    } else {
+      localStorage.setItem(draftKey, JSON.stringify(form));
+    }
+  }, [form, user?.email, initialRetailerId]);
+
+  // 3. Warning on page leave if dirty
+  useEffect(() => {
+    const handleBeforeUnload = (e: BeforeUnloadEvent) => {
+      const isDefault =
+        form.retailer_id === initialRetailerId &&
+        form.visit_status === 'completed' &&
+        form.products_discussed.length === 0 &&
+        !form.order_placed &&
+        form.order_quantity === 0 &&
+        form.order_value === 0 &&
+        form.farmer_response === 'positive' &&
+        !form.follow_up_needed &&
+        form.next_follow_up_date === '' &&
+        form.competitor_issue === '' &&
+        form.notes === '';
+
+      if (!isDefault && !submitted) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved draft feedback. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [form, submitted, initialRetailerId]);
 
   const toggleProduct = (p: string) => {
     setForm(f => ({
@@ -60,14 +126,60 @@ export default function VisitFeedbackPage() {
     }));
   };
 
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      setError('Only image files are supported.');
+      return;
+    }
+
+    const formData = new FormData();
+    formData.append('file', file);
+
+    setUploading(true);
+    setError('');
+    try {
+      const token = localStorage.getItem('agroai_token');
+      const BASE = import.meta.env.VITE_API_URL ?? "http://localhost:8000/api/v1";
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+
+      const res = await fetch(`${BASE}/media/upload`, {
+        method: 'POST',
+        headers,
+        body: formData,
+      });
+
+      if (!res.ok) {
+        throw new Error('Image upload failed.');
+      }
+
+      const data = await res.json();
+      setImageUrl(data.url);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload photo.');
+    } finally {
+      setUploading(false);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.retailer_id.trim()) { setError('Retailer ID is required'); return; }
     setError('');
     setSubmitting(true);
     try {
-      await visitFeedbackAPI.submitFeedback(form, territory_id);
+      const finalForm = {
+        ...form,
+        notes: imageUrl ? `${form.notes}\n[Image: ${imageUrl}]`.trim() : form.notes
+      };
+      await visitFeedbackAPI.submitFeedback(finalForm, territory_id);
       setSubmitted(true);
+      const draftKey = `agroai_feedback_draft_${user?.email || 'guest'}`;
+      localStorage.removeItem(draftKey);
+      setImageUrl('');
     } catch (err: any) {
       setError(err.message || 'Failed to submit. Please try again.');
     } finally {
@@ -76,14 +188,36 @@ export default function VisitFeedbackPage() {
   };
 
   const reset = () => {
+    const draftKey = `agroai_feedback_draft_${user?.email || 'guest'}`;
+    localStorage.removeItem(draftKey);
     setSubmitted(false);
     setForm({
-      retailer_id: '', visit_status: 'completed', products_discussed: [],
-      order_placed: false, order_quantity: 0, order_value: 0,
-      farmer_response: 'positive', follow_up_needed: false,
-      next_follow_up_date: '', competitor_issue: '', notes: '',
+      retailer_id: initialRetailerId,
+      visit_status: 'completed',
+      products_discussed: [],
+      order_placed: false,
+      order_quantity: 0,
+      order_value: 0,
+      farmer_response: 'positive',
+      follow_up_needed: false,
+      next_follow_up_date: '',
+      competitor_issue: '',
+      notes: '',
     });
   };
+
+  const isFormDirty =
+    form.retailer_id !== initialRetailerId ||
+    form.visit_status !== 'completed' ||
+    form.products_discussed.length > 0 ||
+    form.order_placed ||
+    form.order_quantity !== 0 ||
+    form.order_value !== 0 ||
+    form.farmer_response !== 'positive' ||
+    form.follow_up_needed ||
+    form.next_follow_up_date !== '' ||
+    form.competitor_issue !== '' ||
+    form.notes !== '';
 
   if (submitted) {
     return (
@@ -106,11 +240,19 @@ export default function VisitFeedbackPage() {
 
   return (
     <div className="max-w-2xl mx-auto space-y-6 pb-10">
-      <div>
-        <h2 className="text-2xl lg:text-3xl font-bold text-text-primary dark:text-white">Visit Update / Feedback</h2>
-        <p className="mt-1 text-sm text-text-secondary dark:text-white/60">
-          Record visit outcomes to improve future AI recommendations.
-        </p>
+      <div className="flex justify-between items-start">
+        <div>
+          <h2 className="text-2xl lg:text-3xl font-bold text-text-primary dark:text-white">Visit Update / Feedback</h2>
+          <p className="mt-1 text-sm text-text-secondary dark:text-white/60">
+            Record visit outcomes to improve future AI recommendations.
+          </p>
+        </div>
+        {isFormDirty && (
+          <button type="button" onClick={reset}
+            className="text-xs font-semibold text-danger-red hover:underline hover:text-red-600 transition-all">
+            Clear Draft
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-5">
@@ -269,6 +411,32 @@ export default function VisitFeedbackPage() {
               placeholder="Any observations, feedback from farmer, or next steps..."
               className="w-full px-3 py-2 rounded-lg bg-light-gray dark:bg-white/5 border border-transparent dark:border-white/10 text-sm text-text-primary dark:text-white outline-none focus:border-lime-green/50 transition-colors resize-none"
             />
+          </div>
+          <div className="pt-2 border-t border-light-gray dark:border-white/10">
+            <label className="text-xs text-text-muted mb-2 block">Crop / Disease Photo Documentation</label>
+            <div className="flex items-center gap-4">
+              {imageUrl ? (
+                <div className="relative w-28 h-28 rounded-lg overflow-hidden border border-lime-green/30 group">
+                  <img src={imageUrl.startsWith('http') ? imageUrl : `http://localhost:8000${imageUrl}`} alt="Crop Preview" className="w-full h-full object-cover" />
+                  <button type="button" onClick={() => setImageUrl('')}
+                    className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex items-center justify-center text-white transition-opacity duration-200">
+                    <Trash2 className="w-5 h-5 text-danger-red" />
+                  </button>
+                </div>
+              ) : (
+                <label className={cn(
+                  "w-full h-28 border border-dashed border-light-gray dark:border-white/15 hover:border-lime-green/50 rounded-lg flex flex-col items-center justify-center cursor-pointer transition-all duration-300 bg-light-gray/40 dark:bg-white/5",
+                  uploading && "opacity-50 cursor-wait"
+                )}>
+                  <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploading} className="hidden" />
+                  <Camera className="w-6 h-6 text-text-muted mb-1" />
+                  <span className="text-xs font-semibold text-text-primary dark:text-white">
+                    {uploading ? 'Uploading Photo...' : 'Upload Disease Photo'}
+                  </span>
+                  <span className="text-[10px] text-text-muted mt-0.5">Supports PNG, JPG, JPEG</span>
+                </label>
+              )}
+            </div>
           </div>
         </div>
 

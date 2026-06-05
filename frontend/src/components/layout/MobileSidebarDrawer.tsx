@@ -4,10 +4,11 @@ import {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert,
   Store, Users, BarChart3, Settings, Leaf, Wifi, WifiOff, Bell,
 } from 'lucide-react';
-import { sidebarItems, managerSidebarItems } from '@/data/mockData';
+import { sidebarItems, managerSidebarItems, adminSidebarItems } from '@/data/mockData';
 import { cn } from '@/lib/utils';
 import { useOnlineStatus } from '@/hooks/useOnlineStatus';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTranslation } from '@/hooks/useTranslation';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   LayoutDashboard, MapPinned, Sparkles, ShieldAlert, Store, Users, BarChart3, Settings, Bell,
@@ -23,8 +24,11 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
   const navigate = useNavigate();
   const isOnline = useOnlineStatus();
   const { user } = useAuth();
+  const { t } = useTranslation();
 
-  const items = user?.role === 'manager' ? managerSidebarItems : sidebarItems;
+  const items = user?.role === 'admin'
+    ? adminSidebarItems
+    : (user?.role === 'manager' ? managerSidebarItems : sidebarItems);
 
   return (
     <AnimatePresence>
@@ -50,6 +54,7 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
               {items.map((item) => {
                 const Icon = iconMap[item.icon];
                 const isActive = location.pathname === item.path;
+                const translatedLabel = t(item.label);
                 return (
                   <button
                     key={item.id}
@@ -62,7 +67,7 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
                     )}
                   >
                     {Icon && <Icon className={cn('w-5 h-5', isActive ? 'text-lime-green' : 'text-white/60')} />}
-                    <span className="text-sm font-medium">{item.label}</span>
+                    <span className="text-sm font-medium">{translatedLabel}</span>
                   </button>
                 );
               })}
@@ -71,9 +76,9 @@ export function MobileSidebarDrawer({ open, onClose }: MobileSidebarDrawerProps)
             <div className="px-5 py-4 border-t border-white/10">
               <div className="flex items-center gap-2">
                 {isOnline ? (
-                  <><Wifi className="w-4 h-4 text-lime-green" /><span className="text-xs text-white/60">Online - Synced</span></>
+                  <><Wifi className="w-4 h-4 text-lime-green" /><span className="text-xs text-white/60">{t('Online - Synced')}</span></>
                 ) : (
-                  <><WifiOff className="w-4 h-4 text-danger-red" /><span className="text-xs text-danger-red/80">Offline - Queued</span></>
+                  <><WifiOff className="w-4 h-4 text-danger-red" /><span className="text-xs text-danger-red/80">{t('Offline - Queued')}</span></>
                 )}
               </div>
             </div>

@@ -62,9 +62,9 @@ class Retailer(Base):
     state: Mapped[str] = mapped_column(String(100))
     lat: Mapped[Optional[float]] = mapped_column(Float)
     lng: Mapped[Optional[float]] = mapped_column(Float)
-    priority_level: Mapped[str] = mapped_column(String(20), default="Medium")
-    visit_priority_score: Mapped[float] = mapped_column(Float, default=50.0)
-    stock_status: Mapped[str] = mapped_column(String(30), default="Good Stock")
+    priority_level: Mapped[str] = mapped_column(String(20), default="Medium", index=True)
+    visit_priority_score: Mapped[float] = mapped_column(Float, default=50.0, index=True)
+    stock_status: Mapped[str] = mapped_column(String(30), default="Good Stock", index=True)
     total_stock_qty: Mapped[int] = mapped_column(Integer, default=100)
     last_visit_days: Mapped[int] = mapped_column(Integer, default=0)
     last_visit_date: Mapped[Optional[str]] = mapped_column(String(30))
@@ -94,8 +94,8 @@ class Visit(Base):
     __tablename__ = "visits"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"))
-    retailer_id: Mapped[str] = mapped_column(String(50), ForeignKey("retailers.retailer_id"))
+    user_id: Mapped[int] = mapped_column(Integer, ForeignKey("users.id"), index=True)
+    retailer_id: Mapped[str] = mapped_column(String(50), ForeignKey("retailers.retailer_id"), index=True)
     territory_id: Mapped[str] = mapped_column(String(50), index=True)
     visit_date: Mapped[date] = mapped_column(Date, server_default=func.current_date())
     visit_status: Mapped[str] = mapped_column(String(50), default="completed")

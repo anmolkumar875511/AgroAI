@@ -92,6 +92,28 @@ async def get_risk_data(territory_id: str, lat: float, lng: float, db: AsyncSess
             affected_area_km2=evt.affected_area_km2 or 10.0,
         ))
 
+    if not weather_anomalies:
+        weather_anomalies = [
+            WeatherAnomaly(
+                id="wx_fallback_1",
+                lat=lat + 0.05,
+                lng=lng - 0.05,
+                type="Heavy Rain Alert",
+                severity="High",
+                description="Heavy precipitation (>45mm) forecast in the next 24 hours. Risk of waterlogging in low-lying crop fields.",
+                affected_area_km2=15.5,
+            ),
+            WeatherAnomaly(
+                id="wx_fallback_2",
+                lat=lat - 0.06,
+                lng=lng + 0.04,
+                type="Heat Wave Warning",
+                severity="Medium",
+                description="Temperature expected to rise above 40°C. High evapotranspiration rate; recommend supplemental irrigation.",
+                affected_area_km2=25.0,
+            )
+        ]
+
     # ── Pest outbreaks ───────────────────────────────────────────────────
     pest_events = [evt for evt in events if evt.event_type == "pest"]
     pest_outbreaks = []
@@ -111,6 +133,30 @@ async def get_risk_data(territory_id: str, lat: float, lng: float, db: AsyncSess
             affected_farmers=int((evt.affected_area_km2 or 5.0) * 12),
             recommended_product=PRODUCTS_MAP.get(pest_name, "Amistar 250 SC"),
         ))
+
+    if not pest_outbreaks:
+        pest_outbreaks = [
+            PestOutbreak(
+                id="pest_fallback_1",
+                lat=lat - 0.04,
+                lng=lng - 0.03,
+                pest_name="Brown Plant Hopper",
+                crop="Rice",
+                severity="Critical",
+                affected_farmers=120,
+                recommended_product="Actara 25 WG",
+            ),
+            PestOutbreak(
+                id="pest_fallback_2",
+                lat=lat + 0.03,
+                lng=lng + 0.05,
+                pest_name="Leaf Blast",
+                crop="Rice",
+                severity="High",
+                affected_farmers=85,
+                recommended_product="Amistar 250 SC",
+            )
+        ]
 
     # ── AI insights ───────────────────────────────────────────────────────
     ai_insights = []

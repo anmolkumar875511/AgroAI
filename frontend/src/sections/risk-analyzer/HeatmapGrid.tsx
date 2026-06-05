@@ -130,9 +130,14 @@ export function HeatmapGrid({ cells, regionLat, regionLng, regionZoom }: Heatmap
           <option value="High+">Risk: High+</option>
           <option value="Critical">Risk: Critical</option>
         </select>
-        <div className="ml-auto hidden sm:flex items-center gap-3">
-          <span className="text-xs text-text-muted">Risk Level:</span>
-          <div className="w-24 h-2 rounded-full bg-gradient-to-r from-lime-green via-accent-yellow to-danger-red" />
+        <div className="ml-auto flex items-center gap-2 flex-wrap">
+          <span className="text-[10px] font-bold text-text-muted uppercase">Risk:</span>
+          <div className="flex gap-2 items-center flex-wrap">
+            <span className="flex items-center gap-1 text-[10px] font-bold text-text-secondary"><span className="w-2 h-2 rounded bg-[#22c55e] inline-block" /> Low</span>
+            <span className="flex items-center gap-1 text-[10px] font-bold text-text-secondary"><span className="w-2 h-2 rounded bg-[#eab308] inline-block" /> Med</span>
+            <span className="flex items-center gap-1 text-[10px] font-bold text-text-secondary"><span className="w-2 h-2 rounded bg-[#f97316] inline-block" /> High</span>
+            <span className="flex items-center gap-1 text-[10px] font-bold text-text-secondary"><span className="w-2 h-2 rounded bg-[#ef4444] inline-block" /> Crit</span>
+          </div>
         </div>
       </div>
 

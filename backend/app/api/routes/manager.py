@@ -5,12 +5,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, case
 from app.core.database import get_db
 from app.core.security import get_current_user, require_manager
-from app.models.models import Visit, User, Recommendation, Retailer, RetailerInventory, Territory, VisitFeedback
+from app.models.models import Visit, User, Recommendation, Retailer, RetailerInventory, Territory, VisitFeedback, Notification
 from app.schemas.schemas import (
     ManagerDashboardResponse, RepSummary, NudgeRequest,
 )
 
 router = APIRouter()
+
+COUNTED_VISIT_STATUSES = ["completed", "no_purchase", "follow_up_needed"]
 
 
 def map_region_to_territory(region_id: str | None) -> str | None:
@@ -34,7 +36,7 @@ def map_region_to_territory(region_id: str | None) -> str | None:
 @router.get("/dashboard", response_model=ManagerDashboardResponse)
 async def manager_dashboard(
     region_id: str = Query(None),
-    current_user=Depends(get_current_user),
+    current_user=Depends(require_manager),
     db: AsyncSession = Depends(get_db),
 ):
     territory_id = map_region_to_territory(region_id)
@@ -53,10 +55,14 @@ async def manager_dashboard(
 
     reps = []
     for agent in agents:
-        # Total visits
-        q_v = select(func.count(), func.sum(case((Visit.visit_status == "completed", 1), else_=0))).where(Visit.user_id == agent.id)
-        total_v, completed_v = (await db.execute(q_v)).one()
-        total_v = total_v or 0
+        # Outcome visits only; planned route items should not inflate completed metrics.
+        q_v = select(func.count()).where(
+            and_(
+                Visit.user_id == agent.id,
+                Visit.visit_status.in_(COUNTED_VISIT_STATUSES),
+            )
+        )
+        completed_v = (await db.execute(q_v)).scalar() or 0
         completed_v = completed_v or 0
 
         # Total revenue
@@ -67,7 +73,7 @@ async def manager_dashboard(
         target = 40
 
         # Efficiency
-        eff = round((completed_v / total_v * 100) if total_v > 0 else 80.0, 1)
+        eff = round((completed_v / target * 100) if target > 0 else 0.0, 1)
 
         # Recommendation acceptance rate
         q_rec = select(
@@ -107,7 +113,7 @@ async def manager_dashboard(
             id=str(agent.id),
             name=agent.name,
             territory=territory_str,
-            visits=total_v,
+            visits=completed_v,
             target=target,
             revenue=rev,
             acceptance=acceptance,
@@ -139,6 +145,7 @@ async def manager_dashboard(
     for i in range(9, -1, -1):
         d = today - timedelta(days=i)
         q = select(func.count(), func.coalesce(func.sum(Visit.order_value), 0)).where(Visit.visit_date == d)
+        q = q.where(Visit.visit_status.in_(COUNTED_VISIT_STATUSES))
         if territory_id:
             q = q.where(Visit.territory_id == territory_id)
         visits_count, rev_sum = (await db.execute(q)).one()
@@ -238,7 +245,52 @@ async def manager_dashboard(
 
 
 @router.post("/nudge")
-async def nudge_rep(req: NudgeRequest, _=Depends(get_current_user)):
+async def nudge_rep(
+    req: NudgeRequest,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(require_manager)
+):
+    try:
+        user_id = int(req.rep_id)
+        # Verify user exists
+        user_check = await db.execute(select(User).where(User.id == user_id))
+        if not user_check.scalar_one_or_none():
+            raise ValueError()
+    except ValueError:
+        # Try to resolve by employee_id or fallback to first agent
+        result = await db.execute(select(User).where(User.employee_id == req.rep_id))
+        user_obj = result.scalar_one_or_none()
+        if not user_obj:
+            agent_res = await db.execute(select(User).where(User.role == "agent"))
+            user_obj = agent_res.scalars().first()
+        user_id = user_obj.id if user_obj else 1
+    
+    # Save the nudge in database as a notification
+    notif = Notification(
+        user_id=user_id,
+        title="Manager Nudge",
+        message=req.message or "Your territory manager sent you a nudge to complete your visits.",
+        type="info",
+        read=False
+    )
+    db.add(notif)
+    await db.commit()
+    await db.refresh(notif)
+    
+    # Attempt real-time WebSocket push if user is connected
+    from app.api.routes.websocket import agent_connections
+    ws = agent_connections.get(user_id)
+    if ws:
+        try:
+            await ws.send_json({
+                "type": "nudge",
+                "title": "Manager Nudge",
+                "message": notif.message,
+                "notif_id": notif.id
+            })
+        except Exception:
+            agent_connections.pop(user_id, None)
+            
     return {"status": "ok", "rep_id": req.rep_id, "message": f"Nudge sent to rep {req.rep_id} successfully"}
 
 
@@ -246,7 +298,7 @@ async def nudge_rep(req: NudgeRequest, _=Depends(get_current_user)):
 async def team_tracking(
     region_id: str = Query(None),
     db: AsyncSession = Depends(get_db),
-    _=Depends(get_current_user),
+    _=Depends(require_manager),
 ):
     """Rep-wise visit tracking data for RepVisitTrackingPage from DB."""
     territory_id = map_region_to_territory(region_id)
@@ -272,7 +324,11 @@ async def team_tracking(
         day_points = {"day": day}
         for agent in agents:
             q_v = select(func.count()).select_from(Visit).where(
-                and_(Visit.user_id == agent.id, Visit.visit_date == d)
+                and_(
+                    Visit.user_id == agent.id,
+                    Visit.visit_date == d,
+                    Visit.visit_status.in_(COUNTED_VISIT_STATUSES),
+                )
             )
             if territory_id:
                 q_v = q_v.where(Visit.territory_id == territory_id)
@@ -284,7 +340,11 @@ async def team_tracking(
     reps_live = []
     for agent in agents:
         q_v_today = select(func.count(), func.avg(Visit.duration_minutes)).where(
-            and_(Visit.user_id == agent.id, Visit.visit_date == today)
+            and_(
+                Visit.user_id == agent.id,
+                Visit.visit_date == today,
+                Visit.visit_status.in_(COUNTED_VISIT_STATUSES),
+            )
         )
         if territory_id:
             q_v_today = q_v_today.where(Visit.territory_id == territory_id)

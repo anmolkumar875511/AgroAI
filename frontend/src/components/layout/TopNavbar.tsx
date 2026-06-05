@@ -75,6 +75,14 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
   // ────────────────────────────────────────────────────────────────
 
   useEffect(() => {
+    const handleWSNotification = () => {
+      refetchNotifs();
+    };
+    window.addEventListener('agroai_websocket_notification', handleWSNotification);
+    return () => window.removeEventListener('agroai_websocket_notification', handleWSNotification);
+  }, [refetchNotifs]);
+
+  useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
       if (regionRef.current && !regionRef.current.contains(event.target as Node)) {
         setRegionOpen(false);
@@ -94,7 +102,7 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
       <div className="flex items-center justify-between h-full px-4 lg:px-6">
         {/* Left */}
         <div className="flex items-center gap-3">
-          <button onClick={onMenuClick} className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-light-gray dark:hover:bg-white/5 transition-colors">
+          <button onClick={onMenuClick} aria-label="Toggle Navigation Menu" className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-light-gray dark:hover:bg-white/5 transition-all outline-none focus:ring-2 focus:ring-lime-green">
             <Menu className="w-5 h-5 text-text-primary dark:text-white" />
           </button>
           <button onClick={() => navigate('/dashboard')} className="flex items-center gap-2 cursor-pointer">
@@ -107,37 +115,46 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
         <div className="flex items-center gap-2">
           {/* Territory Selector */}
           <div className="relative hidden sm:block" ref={regionRef}>
-            <button onClick={() => setRegionOpen(!regionOpen)}
-              className="flex items-center gap-2 h-9 px-3 rounded-button bg-light-gray dark:bg-white/5 hover:bg-light-gray/80 dark:hover:bg-white/10 transition-colors">
-              <MapPin className="w-4 h-4 text-deep-green dark:text-lime-green" />
-              <span className="text-sm font-semibold text-text-primary dark:text-white">{activeRegion.name}</span>
-              <ChevronDown className="w-3.5 h-3.5 text-text-muted" />
-            </button>
-            {regionOpen && (
-              <div className="absolute top-11 right-0 w-48 bg-white dark:bg-[#1A1D18] border border-light-gray dark:border-white/10 rounded-lg shadow-dropdown overflow-hidden z-50">
-                {regions.map(region => (
-                  <button key={region.id} onClick={() => { setActiveRegionId(region.id); setRegionOpen(false); }}
-                    className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
-                      activeRegion.id === region.id
-                        ? 'bg-lime-green/10 text-deep-green dark:text-lime-green font-semibold'
-                        : 'text-text-primary dark:text-white hover:bg-light-gray/50 dark:hover:bg-white/5'
-                    }`}>
-                    {region.name}
-                  </button>
-                ))}
+            {user?.role === 'manager' || user?.role === 'admin' ? (
+              <>
+                <button onClick={() => setRegionOpen(!regionOpen)} aria-label="Select Territory"
+                  className="flex items-center gap-2 h-9 px-3 rounded-button bg-light-gray dark:bg-white/5 hover:bg-light-gray/80 dark:hover:bg-white/10 transition-all outline-none focus:ring-2 focus:ring-lime-green">
+                  <MapPin className="w-4 h-4 text-deep-green dark:text-lime-green" />
+                  <span className="text-sm font-semibold text-text-primary dark:text-white">{activeRegion.name}</span>
+                  <ChevronDown className="w-3.5 h-3.5 text-text-muted" />
+                </button>
+                {regionOpen && (
+                  <div className="absolute top-11 right-0 w-48 bg-white dark:bg-[#1A1D18] border border-light-gray dark:border-white/10 rounded-lg shadow-dropdown overflow-hidden z-50">
+                    {regions.map(region => (
+                      <button key={region.id} onClick={() => { setActiveRegionId(region.id); setRegionOpen(false); }}
+                        className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                          activeRegion.id === region.id
+                            ? 'bg-lime-green/10 text-deep-green dark:text-lime-green font-semibold'
+                            : 'text-text-primary dark:text-white hover:bg-light-gray/50 dark:hover:bg-white/5'
+                        }`}>
+                        {region.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </>
+            ) : (
+              <div className="flex items-center gap-2 h-9 px-3 rounded-button bg-light-gray/30 dark:bg-white/5 text-text-muted select-none">
+                <MapPin className="w-4 h-4 text-deep-green/60 dark:text-lime-green/60" />
+                <span className="text-sm font-semibold text-text-primary/70 dark:text-white/70">{activeRegion.name}</span>
               </div>
             )}
           </div>
 
           {/* Theme Toggle */}
-          <button onClick={toggleTheme} className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-light-gray dark:hover:bg-white/5 transition-colors">
+          <button onClick={toggleTheme} aria-label="Toggle Dark/Light Theme" className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-light-gray dark:hover:bg-white/5 transition-all outline-none focus:ring-2 focus:ring-lime-green">
             {theme === 'dark' ? <Sun className="w-4 h-4 text-accent-yellow" /> : <Moon className="w-4 h-4 text-text-muted" />}
           </button>
 
           {/* Notifications — CHANGED: live data */}
           <div className="relative">
-            <button onClick={() => setNotifOpen(!notifOpen)}
-              className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-light-gray dark:hover:bg-white/5 transition-colors">
+            <button onClick={() => setNotifOpen(!notifOpen)} aria-label="Toggle Notifications Panel"
+              className="relative w-9 h-9 flex items-center justify-center rounded-full hover:bg-light-gray dark:hover:bg-white/5 transition-all outline-none focus:ring-2 focus:ring-lime-green">
               <Bell className="w-5 h-5 text-text-primary dark:text-white" />
               {unreadCount > 0 && (
                 <span className="absolute -top-0.5 -right-0.5 w-[18px] h-[18px] flex items-center justify-center bg-danger-red text-white text-[10px] font-mono font-bold rounded-full animate-pulse-dot">
@@ -192,7 +209,8 @@ export function TopNavbar({ onMenuClick }: TopNavbarProps) {
           <div className="relative">
             <button
               onClick={() => setUserMenuOpen(!userMenuOpen)}
-              className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center"
+              aria-label="Open User Account Menu"
+              className="w-9 h-9 rounded-full gradient-primary flex items-center justify-center outline-none focus:ring-2 focus:ring-lime-green transition-all"
             >
               <span className="text-[13px] font-semibold text-white">{initials}</span>
             </button>

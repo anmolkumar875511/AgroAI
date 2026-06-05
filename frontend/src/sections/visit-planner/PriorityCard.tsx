@@ -10,6 +10,7 @@ interface PriorityCardProps {
   visit: PriorityVisit;
   retailerId: string;    // NEW — from backend
   territoryId: string;   // NEW — from useAuth user
+  onRouteChanged?: () => void;
 }
 
 const tagColors: Record<string, string> = {
@@ -19,7 +20,7 @@ const tagColors: Record<string, string> = {
   yellow: 'bg-accent-yellow/10 text-accent-yellow',
 };
 
-export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardProps) {
+export function PriorityCard({ visit, retailerId, territoryId, onRouteChanged }: PriorityCardProps) {
   const navigate = useNavigate();
   const [actionState, setActionState] = useState<'idle' | 'loading' | 'completed'>('idle');
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -41,6 +42,7 @@ export function PriorityCard({ visit, retailerId, territoryId }: PriorityCardPro
         new Promise(resolve => setTimeout(resolve, 600))
       ]);
       setActionState('completed');
+      onRouteChanged?.();
     } catch {
       setActionState('idle');
     }
