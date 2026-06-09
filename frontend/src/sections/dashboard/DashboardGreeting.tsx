@@ -29,7 +29,9 @@ export function DashboardGreeting() {
         <h1 className="text-2xl lg:text-3xl font-extrabold tracking-tight text-text-primary dark:text-white drop-shadow-sm">
           {greeting}, <span className="bg-gradient-to-r from-deep-green to-lime-green dark:from-lime-green dark:to-emerald-400 bg-clip-text text-transparent">{firstName}</span>
         </h1>
-        <p className="text-xs font-medium text-text-muted dark:text-white/60 tracking-wide">{dateStr}</p>
+        <p className="text-xs font-medium text-text-muted dark:text-white/60 tracking-wide">
+          Business dashboard · {dateStr}
+        </p>
       </div>
       <div className="z-10 flex-shrink-0">
         <WeatherWidget />

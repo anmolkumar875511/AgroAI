@@ -7,7 +7,6 @@ import { analyticsAPI } from '@/api/client';
 import { FieldEfficiencyChart } from '@/sections/analytics/FieldEfficiencyChart';
 import { RevenuePerVisitChart } from '@/sections/analytics/RevenuePerVisitChart';
 import { RecommendationAcceptanceChart } from '@/sections/analytics/RecommendationAcceptanceChart';
-import { RegionalPerformanceChart } from '@/sections/analytics/RegionalPerformanceChart';
 import { CropRiskTrendsChart } from '@/sections/analytics/CropRiskTrendsChart';
 import { StockUtilizationChart } from '@/sections/analytics/StockUtilizationChart';
 
@@ -57,12 +56,6 @@ export default function AnalyticsPage() {
     { name: 'Pending',  value: Math.round((totalPending / totalSent) * 100), fill: '#FFC107' },
     { name: 'Rejected', value: Math.round((totalRejected / totalSent) * 100), fill: '#E53935' },
   ] : undefined;
-
-  const regionalPerformanceData = data?.regional_performance?.map(r => ({
-    metric: r.metric,
-    yourTerritory: r.your_territory,
-    average: r.average,
-  }));
 
   const cropRiskTrendsData = data?.crop_risk_trends?.map(r => ({
     month: r.month,
@@ -227,7 +220,6 @@ export default function AnalyticsPage() {
         <FieldEfficiencyChart data={fieldEfficiencyData} loading={loading} />
         <RevenuePerVisitChart data={revenuePerVisitData} loading={loading} />
         <RecommendationAcceptanceChart data={acceptancePieData} loading={loading} />
-        <RegionalPerformanceChart data={regionalPerformanceData} loading={loading} />
         <CropRiskTrendsChart data={cropRiskTrendsData} loading={loading} />
         <StockUtilizationChart data={stockUtilizationData} loading={loading} />
       </div>

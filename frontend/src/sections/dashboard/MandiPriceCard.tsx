@@ -89,10 +89,10 @@ export function MandiPriceCard({ prices: injectedPrices }: MandiPriceCardProps) 
       <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-4">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h3 className="font-semibold text-text-primary dark:text-white text-sm">Today's Mandi Prices</h3>
-            <p className="text-[11px] text-text-muted mt-0.5">Click any crop card to open AI Revenue Calculator & crop advisory</p>
+            <h3 className="font-semibold text-text-primary dark:text-white text-sm">Market Price Watch</h3>
+            <p className="text-[11px] text-text-muted mt-0.5">Current mandi rates with estimated revenue and crop advisory.</p>
           </div>
-          <span className="text-[10px] text-text-muted uppercase tracking-wider">Live · data.gov.in</span>
+          <span className="text-[10px] text-text-muted uppercase tracking-wider">Live prices · data.gov.in</span>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
           {prices.slice(0, 4).map((item: DisplayMandiPrice) => {

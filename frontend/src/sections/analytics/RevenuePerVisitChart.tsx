@@ -1,4 +1,4 @@
-import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+import { ComposedChart, Bar, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LabelList } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 
 interface DataPoint { name: string; value: number; value2?: number; }
@@ -8,6 +8,9 @@ const FALLBACK: DataPoint[] = [
   { name: 'Week 1', value: 8200, value2: 8600 }, { name: 'Week 2', value: 9100, value2: 9500 },
   { name: 'Week 3', value: 7800, value2: 8200 }, { name: 'Week 4', value: 10200, value2: 10800 },
 ];
+
+const formatCurrency = (value: number | string) => `₹${Number(value).toLocaleString('en-IN')}`;
+const formatCurrencyShort = (value: number | string) => `₹${(Number(value) / 1000).toFixed(0)}K`;
 
 function ChartSkeleton() {
   return (
@@ -26,14 +29,29 @@ export function RevenuePerVisitChart({ data, loading }: Props) {
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
       <h4 className="font-semibold text-text-primary dark:text-white mb-4">Revenue Per Visit</h4>
       <ResponsiveContainer width="100%" height={250}>
-        <ComposedChart data={chartData}>
+        <ComposedChart data={chartData} margin={{ top: 18, right: 16, left: 18, bottom: 18 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.gridStroke} />
-          <XAxis dataKey="name" tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} />
-          <YAxis tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `₹${(v/1000).toFixed(0)}K`} />
-          <Tooltip contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }} />
+          <XAxis
+            dataKey="name"
+            tick={{ fontSize: 11, fill: ct.tickFill }}
+            axisLine={{ stroke: ct.axisStroke }}
+            label={{ value: '', position: 'insideBottom', offset: -12, fill: ct.tickFill, fontSize: 12 }}
+          />
+          <YAxis
+            tick={{ fontSize: 11, fill: ct.tickFill }}
+            axisLine={{ stroke: ct.axisStroke }}
+            tickFormatter={formatCurrencyShort}
+            label={{ value: 'Revenue per visit', angle: -90, position: 'insideLeft', fill: ct.tickFill, fontSize: 12 }}
+          />
+          <Tooltip
+            formatter={(value) => formatCurrency(value as number | string)}
+            contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }}
+          />
           <Legend wrapperStyle={{ fontSize: '11px', color: ct.legendColor }} />
-          <Bar dataKey="value" name="Revenue" fill="#8BC34A" radius={[4,4,0,0]} animationDuration={800} />
-          <Line type="monotone" dataKey="value2" name="Trend" stroke={ct.isDark ? '#66BB6A' : '#1B5E20'} strokeWidth={2} dot={{ r: 3 }} animationDuration={800} />
+          <Bar dataKey="value" name="Revenue per visit" fill="#8BC34A" radius={[4,4,0,0]} animationDuration={800}>
+            <LabelList dataKey="value" position="top" formatter={formatCurrencyShort} fill={ct.tickFill} fontSize={11} />
+          </Bar>
+          <Line type="monotone" dataKey="value2" name="Revenue trend" stroke={ct.isDark ? '#66BB6A' : '#1B5E20'} strokeWidth={2} dot={{ r: 3 }} animationDuration={800} />
         </ComposedChart>
       </ResponsiveContainer>
     </div>

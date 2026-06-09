@@ -8,8 +8,8 @@ import { useTheme } from '@/contexts/ThemeContext';
 type MapTab = 'risk' | 'visits' | 'retailers';
 
 const tabs: { id: MapTab; label: string }[] = [
-  { id: 'risk',      label: 'Risk' },
-  { id: 'visits',    label: 'Visits' },
+  { id: 'risk',      label: 'Crop Risk' },
+  { id: 'visits',    label: 'Visit Plan' },
   { id: 'retailers', label: 'Retailers' },
 ];
 
@@ -98,7 +98,10 @@ export function MapWidget() {
     <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 h-full flex flex-col overflow-hidden animate-fade-in">
       {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray dark:border-white/5 gap-2 flex-wrap">
-        <h3 className="font-semibold text-text-primary dark:text-white text-sm">Territory Overview</h3>
+        <div>
+          <h3 className="font-semibold text-text-primary dark:text-white text-sm">Territory Business Map</h3>
+          <p className="text-[10px] text-text-muted dark:text-white/45 mt-0.5">Switch between risk zones, visit priorities, and retailer coverage.</p>
+        </div>
         <div className="flex gap-1.5 bg-light-gray/60 dark:bg-white/5 p-1 rounded-xl">
           {tabs.map(tab => (
             <button
@@ -159,8 +162,8 @@ export function MapWidget() {
         {/* Legend */}
         <div className="absolute bottom-4 left-4 flex items-center gap-4 px-4 py-2.5 rounded-2xl bg-white/90 dark:bg-[#142016]/90 backdrop-blur-md shadow-md border border-white/20 dark:border-white/10 z-10 transition-all">
           {[
-            { color: 'bg-red-500 shadow-red-500/50', label: 'Risk' },
-            { color: 'bg-blue-500 shadow-blue-500/50',  label: 'Visits' },
+            { color: 'bg-red-500 shadow-red-500/50', label: 'Crop Risk' },
+            { color: 'bg-blue-500 shadow-blue-500/50',  label: 'Visit Plan' },
             { color: 'bg-green-500 shadow-green-500/50', label: 'Retailers' },
           ].map(l => (
             <div key={l.label} className="flex items-center gap-2">

@@ -23,7 +23,10 @@ export function AIRecommendationsFeed({ territoryId }: AIRecommendationsFeedProp
   return (
     <div className="backdrop-blur-md bg-white/80 dark:bg-[#121b14]/40 rounded-2xl shadow-md border border-white/30 dark:border-white/5 h-full flex flex-col overflow-hidden">
       <div className="flex items-center justify-between px-4 py-3 border-b border-light-gray dark:border-white/5">
-        <h3 className="font-semibold text-text-primary dark:text-white text-sm">AI Recommendations</h3>
+        <div>
+          <h3 className="font-semibold text-text-primary dark:text-white text-sm">Priority AI Actions</h3>
+          <p className="text-[10px] text-text-muted dark:text-white/45 mt-0.5">Urgent crop, weather, and product opportunities.</p>
+        </div>
         <span
           onClick={() => navigate('/recommendations')}
           className="px-2.5 py-1 rounded-full gradient-primary text-white text-[9px] font-bold uppercase tracking-wider cursor-pointer hover:scale-105 transition-all shadow-glow-green"

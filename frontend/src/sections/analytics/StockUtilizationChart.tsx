@@ -1,4 +1,4 @@
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LabelList } from 'recharts';
 import { useChartTheme } from '@/hooks/useChartTheme';
 
 interface StockItem { product: string; utilization: number; stock: number; status: string; }
@@ -36,12 +36,29 @@ export function StockUtilizationChart({ data, loading }: Props) {
     <div className="bg-white dark:bg-white/5 rounded-card shadow-card border border-transparent dark:border-white/5 p-5">
       <h4 className="font-semibold text-text-primary dark:text-white mb-4">Stock Utilization</h4>
       <ResponsiveContainer width="100%" height={250}>
-        <BarChart data={chartData} layout="vertical">
+        <BarChart data={chartData} layout="vertical" margin={{ top: 8, right: 34, left: 12, bottom: 18 }}>
           <CartesianGrid strokeDasharray="3 3" stroke={ct.gridStroke} />
-          <XAxis type="number" tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} tickFormatter={v => `${v}%`} />
-          <YAxis dataKey="product" type="category" tick={{ fontSize: 11, fill: ct.tickFill }} axisLine={{ stroke: ct.axisStroke }} width={72} />
-          <Tooltip contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }} />
+          <XAxis
+            type="number"
+            tick={{ fontSize: 11, fill: ct.tickFill }}
+            axisLine={{ stroke: ct.axisStroke }}
+            tickFormatter={v => `${v}%`}
+            label={{ value: 'Stock utilization (%)', position: 'insideBottom', offset: -12, fill: ct.tickFill, fontSize: 12 }}
+          />
+          <YAxis
+            dataKey="product"
+            type="category"
+            tick={{ fontSize: 11, fill: ct.tickFill }}
+            axisLine={{ stroke: ct.axisStroke }}
+            width={72}
+            label={{ value: 'Product', angle: -90, position: 'insideLeft', fill: ct.tickFill, fontSize: 12 }}
+          />
+          <Tooltip
+            formatter={(value, name) => name === 'Utilization %' ? `${value}%` : value}
+            contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }}
+          />
           <Bar dataKey="utilization" name="Utilization %" radius={[0,4,4,0]} animationDuration={800}>
+            <LabelList dataKey="utilization" position="right" formatter={(value: number | string) => `${value}%`} fill={ct.tickFill} fontSize={11} />
             {chartData.map((entry, i) => <Cell key={i} fill={STATUS_COLORS[entry.status] || '#8BC34A'} />)}
           </Bar>
         </BarChart>

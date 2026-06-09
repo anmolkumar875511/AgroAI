@@ -28,10 +28,25 @@ export function RecommendationAcceptanceChart({ data, loading }: Props) {
       <h4 className="font-semibold text-text-primary dark:text-white mb-4">Recommendation Acceptance</h4>
       <ResponsiveContainer width="100%" height={250}>
         <PieChart>
-          <Pie data={chartData} cx="50%" cy="50%" innerRadius={60} outerRadius={90} paddingAngle={4} dataKey="value" animationDuration={800}>
+          <Pie
+            data={chartData}
+            cx="50%"
+            cy="50%"
+            innerRadius={58}
+            outerRadius={88}
+            paddingAngle={4}
+            dataKey="value"
+            nameKey="name"
+            label={({ name, value }) => `${name}: ${value}%`}
+            labelLine={false}
+            animationDuration={800}
+          >
             {chartData.map((entry, i) => <Cell key={i} fill={entry.fill} />)}
           </Pie>
-          <Tooltip contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }} />
+          <Tooltip
+            formatter={(value) => `${value}%`}
+            contentStyle={{ borderRadius: '12px', border: ct.tooltipBorder, backgroundColor: ct.tooltipBg, color: ct.tooltipColor, fontSize: '13px' }}
+          />
         </PieChart>
       </ResponsiveContainer>
       <div className="text-center -mt-4">
